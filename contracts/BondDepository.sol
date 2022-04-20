@@ -11,8 +11,7 @@ contract BondDepository {
 
     event CreateMarket(uint256 indexed id, uint256 saleAmount, uint256 endTime);
     event CloseMarket(uint256 indexed id);
-    event Bond(uint256 indexed id, uint256 amount, uint256 price);
-    event Tuned(uint256 indexed id, uint64 oldControlVariable, uint64 newControlVariable);
+    event Bond(uint256 indexed id, uint256 amount, uint256 payout);
 
     /* ======== STATE VARIABLES ======== */
 
@@ -36,17 +35,18 @@ contract BondDepository {
     }
 
     struct User {
-
+        uint256 tokenAmount;
+        uint256 tosAmount;
+        uint256 marketID;
+        uint256 endTime;
     }
 
 
     // Storage
     Market[] public markets; // persistent market data
     Metadata[] public metadata; // extraneous market data
-    User[] public users;
 
-    // Queries
-    mapping(address => uint256[]) public marketsForQuote; // market IDs for quote token
+    mapping(address => User[]) public users;
 
     IERC20 public tos;
     IdTOS public dTOS;
@@ -166,27 +166,41 @@ contract BondDepository {
         // give tos amount
         payout_ = ((price * _amount) / 1e5);
 
-        require(0 < (market.capacity - payout_), "Depository : sold out");
+        require(0 <= (market.capacity - payout_), "Depository : sold out");
 
         market.capacity -= payout_;
         market.purchased += _amount;
         market.sold += payout_;
 
+        index_ = notes[_user].length;
         //user정보 저장
+        users[msg.sender].push(
+            User({
+                tokenAmount: _amount,
+                tosAmount: payout_,
+                marketID: _id,
+                endTime: meta.endTime
+            })
+        );
 
-        emit Bond(_id, _amount, price);
-        
-        //staking route
+        emit Bond(_id, _amount, payout_);
+
+        market.quoteToken.safeTransferFrom(msg.sender, address(treasury), _amount);
+
+        //tos staking route
         if(_staking == true) {
 
         }
 
         //종료해야하는지 확인
-
+        if (meta.totalSaleAmount <= market.sold) {
+           market.capacity = 0;
+           emit CloseMarket(_id);
+        }
     }
 
     //LP token Deposit
-    function uniDeposit(
+    function LPDeposit(
 
     )
         external
