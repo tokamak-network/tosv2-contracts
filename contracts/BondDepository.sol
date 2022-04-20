@@ -9,7 +9,7 @@ contract BondDepository {
 
     /* ======== EVENTS ======== */
 
-    event CreateMarket(uint256 indexed id, address indexed baseToken, address indexed quoteToken, uint256 initialPrice);
+    event CreateMarket(uint256 indexed id, uint256 saleAmount, uint256 endTime);
     event CloseMarket(uint256 indexed id);
     event Bond(uint256 indexed id, uint256 amount, uint256 price);
     event Tuned(uint256 indexed id, uint64 oldControlVariable, uint64 newControlVariable);
@@ -18,47 +18,32 @@ contract BondDepository {
 
     // Info about each type of market
     struct Market {
-        uint256 capacity; // capacity remaining
-        IERC20 quoteToken; // token to accept as payment
-        bool capacityInQuote; // capacity limit is in payment token (true) or in OHM (false, default)
-        uint64 totalDebt; // total debt from market
-        uint64 maxPayout; // max tokens in/out (determined by capacityInQuote false/true, respectively)
-        uint64 sold; // base tokens out
+        bool method;        //selling token kinds
+        IERC20 quoteToken;  //token to accept as payment
+        uint256 tokenId;    //uniswapV3 tokenId    
+        uint256 capacity;   //remain sale volume
+        uint256 endSaleTime;    //saleEndTime
+        uint256 sold;       // base tokens out
         uint256 purchased; // quote tokens in
-    }
-
-    // Info for creating new markets
-    struct Terms {
-        bool fixedTerm; // fixed term or fixed expiration
-        uint64 controlVariable; // scaling variable for price
-        uint48 vesting; // length of time from deposit to maturity if fixed-term
-        uint48 conclusion; // timestamp when market no longer offered (doubles as time when market matures if fixed-expiry)
-        uint64 maxDebt; // 9 decimal debt maximum in OHM
     }
 
     // Additional info about market.
     struct Metadata {
-        uint48 lastTune; // last timestamp when control variable was tuned
-        uint48 lastDecay; // last timestamp when market was created and debt was decayed
-        uint48 length; // time from creation to conclusion. used as speed to decay debt.
-        uint48 depositInterval; // target frequency of deposits
-        uint48 tuneInterval; // frequency of tuning
-        uint8 quoteDecimals; // decimals of quote token
+        uint256 tokenPrice;
+        uint256 tosPrice;
+        uint256 endTime;        //saleEndTime
+        uint256 totalSaleAmount; //tos sales volume
     }
 
-    // Control variable adjustment data
-    struct Adjustment {
-        uint64 change;
-        uint48 lastAdjustment;
-        uint48 timeToAdjusted;
-        bool active;
+    struct User {
+
     }
+
 
     // Storage
     Market[] public markets; // persistent market data
-    Terms[] public terms; // deposit construction data
     Metadata[] public metadata; // extraneous market data
-    mapping(uint256 => Adjustment) public adjustments; // control variable changes
+    User[] public users;
 
     // Queries
     mapping(address => uint256[]) public marketsForQuote; // market IDs for quote token
@@ -81,98 +66,58 @@ contract BondDepository {
         tos.approve(address(_staking), 1e45);
     }
 
-    /**
+     /**
      * @notice             creates a new market type
      * @dev                
-     * @param _quoteToken  token used to deposit
-     * @param _market      [총판매량, 초기 가격, 부채에 더해지는 금액]
-     * @param _booleans    [총 판매량 계산할 것인지, deposit할때 currentTime 더할지 말지]
-     * @param _terms       [vesting length (if fixed term) or vested timestamp, conclusion timestamp]
-     * @param _intervals   [deposit interval (seconds), tune interval (seconds)]
+     * @param _check       token을 팔 것인지(true), V3 LP 증가로 팔 것인지(false)
+     * @param _token       토큰 주소 
+     * @param _tokenId     V3 LP 아이디
+     * @param _market      [팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격]
      * @return id_         ID of new bond market
      */
     function create(
-        IERC20 _quoteToken,
-        uint256[3] memory _market,
-        bool[2] memory _booleans,
-        uint256[2] memory _terms,
-        uint32[2] memory _intervals
-    ) external onlyOwner returns (uint256 id_) {
-        // the length of the program, in seconds 
-        uint256 secondsToConclusion = _terms[1] - block.timestamp;
-        
-        // the decimal count of the quote token -> tos is 18 decimals
-        uint256 decimals = IERC20Metadata(address(_quoteToken)).decimals();
-
-        // 총 판매량
-        uint64 targetDebt = uint64(_market[0]);
-
-        // 하루 최대 판매량 (ex : 100개 판매 * 2일 간격 / 10일동안 = 2일간 20개 판매가능 => 10일이면 100개 판매)
-        uint64 maxPayout = uint64((targetDebt * _intervals[0]) / secondsToConclusion);
-
-        // 최대 부채 
-        /*
-         * max debt serves as a circuit breaker for the market. let's say the quote
-         * token is a stablecoin, and that stablecoin depegs. without max debt, the
-         * market would continue to buy until it runs out of capacity. this is
-         * configurable with a 3 decimal buffer (1000 = 1% above initial price).
-         * note that its likely advisable to keep this buffer wide.
-         * note that the buffer is above 100%. i.e. 10% buffer = initial debt * 1.1
-         */
-        uint256 maxDebt = targetDebt + ((targetDebt * _market[2]) / 1e5); // 1e5 = 100,000. 10,000 / 100,000 = 10%.
-
-
-        // 가격 결정 중요 : controlVariable = 가격 * supply(treasury.baseSupply()) / total debt(targetDebt)
-        /*
-         * the control variable is set so that initial price equals the desired
-         * initial price. the control variable is the ultimate determinant of price,
-         * so we compute this last.
-         *
-         * price = control variable * debt ratio
-         * debt ratio = total debt / supply
-         * therefore, control variable = price / debt ratio
-         */
-        uint256 controlVariable = (_market[1] * treasury.baseSupply()) / targetDebt;
-
-        // depositing into, or getting info for, the created market uses this ID
+        bool _check,
+        IERC20 _token,
+        uint256 _tokenId,
+        uint256[4] _market
+    ) 
+        external 
+        onlyOwner
+        returns (uint256 id_)
+    {
         id_ = markets.length;
 
         markets.push(
             Market({
+                method: _check,
                 quoteToken: _quoteToken,
-                capacityInQuote: _booleans[0],
+                tokenId: _tokenId,
                 capacity: _market[0],
-                totalDebt: targetDebt,
-                maxPayout: maxPayout,
+                endSaleTime: _market[1],
                 purchased: 0,
                 sold: 0
             })
         );
 
-        terms.push(
-            Terms({
-                fixedTerm: _booleans[1],
-                controlVariable: uint64(controlVariable),
-                vesting: uint48(_terms[0]),
-                conclusion: uint48(_terms[1]),
-                maxDebt: uint64(maxDebt)
-            })
-        );
+        if(_check == true) {
+            metadata.push(
+                Metadata({
+                    tokenPrice: _market[2],
+                    tosPrice: _market[3],
+                    endTime: _market[1],
+                    totalSaleAmount: _market[0]
+                })
+            );
+        } else {
+            metadata.push(
+                Metadata({
+                    endTime: _market[1],
+                    totalSaleAmount: _market[0]
+                })
+            );
+        }
 
-        metadata.push(
-            Metadata({
-                lastTune: uint48(block.timestamp),
-                lastDecay: uint48(block.timestamp),
-                length: uint48(secondsToConclusion),
-                depositInterval: _intervals[0],
-                tuneInterval: _intervals[1],
-                quoteDecimals: uint8(decimals)
-            })
-        );
-
-        marketsForQuote[address(_quoteToken)].push(id_);
-
-        emit CreateMarket(id_, address(ohm), address(_quoteToken), _market[1]);
+        emit CreateMarket(id_, _market[0], _market[1]);
     }
 
     /**
@@ -180,31 +125,29 @@ contract BondDepository {
      * @param _id          ID of market to close
      */
     function close(uint256 _id) external onlyOwner {
-        terms[_id].conclusion = uint48(block.timestamp);
+        markets[_id].endSaleTime = uint48(block.timestamp);
         markets[_id].capacity = 0;
         emit CloseMarket(_id);
     }
+
 
     /**
      * @notice             deposit quote tokens in exchange for a bond from a specified market
      * @param _id          the ID of the market
      * @param _amount      the amount of quote token to spend
-     * @param _maxPrice    the maximum price at which to buy
-     * @param _user        the recipient of the payout
-     * @param _referral    the front end operator address
-     * @return payout_     the amount of gOHM due
+     * @param _staking     Whether or not to staking
+     * @param _time        staking time
+     * @return payout_     the amount of TOS due
      * @return expiry_     the timestamp at which payout is redeemable
      * @return index_      the user index of the Note (used to redeem or query information)
      */
     function deposit(
         uint256 _id,
         uint256 _amount,
-        uint256 _maxPrice,
-        address _user,
-        address _referral
+        bool _staking,
+        uint256 _time
     )
         external
-        override
         returns (
             uint256 payout_,
             uint256 expiry_,
@@ -212,382 +155,55 @@ contract BondDepository {
         )
     {
         Market storage market = markets[_id];
-        Terms memory term = terms[_id];
-        uint48 currentTime = uint48(block.timestamp);
+        Metadata memory meta = metadata[_id];
+        uint256 currentTime = uint256(block.timestamp);
 
-        // Markets end at a defined timestamp
-        // |-------------------------------------| t
-        require(currentTime < term.conclusion, "Depository: market concluded");
+        require(currentTime < meta.endTime, "Depository : market end");
+        
+        // price * 1000 so need the amount / 1000
+        uint256 price = tokenPrice(_id);
 
-        // Debt and the control variable decay over time
-        _decay(_id, currentTime);
+        // give tos amount
+        payout_ = ((price * _amount) / 1e5);
 
-        // Users input a maximum price, which protects them from price changes after
-        // entering the mempool. max price is a slippage mitigation measure
-        uint256 price = _marketPrice(_id);
-        require(price <= _maxPrice, "Depository: more than max price");
+        require(0 < (market.capacity - payout_), "Depository : sold out");
 
-        /**
-         * payout for the deposit = amount / price
-         *
-         * where
-         * payout = OHM out
-         * amount = quote tokens in
-         * price = quote tokens : ohm (i.e. 42069 DAI : OHM)
-         *
-         * 1e18 = OHM decimals (9) + price decimals (9)
-         */
-        payout_ = ((_amount * 1e18) / price) / (10**metadata[_id].quoteDecimals);
-
-        // markets have a max payout amount, capping size because deposits
-        // do not experience slippage. max payout is recalculated upon tuning
-        require(payout_ <= market.maxPayout, "Depository: max size exceeded");
-
-        /*
-         * each market is initialized with a capacity
-         *
-         * this is either the number of OHM that the market can sell
-         * (if capacity in quote is false),
-         *
-         * or the number of quote tokens that the market can buy
-         * (if capacity in quote is true)
-         */
-        market.capacity -= market.capacityInQuote ? _amount : payout_;
-
-        /**
-         * bonds mature with a cliff at a set timestamp
-         * prior to the expiry timestamp, no payout tokens are accessible to the user
-         * after the expiry timestamp, the entire payout can be redeemed
-         *
-         * there are two types of bonds: fixed-term and fixed-expiration
-         *
-         * fixed-term bonds mature in a set amount of time from deposit
-         * i.e. term = 1 week. when alice deposits on day 1, her bond
-         * expires on day 8. when bob deposits on day 2, his bond expires day 9.
-         *
-         * fixed-expiration bonds mature at a set timestamp
-         * i.e. expiration = day 10. when alice deposits on day 1, her term
-         * is 9 days. when bob deposits on day 2, his term is 8 days.
-         */
-        expiry_ = term.fixedTerm ? term.vesting + currentTime : term.vesting;
-
-        // markets keep track of how many quote tokens have been
-        // purchased, and how much OHM has been sold
+        market.capacity -= payout_;
         market.purchased += _amount;
-        market.sold += uint64(payout_);
+        market.sold += payout_;
 
-        // incrementing total debt raises the price of the next bond
-        market.totalDebt += uint64(payout_);
+        //user정보 저장
 
         emit Bond(_id, _amount, price);
+        
+        //staking route
+        if(_staking == true) {
 
-        /**
-         * user data is stored as Notes. these are isolated array entries
-         * storing the amount due, the time created, the time when payout
-         * is redeemable, the time when payout was redeemed, and the ID
-         * of the market deposited into
-         */
-        index_ = addNote(_user, payout_, uint48(expiry_), uint48(_id), _referral);
-
-        // transfer payment to treasury
-        market.quoteToken.safeTransferFrom(msg.sender, address(treasury), _amount);
-
-        // if max debt is breached, the market is closed
-        // this a circuit breaker
-        if (term.maxDebt < market.totalDebt) {
-            market.capacity = 0;
-            emit CloseMarket(_id);
-        } else {
-            // if market will continue, the control variable is tuned to hit targets on time
-            _tune(_id, currentTime);
-        }
-    }
-
-        /**
-     * @notice             decay debt, and adjust control variable if there is an active change
-     * @param _id          ID of market
-     * @param _time        uint48 timestamp (saves gas when passed in)
-     */
-    function _decay(uint256 _id, uint48 _time) internal {
-        // Debt decay
-
-        /*
-         * Debt is a time-decayed sum of tokens spent in a market
-         * Debt is added when deposits occur and removed over time
-         * |
-         * |    debt falls with
-         * |   / \  inactivity       / \
-         * | /     \              /\/    \
-         * |         \           /         \
-         * |           \      /\/            \
-         * |             \  /  and rises       \
-         * |                with deposits
-         * |
-         * |------------------------------------| t
-         */
-        markets[_id].totalDebt -= debtDecay(_id);
-        metadata[_id].lastDecay = _time;
-
-        // Control variable decay
-
-        // The bond control variable is continually tuned. When it is lowered (which
-        // lowers the market price), the change is carried out smoothly over time.
-        if (adjustments[_id].active) {
-            Adjustment storage adjustment = adjustments[_id];
-
-            (uint64 adjustBy, uint48 secondsSince, bool stillActive) = _controlDecay(_id);
-            terms[_id].controlVariable -= adjustBy;
-
-            if (stillActive) {
-                adjustment.change -= adjustBy;
-                adjustment.timeToAdjusted -= secondsSince;
-                adjustment.lastAdjustment = _time;
-            } else {
-                adjustment.active = false;
-            }
-        }
-    }
-
-    /**
-     * @notice             auto-adjust control variable to hit capacity/spend target
-     * @param _id          ID of market
-     * @param _time        uint48 timestamp (saves gas when passed in)
-     */
-    function _tune(uint256 _id, uint48 _time) internal {
-        Metadata memory meta = metadata[_id];
-
-        if (_time >= meta.lastTune + meta.tuneInterval) {
-            Market memory market = markets[_id];
-
-            // compute seconds remaining until market will conclude
-            uint256 timeRemaining = terms[_id].conclusion - _time;
-            uint256 price = _marketPrice(_id);
-
-            // standardize capacity into an base token amount
-            // ohm decimals (9) + price decimals (9)
-            uint256 capacity = market.capacityInQuote
-                ? ((market.capacity * 1e18) / price) / (10**meta.quoteDecimals)
-                : market.capacity;
-
-            /**
-             * calculate the correct payout to complete on time assuming each bond
-             * will be max size in the desired deposit interval for the remaining time
-             *
-             * i.e. market has 10 days remaining. deposit interval is 1 day. capacity
-             * is 10,000 OHM. max payout would be 1,000 OHM (10,000 * 1 / 10).
-             */
-            markets[_id].maxPayout = uint64((capacity * meta.depositInterval) / timeRemaining);
-
-            // calculate the ideal total debt to satisfy capacity in the remaining time
-            uint256 targetDebt = (capacity * meta.length) / timeRemaining;
-
-            // derive a new control variable from the target debt and current supply
-            uint64 newControlVariable = uint64((price * treasury.baseSupply()) / targetDebt);
-
-            emit Tuned(_id, terms[_id].controlVariable, newControlVariable);
-
-            if (newControlVariable >= terms[_id].controlVariable) {
-                terms[_id].controlVariable = newControlVariable;
-            } else {
-                // if decrease, control variable change will be carried out over the tune interval
-                // this is because price will be lowered
-                uint64 change = terms[_id].controlVariable - newControlVariable;
-                adjustments[_id] = Adjustment(change, _time, meta.tuneInterval, true);
-            }
-            metadata[_id].lastTune = _time;
-        }
-    }
-    
-
-    /* ======== EXTERNAL VIEW ======== */
-
-    /**
-     * @notice             payout due for amount of quote tokens
-     * @dev                accounts for debt and control variable decay so it is up to date
-     * @param _amount      amount of quote tokens to spend
-     * @param _id          ID of market
-     * @return             amount of TOS to be paid in TOS decimals
-     *
-     * @dev 1e18 = ohm decimals (9) + market price decimals (9)
-     */
-    function payoutFor(uint256 _amount, uint256 _id) external view override returns (uint256) {
-        Metadata memory meta = metadata[_id];
-        return (_amount * 1e18) / marketPrice(_id) / 10**meta.quoteDecimals;
-    }
-
-    /**
-     * @notice             calculate current market price of quote token in base token
-     * @dev                accounts for debt and control variable decay since last deposit (vs _marketPrice())
-     * @param _id          ID of market
-     * @return             price for market in OHM decimals
-     *
-     * price is derived from the equation
-     *
-     * p = cv * dr
-     *
-     * where
-     * p = price
-     * cv = control variable
-     * dr = debt ratio
-     *
-     * dr = d / s
-     *
-     * where
-     * d = debt
-     * s = supply of token at market creation
-     *
-     * d -= ( d * (dt / l) )
-     *
-     * where
-     * dt = change in time
-     * l = length of program
-     */
-    function marketPrice(uint256 _id) public view override returns (uint256) {
-        return (currentControlVariable(_id) * debtRatio(_id)) / (10**metadata[_id].quoteDecimals);
-    }
-
-    /**
-     * @notice             up to date control variable
-     * @dev                accounts for control variable adjustment
-     * @param _id          ID of market
-     * @return             control variable for market in OHM decimals
-     */
-    function currentControlVariable(uint256 _id) public view returns (uint256) {
-        (uint64 decay, , ) = _controlDecay(_id);
-        return terms[_id].controlVariable - decay;
-    }
-
-    /**
-     * @notice             calculate current ratio of debt to supply
-     * @dev                uses current debt, which accounts for debt decay since last deposit (vs _debtRatio())
-     * @param _id          ID of market
-     * @return             debt ratio for market in quote decimals
-     */
-    function debtRatio(uint256 _id) public view override returns (uint256) {
-        return (currentDebt(_id) * (10**metadata[_id].quoteDecimals)) / treasury.baseSupply();
-    }
-
-    /**
-     * @notice             calculate debt factoring in decay
-     * @dev                accounts for debt decay since last deposit
-     * @param _id          ID of market
-     * @return             current debt for market in OHM decimals
-     */
-    function currentDebt(uint256 _id) public view override returns (uint256) {
-        return markets[_id].totalDebt - debtDecay(_id);
-    }
-
-    /**
-     * @notice             amount of debt to decay from total debt for market ID
-     * @param _id          ID of market
-     * @return             amount of debt to decay
-     */
-    function debtDecay(uint256 _id) public view override returns (uint64) {
-        Metadata memory meta = metadata[_id];
-
-        uint256 secondsSince = block.timestamp - meta.lastDecay;
-
-        return uint64((markets[_id].totalDebt * secondsSince) / meta.length);
-    }
-
-    /**
-     * @notice             is a given market accepting deposits
-     * @param _id          ID of market
-     */
-    function isLive(uint256 _id) public view override returns (bool) {
-        return (markets[_id].capacity != 0 && terms[_id].conclusion > block.timestamp);
-    }
-
-    /**
-     * @notice returns an array of all active market IDs
-     */
-    function liveMarkets() external view override returns (uint256[] memory) {
-        uint256 num;
-        for (uint256 i = 0; i < markets.length; i++) {
-            if (isLive(i)) num++;
         }
 
-        uint256[] memory ids = new uint256[](num);
-        uint256 nonce;
-        for (uint256 i = 0; i < markets.length; i++) {
-            if (isLive(i)) {
-                ids[nonce] = i;
-                nonce++;
-            }
-        }
-        return ids;
+        //종료해야하는지 확인
+
     }
 
-    /**
-     * @notice             returns an array of all active market IDs for a given quote token
-     * @param _token       quote token to check for
-     */
-    function liveMarketsFor(address _token) external view override returns (uint256[] memory) {
-        uint256[] memory mkts = marketsForQuote[_token];
-        uint256 num;
+    //LP token Deposit
+    function uniDeposit(
 
-        for (uint256 i = 0; i < mkts.length; i++) {
-            if (isLive(mkts[i])) num++;
-        }
-
-        uint256[] memory ids = new uint256[](num);
-        uint256 nonce;
-
-        for (uint256 i = 0; i < mkts.length; i++) {
-            if (isLive(mkts[i])) {
-                ids[nonce] = mkts[i];
-                nonce++;
-            }
-        }
-        return ids;
-    }
-
-    /* ======== INTERNAL VIEW ======== */
-
-    /**
-     * @notice                  calculate current market price of quote token in base token
-     * @dev                     see marketPrice() for explanation of price computation
-     * @dev                     uses info from storage because data has been updated before call (vs marketPrice())
-     * @param _id               market ID
-     * @return                  price for market in OHM decimals
-     */
-    function _marketPrice(uint256 _id) internal view returns (uint256) {
-        return (terms[_id].controlVariable * _debtRatio(_id)) / (10**metadata[_id].quoteDecimals);
-    }
-
-    /**
-     * @notice                  calculate debt factoring in decay
-     * @dev                     uses info from storage because data has been updated before call (vs debtRatio())
-     * @param _id               market ID
-     * @return                  current debt for market in quote decimals
-     */
-    function _debtRatio(uint256 _id) internal view returns (uint256) {
-        return (markets[_id].totalDebt * (10**metadata[_id].quoteDecimals)) / treasury.baseSupply();
-    }
-
-    /**
-     * @notice                  amount to decay control variable by
-     * @param _id               ID of market
-     * @return decay_           change in control variable
-     * @return secondsSince_    seconds since last change in control variable
-     * @return active_          whether or not change remains active
-     */
-    function _controlDecay(uint256 _id)
-        internal
-        view
+    )
+        external
         returns (
-            uint64 decay_,
-            uint48 secondsSince_,
-            bool active_
-        )
+            uint256 payout_
+        ) 
     {
-        Adjustment memory info = adjustments[_id];
-        if (!info.active) return (0, 0, false);
 
-        secondsSince_ = uint48(block.timestamp) - info.lastAdjustment;
+    }
 
-        active_ = secondsSince_ < info.timeToAdjusted;
-        decay_ = active_ ? (info.change * secondsSince_) / info.timeToAdjusted : info.change;
+    function tokenPrice(uint256 _id) external view returns (uint256 price) {
+        Metadata memory meta = metadata[_id];
+        return ((meta.tokenPrice * 1e5)/meta.tosPrice);
+    }
+
+    function remainingAmount() external view returns (uint256) {
+
     }
 
 }
