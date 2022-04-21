@@ -160,8 +160,8 @@ contract BondDepository {
 
         require(currentTime < meta.endTime, "Depository : market end");
         
-        // price * 1000 so need the amount / 1000
-        uint256 price = tokenPrice(_id);
+        // price * 100000 so need the amount / 100000
+        uint256 price = ((meta.tokenPrice * 1e5)/meta.tosPrice);
 
         // give tos amount
         payout_ = ((price * _amount) / 1e5);
@@ -183,6 +183,11 @@ contract BondDepository {
             })
         );
 
+        //if have reward, give reward (market reward)
+
+        //tos를 산만큼 treasury에서 mint함
+        treasury.mint(address(this), _payout);        
+
         emit Bond(_id, _amount, payout_);
 
         market.quoteToken.safeTransferFrom(msg.sender, address(treasury), _amount);
@@ -193,7 +198,7 @@ contract BondDepository {
         }
 
         //종료해야하는지 확인
-        if (meta.totalSaleAmount <= market.sold) {
+        if (meta.totalSaleAmount <= (market.sold + 1e18)) {
            market.capacity = 0;
            emit CloseMarket(_id);
         }
@@ -211,13 +216,15 @@ contract BondDepository {
 
     }
 
-    function tokenPrice(uint256 _id) external view returns (uint256 price) {
+    function tokenPrice(uint256 _id) internal view returns (uint256 price) {
         Metadata memory meta = metadata[_id];
         return ((meta.tokenPrice * 1e5)/meta.tosPrice);
     }
 
-    function remainingAmount() external view returns (uint256) {
-
+    //market에서 tos를 최대로 구매할 수 있는 양
+    function remainingAmount(uint256 _id) external view returns (uint256 tokenAmount) {
+        Metadata memory meta = metadata[_id];
+        return ((meta.capacity*1e5)/tokenPrice(_id));
     }
 
 }
