@@ -3,8 +3,16 @@ pragma solidity ^0.8.10;
 
 import "./libraries/SafeERC20.sol";
 
+import "./interfaces/IERC20Metadata.sol";
 
-contract BondDepository {
+import "./interfaces/IdTOS.sol";
+import "./interfaces/IStaking.sol";
+import "./interfaces/ITreasury.sol";
+import "./interfaces/IBondDepository.sol";
+
+import "./common/ProxyAccessCommon.sol";
+
+contract BondDepository is IBondDepository, ProxyAccessCommon {
     using SafeERC20 for IERC20;
 
     /* ======== EVENTS ======== */
@@ -14,33 +22,6 @@ contract BondDepository {
     event Bond(uint256 indexed id, uint256 amount, uint256 payout);
 
     /* ======== STATE VARIABLES ======== */
-
-    // Info about each type of market
-    struct Market {
-        bool method;        //selling token kinds
-        IERC20 quoteToken;  //token to accept as payment
-        uint256 tokenId;    //uniswapV3 tokenId    
-        uint256 capacity;   //remain sale volume
-        uint256 endSaleTime;    //saleEndTime
-        uint256 sold;       // base tokens out
-        uint256 purchased; // quote tokens in
-    }
-
-    // Additional info about market.
-    struct Metadata {
-        uint256 tokenPrice;
-        uint256 tosPrice;
-        uint256 endTime;        //saleEndTime
-        uint256 totalSaleAmount; //tos sales volume
-    }
-
-    struct User {
-        uint256 tokenAmount;
-        uint256 tosAmount;
-        uint256 marketID;
-        uint256 endTime;
-    }
-
 
     // Storage
     Market[] public markets; // persistent market data
@@ -79,9 +60,10 @@ contract BondDepository {
         bool _check,
         IERC20 _token,
         uint256 _tokenId,
-        uint256[4] _market
+        uint256[4] calldata _market
     ) 
-        external 
+        external
+        override 
         onlyOwner
         returns (uint256 id_)
     {
@@ -90,7 +72,7 @@ contract BondDepository {
         markets.push(
             Market({
                 method: _check,
-                quoteToken: _quoteToken,
+                quoteToken: _token,
                 tokenId: _tokenId,
                 capacity: _market[0],
                 endSaleTime: _market[1],
@@ -111,6 +93,8 @@ contract BondDepository {
         } else {
             metadata.push(
                 Metadata({
+                    tokenPrice: 0,
+                    tosPrice: 0,
                     endTime: _market[1],
                     totalSaleAmount: _market[0]
                 })
@@ -138,7 +122,6 @@ contract BondDepository {
      * @param _staking     Whether or not to staking
      * @param _time        staking time
      * @return payout_     the amount of TOS due
-     * @return expiry_     the timestamp at which payout is redeemable
      * @return index_      the user index of the Note (used to redeem or query information)
      */
     function deposit(
@@ -148,9 +131,9 @@ contract BondDepository {
         uint256 _time
     )
         external
+        override
         returns (
             uint256 payout_,
-            uint256 expiry_,
             uint256 index_
         )
     {
@@ -172,7 +155,7 @@ contract BondDepository {
         market.purchased += _amount;
         market.sold += payout_;
 
-        index_ = notes[_user].length;
+        index_ = users[msg.sender].length;
         //user정보 저장
         users[msg.sender].push(
             User({
@@ -186,7 +169,7 @@ contract BondDepository {
         //if have reward, give reward (market reward)
 
         //tos를 산만큼 treasury에서 mint함
-        treasury.mint(address(this), _payout);        
+        treasury.mint(address(this), payout_);        
 
         emit Bond(_id, _amount, payout_);
 
@@ -222,9 +205,9 @@ contract BondDepository {
     }
 
     //market에서 tos를 최대로 구매할 수 있는 양
-    function remainingAmount(uint256 _id) external view returns (uint256 tokenAmount) {
-        Metadata memory meta = metadata[_id];
-        return ((meta.capacity*1e5)/tokenPrice(_id));
+    function remainingAmount(uint256 _id) external override view returns (uint256 tokenAmount) {
+        Market memory market = markets[_id];
+        return ((market.capacity*1e5)/tokenPrice(_id));
     }
 
 }

@@ -7,7 +7,9 @@ import "./libraries/SafeERC20.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IERC20Metadata.sol";
 
-contract Treasury {
+import "./interfaces/ITreasury.sol";
+
+contract Treasury is ITreasury {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -77,6 +79,11 @@ contract Treasury {
     function mint(address _recipient, uint256 _amount) external {
         TOS.mint(_recipient, _amount);
         emit Minted(msg.sender, _recipient, _amount);
+    }
+
+
+    function rebase() public returns (uint256) {
+        
     }
 
     /**
