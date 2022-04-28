@@ -119,7 +119,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
      * @notice             deposit quote tokens in exchange for a bond from a specified market
      * @param _id          the ID of the market
      * @param _amount      the amount of quote token to spend
-     * @param _staking     Whether or not to staking
+     * @param _claim       Whether or not to claim
      * @param _time        staking time
      * @return payout_     the amount of TOS due
      * @return index_      the user index of the Note (used to redeem or query information)
@@ -127,8 +127,8 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
     function deposit(
         uint256 _id,
         uint256 _amount,
-        bool _staking,
-        uint256 _time
+        uint256 _time,
+        bool _claim
     )
         external
         override
@@ -175,11 +175,9 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
 
         market.quoteToken.safeTransferFrom(msg.sender, address(treasury), _amount);
 
-        //tos staking route
-        if(_staking == true) {
-
-        }
-
+        //tos staking route        
+        staking.stake(msg.sender,_amount,_time,_claim);
+        
         //종료해야하는지 확인
         if (meta.totalSaleAmount <= (market.sold + 1e18)) {
            market.capacity = 0;

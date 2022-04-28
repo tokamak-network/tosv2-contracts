@@ -28,10 +28,17 @@ contract Staking is IStaking {
 
     struct Claim {
         uint256 deposit; // if forfeiting
-        uint256 gons; // staked balance
-        uint256 expiry; // end of warmup period
         uint256 startTime;
+        uint256 expiry; // end of warmup period
+        uint256 debt; // 이미 받아간 claim 양
         bool lock; // prevents malicious delays for claim
+    }
+
+    struct Reward {
+        address user;
+        uint256 allReward;
+        uint256 getReward;
+        uint256 nowReward;
     }
 
     /* ========== STATE VARIABLES ========== */
@@ -41,7 +48,9 @@ contract Staking is IStaking {
     Epoch public epoch;
 
     mapping(address => Claim) public warmupInfo;
+    mapping(uint256 => Reward) public rewards;
     uint256 public warmupPeriod;
+    uint256 public apyPercent;
     uint256 private gonsInWarmup;
 
     constructor(
@@ -72,16 +81,30 @@ contract Staking is IStaking {
         bool _claim
     ) external returns (uint256) {
         TOS.safeTransferFrom(msg.sender, address(this), _amount);
-        _amount = _amount; // add bounty if rebase occurred
-
         Claim memory info = warmupInfo[_to];
+        uint256 reward = 0;
+        checkEpoch();
         
+        //이전 stake 내용이 만기가 되었을때
+        if(info.expiry < block.timestamp && info.expiry != 0) {
+            uint256 diffDay = (info.expiry - info.startTime) / 1 days;
+            //줘야하는 금액을 계산해줌
+            treasury.mint(_to, reward);
+        }
+
+        if(_claim == true) {
+            uint256 diffDay = (block.timestamp - info.startTime) / 1 days;
+            //줘야하는 금액을 계산해줌
+            treasury.mint(_to, reward);
+        }
+
         warmupInfo[_to] = Claim({
-                deposit: info.deposit.add(_amount),
-                gons: info.gons.add(TOS.gonsForBalance(_amount)),
-                expiry: epoch.number.add(warmupPeriod),
-                lock: info.lock
-            });
+            deposit: info.deposit.add(_amount),
+            startTime: block.timestamp,
+            expiry: block.timestamp.add(_time),
+            debt: debt.add(reward),
+            lock: info.lock
+        });
 
         return _amount;
     }
@@ -95,11 +118,21 @@ contract Staking is IStaking {
     function claim(address _to, bool _rebasing) public returns (uint256) {
         Claim memory info = warmupInfo[_to];
 
+        uint256 currentTime = block.timestamp;
        
     }
 
+    //Epoch시간 되었는지 확인
     function checkEpoch() public returns (bool) {
+        if(epoch.end <= block.timestamp) {
+            uint256 difftime = block.timestamp.sub(epoch.end);
+            uint256 count = (difftime/epoch.length);
+            epoch.end += (epoch.length*count);
+            epoch.number.add(count);
 
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -110,5 +143,38 @@ contract Staking is IStaking {
         warmupPeriod = _warmupPeriod;
         emit WarmupSet(_warmupPeriod);
     }
+    
+    /**
+     * @notice set setAPY for stakers (30% -> input 30)
+     * @param _apy uint
+     */
+    function setAPY(uint256 _apy) external onlyOwner {
+        apyPercent = _apy;
+    }
+
+    function rebase() external {
+
+    }
+
+    function distribute() external override {
+        require(msg.sender == staking, "Only staking");
+        // distribute rewards to each recipient
+        for (uint256 i = 0; i < info.length; i++) {
+            if (info[i].rate > 0) {
+                treasury.mint(info[i].recipient, nextRewardAt(info[i].rate)); // mint and send tokens
+                adjust(i); // check for adjustment
+            }
+        }
+    }
+
+    /**
+        @notice view function for next reward at given rate
+        @param _rate uint
+        @return uint
+     */
+    function nextRewardAt(uint256 _rate) public view override returns (uint256) {
+        return TOS.totalSupply().mul(_rate).div(rateDenominator);
+    }
+
 
 }
