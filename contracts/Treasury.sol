@@ -17,15 +17,27 @@ contract Treasury is ITreasury {
     event Withdrawal(address indexed token, uint256 amount, uint256 value);
     event Minted(address indexed caller, address indexed recipient, uint256 amount);
 
+    enum STATUS {
+        RESERVEDEPOSITOR,
+        RESERVESPENDER,
+        RESERVETOKEN,
+        RESERVEMANAGER,
+        LIQUIDITYDEPOSITOR,
+        LIQUIDITYTOKEN,
+        LIQUIDITYMANAGER,
+        RESERVEDEBTOR,
+        REWARDMANAGER
+    }
 
     ITOS public TOS;
 
+    mapping(STATUS => address[]) public registry;
+    mapping(STATUS => mapping(address => bool)) public permissions;
     mapping(address => address) public bondCalculator;
 
     uint256 public totalReserves;
 
     uint256 public immutable blocksNeededForQueue;
-
     
     constructor(
         address _tos,
@@ -79,11 +91,6 @@ contract Treasury is ITreasury {
     function mint(address _recipient, uint256 _amount) external {
         TOS.mint(_recipient, _amount);
         emit Minted(msg.sender, _recipient, _amount);
-    }
-
-
-    function rebase() public returns (uint256) {
-        
     }
 
     /**

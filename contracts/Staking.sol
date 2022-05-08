@@ -20,7 +20,7 @@ contract Staking is IStaking {
     /* ========== DATA STRUCTURES ========== */
 
     struct Epoch {
-        uint256 length; // in seconds
+        uint256 length; // in seconds (epoch간격)
         uint256 number; // since inception
         uint256 end; // timestamp
         uint256 distribute; // amount
@@ -30,15 +30,18 @@ contract Staking is IStaking {
         uint256 deposit; // if forfeiting
         uint256 startTime;
         uint256 expiry; // end of warmup period
-        uint256 debt; // 이미 받아간 claim 양
+        uint256 epoNum; // 현재 epochNumber
         bool lock; // prevents malicious delays for claim
     }
 
     struct Reward {
-        address user;
-        uint256 allReward;
-        uint256 getReward;
-        uint256 nowReward;
+        uint256 getReward;  // 이미 받아간 claim 양
+        uint256 nowReward;  // 자금 받을 수 있는 claim 양
+    }
+
+    struct Info {
+        uint256 amount; // 복리 계산 금액
+        address recipient;
     }
 
     /* ========== STATE VARIABLES ========== */
@@ -47,11 +50,12 @@ contract Staking is IStaking {
 
     Epoch public epoch;
 
-    mapping(address => Claim) public warmupInfo;
-    mapping(uint256 => Reward) public rewards;
-    uint256 public warmupPeriod;
-    uint256 public apyPercent;
-    uint256 private gonsInWarmup;
+    Info[] public info;
+
+    mapping(address => Claim) public claimInfo;
+    mapping(address => Reward) public rewards;
+    uint256 public rebaseRate;
+    uint256 public rebasePerday;
 
     constructor(
         address _tos,
@@ -80,31 +84,40 @@ contract Staking is IStaking {
         uint256 _time,
         bool _claim
     ) external returns (uint256) {
-        TOS.safeTransferFrom(msg.sender, address(this), _amount);
-        Claim memory info = warmupInfo[_to];
+        TOS.safeTransferFrom(_to, address(this), _amount);
+        Claim memory claimInfos = warmupInfo[_to];
         uint256 reward = 0;
-        checkEpoch();
+        rebase();
         
         //이전 stake 내용이 만기가 되었을때
-        if(info.expiry < block.timestamp && info.expiry != 0) {
-            uint256 diffDay = (info.expiry - info.startTime) / 1 days;
+        if(claimInfos.expiry < block.timestamp && claimInfos.expiry != 0) {
+            uint256 diffDay = (claimInfos.expiry - claimInfos.startTime) / 1 days;
             //줘야하는 금액을 계산해줌
             treasury.mint(_to, reward);
         }
 
         if(_claim == true) {
-            uint256 diffDay = (block.timestamp - info.startTime) / 1 days;
+            uint256 diffDay = (block.timestamp - claimInfos.startTime) / 1 days;
             //줘야하는 금액을 계산해줌
             treasury.mint(_to, reward);
         }
 
-        warmupInfo[_to] = Claim({
-            deposit: info.deposit.add(_amount),
+        info.push(Info({recipient: _to, amount: claimInfos.deposit.add(_amount)}));
+        
+        rewards[_to] = Reward({
+            getReward: 0,
+            nowReward: 0
+        });
+        
+
+        claimInfo[_to] = Claim({
+            deposit: claimInfo.deposit.add(_amount),
             startTime: block.timestamp,
             expiry: block.timestamp.add(_time),
-            debt: debt.add(reward),
-            lock: info.lock
+            epoNum: epoch.number,
+            lock: claimInfo.lock
         });
+
 
         return _amount;
     }
@@ -116,64 +129,68 @@ contract Staking is IStaking {
      * @return uint
      */
     function claim(address _to, bool _rebasing) public returns (uint256) {
-        Claim memory info = warmupInfo[_to];
+        Claim memory claimInfos = claimInfo[_to];
+        Reward storage rewardInfo = rewards[_to];
 
         uint256 currentTime = block.timestamp;
+
+        lTOS.mint(_to, rewardInfo.nowReward);
+
+        rewardInfo.getReward +=  rewardInfo.nowReward;
+
        
     }
 
-    //Epoch시간 되었는지 확인
-    function checkEpoch() public returns (bool) {
-        if(epoch.end <= block.timestamp) {
-            uint256 difftime = block.timestamp.sub(epoch.end);
-            uint256 count = (difftime/epoch.length);
-            epoch.end += (epoch.length*count);
-            epoch.number.add(count);
+    function unstake() external returns (uint256) {
 
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * @notice set warmup period for new stakers
-     * @param _warmupPeriod uint
-     */
-    function setWarmupLength(uint256 _warmupPeriod) external onlyOwner {
-        warmupPeriod = _warmupPeriod;
-        emit WarmupSet(_warmupPeriod);
     }
     
     /**
-     * @notice set setAPY for stakers (30% -> input 30)
-     * @param _apy uint
+     * @notice set rebase_rate for stakers (30% -> input 3000)
+     * @param _rate uint
      */
-    function setAPY(uint256 _apy) external onlyOwner {
-        apyPercent = _apy;
+    function setRate(uint256 _rate) external onlyOwner {
+        rebaseRate = _rate;
+    }
+
+    /**
+     * @notice set rebase per day
+     * @param _rebase uint
+     */
+    function rebasePerday(uint256 _rebase) external onlyOwner {
+        rebasePerday = _rebase;
+        epoch.length = (86400 / rebasePerday);
     }
 
     function rebase() external {
+        if(epoch.end <= block.timestamp) {
+            epoch.end = epoch.end.add(epoch.length);
+            epoch.number++;
 
+            distribute();
+        }
     }
 
     function distribute() external override {
-        require(msg.sender == staking, "Only staking");
+        require(msg.sender == address(this), "Only staking");
         // distribute rewards to each recipient
         for (uint256 i = 0; i < info.length; i++) {
-            if (info[i].rate > 0) {
-                treasury.mint(info[i].recipient, nextRewardAt(info[i].rate)); // mint and send tokens
-                adjust(i); // check for adjustment
+            if (info[i].amount > 0) {
+                info[i].amount = nextRewardAt(info[i].amount); // calculate the interest
+                rewards[info[i].recipient].nowReward = info[i].amount;
             }
         }
     }
 
     /**
         @notice view function for next reward at given rate
-        @param _rate uint
+        @param _user address
+        @param _amount uint
         @return uint
      */
-    function nextRewardAt(uint256 _rate) public view override returns (uint256) {
-        return TOS.totalSupply().mul(_rate).div(rateDenominator);
+    function nextRewardAt(uint256 _amount) public view returns (uint256 reward_) {
+        reward_ = ((_amount * 100) + ((_amount * rebaseRate) / 100)) / 100;
+        return reward_;
     }
 
 
