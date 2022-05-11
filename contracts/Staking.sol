@@ -136,7 +136,7 @@ contract Staking is IStaking {
 
         lTOS.mint(_to, rewardInfo.nowReward);
 
-        rewardInfo.getReward +=  rewardInfo.nowReward;
+        rewardInfo.getReward += rewardInfo.nowReward;
 
        
     }
