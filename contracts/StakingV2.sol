@@ -39,14 +39,16 @@ contract OlympusStaking is OlympusAccessControlled {
     struct Users {
         uint256 deposit;    // if forfeiting
         uint256 startTime;  // 시작 startTime
-        uint256 epoNum;     // 시작 epochNumber
         uint256 epoEnd;     // lock기간
         uint256 getReward;  // 이미 받아간 claim 양
+        bool claim;         // claim 유무          
     }
 
     /* ========== STATE VARIABLES ========== */
 
     IERC20 public immutable TOS;
+    ITreasury public treasury;
+
 
     Epoch public epoch;
 
@@ -80,7 +82,8 @@ contract OlympusStaking is OlympusAccessControlled {
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochTime,
-        address _authority
+        address _authority,
+        ITreasury _treasury
     ) OlympusAccessControlled(IOlympusAuthority(_authority)) {
         require(_tos != address(0), "Zero address : TOS");
         TOS = IERC20(_tos);
@@ -88,6 +91,8 @@ contract OlympusStaking is OlympusAccessControlled {
 
         LTOSSupply = INITIAL_FRAGMENTS_SUPPLY;
         _gonsPerFragment = TOTAL_GONS.div(LTOSSupply);
+
+        treasury = _treasury;
     }
 
     /* ========== SET VALUE ========== */
@@ -138,37 +143,14 @@ contract OlympusStaking is OlympusAccessControlled {
         userInfo[_to] = Users({
             deposit: info.deposit.add(_amount),
             startTime: block.timestamp,
-            epoNum: epoch.number,
             epoEnd: block.timestamp + _period,
-            getReward: info.getReward
+            getReward: info.getReward,
+            claim: false
         });
 
         gonsInWarmup = gonsInWarmup.add(gonsForBalance(_amount));
 
         return _amount;
-    }
-
-    /**
-     * @notice retrieve stake from warmup
-     * @param _to address
-     * @param _rebasing bool
-     * @return uint
-     */
-    function claim(address _to, bool _rebasing) internal returns (uint256) {
-        Claim memory info = warmupInfo[_to];
-
-        if (!info.lock) {
-            require(_to == msg.sender, "External claims for account are locked");
-        }
-
-        if (epoch.number >= info.expiry && info.expiry != 0) {
-            delete warmupInfo[_to];
-
-            gonsInWarmup = gonsInWarmup.sub(info.gons);
-
-            return _send(_to, sOHM.balanceForGons(info.gons), _rebasing);
-        }
-        return 0;
     }
 
     /**
@@ -185,26 +167,19 @@ contract OlympusStaking is OlympusAccessControlled {
         bool _trigger,
         bool _rebasing
     ) external returns (uint256 amount_) {
-        Users memory info = userInfo[_to];
+        Users storage info = userInfo[_to];
 
         require(block.timestamp > info.epoEnd, "need the endPeriod");
+        require(info.claim == false, "already get claim");
 
-        TOS.safeTransfer(_to, _amount)
+        // epoNumber = epoch.number - info.epoNum;
+        amount_ = (info.deposit*index());
+        treasury.mint(address(this),amount_-info.deposit);
+        info.getReward = amount_-info.deposit;
+        info.claim = true;
 
-        amount_ = _amount;
-        uint256 bounty;
-        if (_trigger) {
-            bounty = rebase();
-        }
-        if (_rebasing) {
-            sOHM.safeTransferFrom(msg.sender, address(this), _amount);
-            amount_ = amount_.add(bounty);
-        }
-
-        claim(_to,_rebasing);
-
-        require(amount_ <= OHM.balanceOf(address(this)), "Insufficient OHM balance in contract");
-        OHM.safeTransfer(_to, amount_);
+        require(amount_ <= TOS.balanceOf(address(this)), "Insufficient TOS balance in contract");
+        TOS.safeTransfer(_to, amount_);
     }
 
     /**
@@ -219,8 +194,8 @@ contract OlympusStaking is OlympusAccessControlled {
             epoch.end = epoch.end.add(epoch.length);
             epoch.number++;
 
-            uint256 balance = OHM.balanceOf(address(this));
-            uint256 staked = sOHM.circulatingSupply();
+            uint256 balance = TOS.balanceOf(address(this));         //staking되어있는 물량
+            uint256 staked = circulatingSupply();                   //staking에 대한 보상
             if (balance <= staked.add(bounty)) {
                 epoch.distribute = 0;
             } else {
@@ -264,23 +239,6 @@ contract OlympusStaking is OlympusAccessControlled {
 
     /* ========== INTERNAL FUNCTIONS ========== */
 
-    /**
-     * @notice send staker their amount as sOHM or gOHM
-     * @param _to address
-     * @param _amount uint
-     * @param _rebasing bool
-     */
-    function _send(
-        address _to,
-        uint256 _amount,
-        bool _rebasing
-    ) internal returns (uint256) {
-        if (_rebasing) {
-            sOHM.safeTransfer(_to, _amount); // send as sOHM (equal unit as OHM)
-            return _amount;
-        }
-    }
-
      /**
         @notice emits event with data about rebase
         @param previousCirculating_ uint
@@ -316,7 +274,8 @@ contract OlympusStaking is OlympusAccessControlled {
      * @return uint
      */
     function index() public view returns (uint256 index) {
-        index = ((APY+1)**(1/rebasePerday/365))-1;
+        alpha = ((APY+1)**(1/rebasePerday/365))-1;
+        index = index*(1+alpha);
         return index;
     }
 
@@ -336,6 +295,12 @@ contract OlympusStaking is OlympusAccessControlled {
 
     function gonsForBalance(uint256 amount) public view override returns (uint256) {
         return amount.mul(_gonsPerFragment);
+    }
+
+    // Staking contract holds excess sOHM
+    function circulatingSupply() public view override returns (uint256) {
+        // return LTOSSupply.sub(balanceOf(address(this)));
+        return 추가로 발행해야할 LTOSamount
     }
 
     /* ========== MANAGERIAL FUNCTIONS ========== */
