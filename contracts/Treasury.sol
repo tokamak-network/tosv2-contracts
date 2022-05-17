@@ -17,15 +17,26 @@ contract Treasury is ITreasury {
     event Withdrawal(address indexed token, uint256 amount, uint256 value);
     event Minted(address indexed caller, address indexed recipient, uint256 amount);
 
+    enum STATUS {
+        RESERVEDEPOSITOR,
+        RESERVESPENDER,
+        RESERVETOKEN,
+        RESERVEMANAGER,
+        LIQUIDITYDEPOSITOR,
+        LIQUIDITYTOKEN,
+        LIQUIDITYMANAGER,
+        REWARDMANAGER
+    }
 
-    ITOS public TOS;
+    IERC20 public TOS;
 
+    mapping(STATUS => address[]) public registry;
+    mapping(STATUS => mapping(address => bool)) public permissions;
     mapping(address => address) public bondCalculator;
 
     uint256 public totalReserves;
 
     uint256 public immutable blocksNeededForQueue;
-
     
     constructor(
         address _tos,
@@ -33,7 +44,7 @@ contract Treasury is ITreasury {
         address _owner
     ) {
         require(_tos != address(0), "Zero address: TOS");
-        TOS = ITOS(_tos);
+        TOS = IERC20(_tos);
 
         timelockEnabled = false;
         blocksNeededForQueue = _timelock;
@@ -77,13 +88,9 @@ contract Treasury is ITreasury {
 
     //TOS mint 권한 및 통제? 설정 필요
     function mint(address _recipient, uint256 _amount) external {
+        require(_amount <= excessReserves(), insufficientReserves);
         TOS.mint(_recipient, _amount);
         emit Minted(msg.sender, _recipient, _amount);
-    }
-
-
-    function rebase() public returns (uint256) {
-        
     }
 
     /**

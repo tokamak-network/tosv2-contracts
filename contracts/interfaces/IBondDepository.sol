@@ -21,6 +21,7 @@ interface IBondDepository {
         uint256 tosPrice;
         uint256 endTime;        //saleEndTime
         uint256 totalSaleAmount; //tos sales volume
+        bool ethMarket;
     }
 
     struct User {
@@ -50,8 +51,8 @@ interface IBondDepository {
     function deposit(
         uint256 _id,
         uint256 _amount,
-        bool _staking,
-        uint256 _time
+        uint256 _time,
+        bool _claim
     )
         external
         returns (
