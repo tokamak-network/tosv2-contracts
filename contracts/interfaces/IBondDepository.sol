@@ -21,6 +21,7 @@ interface IBondDepository {
         uint256 tosPrice;
         uint256 endTime;        //saleEndTime
         uint256 totalSaleAmount; //tos sales volume
+        bool ethMarket;
     }
 
     struct User {
