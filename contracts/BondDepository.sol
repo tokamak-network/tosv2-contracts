@@ -35,9 +35,9 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
     IdTOS public dTOS;
     IStaking public staking;
     ITreasury public treasury;
+    address payable treasuryContract;
 
     uint256 public mintRate;
-    bool public ETHmarket;
 
     constructor(
         IERC20 _tos,
@@ -86,10 +86,6 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
             })
         );
 
-        if(markets[id_].method) {
-            ETHmarket = true;
-        }
-
         if(_tokenId == 0) {
             if(markets[id_].method) {
                 metadata.push(
@@ -134,18 +130,8 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
     function close(uint256 _id) external onlyOwner {
         markets[_id].endSaleTime = uint48(block.timestamp);
         markets[_id].capacity = 0;
-        if(markets[_id].method) {
-            ETHmarket = false;
-        }
         emit CloseMarket(_id);
     }
-
-    receive() external payable {
-        require(ETHmarket == true, "need the open ETHmarket");
-
-        emit Received(msg.sender, msg.value);
-    }
-
 
     /**
      * @notice             deposit quote tokens in exchange for a bond from a specified market
@@ -156,6 +142,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
      * @return payout_     the amount of TOS due
      * @return index_      the user index of the Note (used to redeem or query information)
      */
+    //사전에 Token을 bondDepositoryContract에 approve해줘야함
     function deposit(
         uint256 _id,
         uint256 _amount,
@@ -175,11 +162,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
 
         require(currentTime < meta.endTime, "Depository : market end");
         
-        // price * 100000 so need the amount / 100000
-        uint256 price = ((meta.tokenPrice * 1e5)/meta.tosPrice);
-
-        // give tos amount
-        payout_ = ((price * _amount) / 1e5);
+        payout_ = calculPayoutAmount(meta.tokenPrice,meta.tosPrice,_amount);
 
         require(0 <= (market.capacity - payout_), "Depository : sold out");
 
@@ -209,7 +192,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         market.quoteToken.safeTransferFrom(msg.sender, address(treasury), _amount);
 
         //tos staking route        
-        staking.stake(msg.sender,_amount,_time,true,_claim);
+        staking.stake(msg.sender,payout_,_time,true,_claim);
         
         //종료해야하는지 확인
         if (meta.totalSaleAmount <= (market.sold + 1e18)) {
@@ -225,7 +208,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         uint256 _time,
         bool _claim
     ) 
-        external
+        public
         payable
         returns (
             uint256 payout_,
@@ -237,13 +220,10 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         uint256 currentTime = uint256(block.timestamp);
 
         require(currentTime < meta.endTime, "Depository : market end");
+        require(msg.value == _amount, "Depository : ETH value not same");
         require(meta.ethMarket, "Depository : not ETHMarket");
 
-        // price * 100000 so need the amount / 100000
-        uint256 price = ((meta.tokenPrice * 1e5)/meta.tosPrice);
-
-        // give tos amount
-        payout_ = ((price * _amount) / 1e5);
+        payout_ = calculPayoutAmount(meta.tokenPrice,meta.tosPrice,_amount);
 
         require(0 <= (market.capacity - payout_), "Depository : sold out");
 
@@ -270,7 +250,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
 
         emit Bond(_id, _amount, payout_);
 
-        market.quoteToken.safeTransferFrom(msg.sender, address(treasury), _amount);
+        treasuryContract.transfer(msg.value);
 
         //tos staking route        
         staking.stake(msg.sender,_amount,_time,true,_claim);
@@ -304,16 +284,31 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
     //dTOS로직 
     //총 가지고 있는 ETH기반으로 minting할 수 있는지 없는지 정한다. -> ETH가 아니라 token이 들어왔을떄
     //본딩할때 트레저리에서 TOS를 발행할 수 있는지 물어봐야함
+    
+    function calculPayoutAmount(
+        uint256 _tokenPrice,
+        uint256 _tosPrice, 
+        uint256 _amount    
+    )
+        public
+        pure
+        returns (
+            uint256 payout
+        ) 
+    {
+        payout = ((((_tokenPrice * 1e10)/_tosPrice) * _amount) / 1e10);
+    }
+
 
     function tokenPrice(uint256 _id) internal view returns (uint256 price) {
         Metadata memory meta = metadata[_id];
-        return ((meta.tokenPrice * 1e5)/meta.tosPrice);
+        return ((meta.tokenPrice * 1e10)/meta.tosPrice);
     }
 
     //market에서 tos를 최대로 구매할 수 있는 양
     function remainingAmount(uint256 _id) external override view returns (uint256 tokenAmount) {
         Market memory market = markets[_id];
-        return ((market.capacity*1e5)/tokenPrice(_id));
+        return ((market.capacity*1e10)/tokenPrice(_id));
     }
 
 }

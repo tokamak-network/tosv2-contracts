@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity ^0.7.5;
+pragma solidity ^0.8.10;
 
 import "./libraries/SafeMath.sol";
 import "./libraries/SafeERC20.sol";
@@ -102,7 +102,7 @@ contract OlympusStaking is OlympusAccessControlled {
      * @param _apy uint
      */
     function setAPY(uint256 _apy) external onlyOwner {
-        APY = _apy
+        APY = _apy;
     }
 
     /**
@@ -302,6 +302,7 @@ contract OlympusStaking is OlympusAccessControlled {
     function circulatingSupply() public view override returns (uint256) {
         // return LTOSSupply.sub(balanceOf(address(this)));
         return 추가로 발행해야할 LTOSamount
+        //treasury가지고 있는 TOS에서  - staking 이자 빼기
     }
 
     /* ========== MANAGERIAL FUNCTIONS ========== */
