@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity ^0.7.5;
+pragma solidity ^0.8.10;
 
 import "./libraries/Address.sol";
 import "./libraries/SafeMath.sol";
@@ -263,16 +263,14 @@ contract sOlympus is IsOHM, ERC20Permit {
     //     return amount.mul(_gonsPerFragment);
     // }
 
-    function balanceForGons(uint256 gons) public view override returns (uint256) {
-        return gons.div(_gonsPerFragment);
-    }
+    // function balanceForGons(uint256 gons) public view override returns (uint256) {
+    //     return gons.div(_gonsPerFragment);
+    // }
 
     // Staking contract holds excess sOHM
     function circulatingSupply() public view override returns (uint256) {
         return
             _totalSupply.sub(balanceOf(stakingContract));
-
-        return 0;
     }
 
     function index() public view override returns (uint256) {
