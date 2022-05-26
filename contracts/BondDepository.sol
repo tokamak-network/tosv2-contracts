@@ -183,6 +183,10 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
 
         //if have reward, give reward (market reward)
 
+        //update the backingData
+        treasury.backingUpdate();
+
+
         //tos를 산 후 MR을 곱해서 treasury에서 mint함
         uint256 mrAmount = payout_ * mintRate;
         treasury.mint(address(this), mrAmount);        
@@ -243,6 +247,9 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         );
 
         //if have reward, give reward (market reward)
+        
+        //update the backingData
+        treasury.backingUpdate();
 
         //tos를 산 후 MR을 곱해서 treasury에서 mint함
         uint256 mrAmount = payout_ * mintRate;

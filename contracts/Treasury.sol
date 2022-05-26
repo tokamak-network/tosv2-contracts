@@ -20,6 +20,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     event Withdrawal(address indexed token, uint256 amount, uint256 value);
     event Minted(address indexed caller, address indexed recipient, uint256 amount);
     event Permissioned(address addr, STATUS indexed status, bool result);
+    event ReservesAudited(uint256 indexed totalReserves);
 
     enum STATUS {
         RESERVEDEPOSITOR,
@@ -39,6 +40,9 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     mapping(address => address) public bondCalculator;
 
     uint256 public totalReserves;
+
+    address[] public backingLists;
+    mapping(uint256 => uint256) public backingList;
 
     string internal notAccepted = "Treasury: not accepted";
     string internal notApproved = "Treasury: not approved";
@@ -65,7 +69,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         uint256 _amount,
         address _token,
         uint256 _profit
-    ) external  returns (uint256 send_) {
+    ) external returns (uint256 send_) {
         if (permissions[STATUS.RESERVETOKEN][_token]) {
             require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);
         } else if (permissions[STATUS.LIQUIDITYTOKEN][_token]) {
@@ -114,7 +118,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
      * @notice takes inventory of all tracked assets
      * @notice always consolidate to recognized reserves before audit
      */
-    function auditReserves() external onlyGovernor {
+    function auditReserves() external onlyPolicyOwner {
         uint256 reserves;
         address[] memory reserveToken = registry[STATUS.RESERVETOKEN];
 
@@ -170,6 +174,19 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         emit Permissioned(_toDisable, _status, false);
     }
 
+    function addbackingList(address _address) external onlyPolicyOwner {
+        uint256 amount = IERC20(_address).balanceOf(address(this));
+        backingList[backingLists.length] = amount;
+        backingLists.push(_address);
+    }
+
+    function backingUpdate() public override {
+        for (uint256 i = 0; i < backingLists.length; i++) {
+            uint256 amount = IERC20(backingLists[backingLists.length]).balanceOf(address(this));
+            backingList[backingLists.length] = amount;
+        }
+    }
+
     /**
      * @notice check if registry contains address
      * @return (bool, uint256)
@@ -199,11 +216,14 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         value_ = IBondingCalculator(bondCalculator[_token]).valuation(_token, _amount);
         // value_ = IBondingCalculator(address).valuation(address, uint256);
     }
-    
+
     //eth, weth, market에서 받은 자산 다 체크해야함
     //mint할 수 있는 양을 초과했다 -> 
     //환산은 eth단위로 
     function backingReserve() public view returns (uint256) {
-
+        uint256 totalValue;
+        for(uint256 i = 0; i < backingLists.length; i++) {
+            
+        }
     }
 }

@@ -75,6 +75,8 @@ contract OlympusStaking is OlympusAccessControlled {
 
     uint256 public LTOSSupply;
 
+    uint256 public index;
+
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
@@ -275,7 +277,7 @@ contract OlympusStaking is OlympusAccessControlled {
      * @return uint
      */
     function index() public view returns (uint256 index) {
-        alpha = ((APY+1)**(1/rebasePerday/365))-1;
+        uint256 alpha = ((APY+1)**(1/rebasePerday/365))-1;
         index = index*(1+alpha);
         return index;
     }
