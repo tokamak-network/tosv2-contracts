@@ -10,10 +10,15 @@ interface IRewardLPTokenManagerAction {
         uint256 poolTokenId,
         uint256 tosAmount,
         uint128 liquidity
-    ) external;
+    ) external returns (uint256);
 
     function burn(
         uint256 tokenId
+    ) external;
+
+    function use(
+        address account,
+        uint256 amount
     ) external;
 
 }

@@ -7,4 +7,6 @@ interface IRewardLPTokenManagerEvent{
 
     event BurnedRewardToken(uint256 tokenId, address owner, address  pool, uint256 poolTokenId);
 
+    event UsedRewardToken(address account, uint256 amount);
+
 }

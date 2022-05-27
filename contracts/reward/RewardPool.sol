@@ -17,13 +17,13 @@ interface IIERC721{
 
 contract RewardPool is RewardPoolStorage, IRewardPoolEvent, IRewardPoolAction {
 
-    function stake(uint256 tokenId) public override {
+    function stake(uint256 tokenId) external override {
         require(IIERC721(address(nonfungiblePositionManager)).ownerOf(tokenId) == msg.sender, "tokenId is not yours.");
         nonfungiblePositionManager.transferFrom(msg.sender, address(this), tokenId);
         _stake(msg.sender, tokenId);
     }
 
-    function unstake(uint256 tokenId) public override {
+    function unstake(uint256 tokenId) external override {
 
         require(IIERC721(address(nonfungiblePositionManager)).ownerOf(tokenId) == msg.sender, "owner is not you.");
 
@@ -32,6 +32,18 @@ contract RewardPool is RewardPoolStorage, IRewardPoolEvent, IRewardPoolAction {
         nonfungiblePositionManager.transferFrom(address(this), msg.sender, tokenId);
 
         emit Unstaked(msg.sender, tokenId);
+    }
+
+    function transferFrom(address from, address to, uint256 tokenId) external override {
+
+        require(msg.sender == address(rewardLPTokenManager), "sender is not rewardLPTokenManager.");
+
+        uint256 _index = userTokenIndexs[from][tokenId];
+        require(_index > 0,"It's not from's token");
+
+        deleteUserToken(from, tokenId);
+        addUserToken(to, tokenId);
+        emit TransferFrom(from, to, tokenId);
     }
 
     function evaluateTOS(uint256 tokenId, address token0, address token1) public view returns (uint256 tosAmount) {
@@ -65,7 +77,7 @@ contract RewardPool is RewardPoolStorage, IRewardPoolEvent, IRewardPoolAction {
 
         uint256 tosAmount = evaluateTOS(tokenId, token0, token1);
 
-        rewardLPTokenManager.mint(sender, address(pool), tokenId, tosAmount, liquidity);
+        uint256 rTokenId = rewardLPTokenManager.mint(sender, address(pool), tokenId, tosAmount, liquidity);
 
         addTokenInPool(tokenId);
         addUserToken(sender, tokenId);

@@ -5,7 +5,10 @@ pragma solidity ^0.8.0;
 interface IRewardPoolEvent {
 
     event Staked(address sender, uint256 tokenId);
+
     event Unstaked(address sender, uint256 tokenId);
+
+    event TransferFrom(address from, address to, uint256 tokenId);
 
 }
 

@@ -15,5 +15,11 @@ interface IRewardPoolAction {
     /// @param tokenId tokenId
     function unstake(uint256 tokenId) external ;
 
+    /// @notice transferFrom
+    /// @param from  from address
+    /// @param to  to address
+    /// @param tokenId tokenId
+    function transferFrom(address from, address to, uint256 tokenId) external ;
+
 }
 

@@ -29,6 +29,7 @@ contract RewardPoolStorage {
     uint256[] public stakedTokensInPool;
     mapping(uint256 => uint256) public stakedTokensInPoolIndexs;
 
+
     uint256 public totalTOS;
     uint128 public totalLiquidity;
 
