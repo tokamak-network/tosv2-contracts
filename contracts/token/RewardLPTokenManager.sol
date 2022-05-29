@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "../common/AccessibleCommon.sol";
 //import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-//import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 //import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
@@ -67,9 +66,9 @@ contract RewardLPTokenManager is
         return _baseTokenURI;
     }
 
-    function setDtos(address _dtos) external onlyOwner{
+    function setDtos(address _dtos) external onlyOwner {
+        require(dtos != address(0),"already set");
         require(_dtos != address(0),"zero address");
-        require(dtos != _dtos,"same dtos");
         dtos = _dtos;
     }
 
@@ -91,7 +90,7 @@ contract RewardLPTokenManager is
         uint256 poolTokenId,
         uint256 tosAmount,
         uint128 liquidity
-    ) external override whenNotPaused zeroAddress(dtos) returns(uint256) {
+    ) external override whenNotPaused zeroAddress(dtos) returns (uint256) {
 
         require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
 

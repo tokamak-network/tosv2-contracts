@@ -4,15 +4,12 @@ pragma solidity > 0.8.0;
 /// @title LibDTOS
 library LibDTOS
 {
-    struct RewardTokenInfo {
-        address rewardPool;
-        address pool;
-        address owner;
-        uint256 poolTokenId;
-        uint256 tosAmount;
-        uint256 usedAmount;
-        uint256 stakedTime;
-        uint128 liquidity;
+    // epochNumber - Rebase
+    struct Rebase {
+        uint256 end;
+        uint256 distributedAmount;
+        uint256 totalSupply;
+        // uint256 apyForEpochDurationSecond;
+        uint256 rebaseCount;
     }
-
 }

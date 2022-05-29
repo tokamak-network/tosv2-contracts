@@ -4,36 +4,46 @@ pragma solidity ^0.8.0;
 import "../common/AccessibleCommon.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-//import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
+import "./Rebase.sol";
 
 import "../interfaces/IDTOS.sol";
+// import "../libraries/LibDTOS.sol";
 
 contract DTOS is
     Context,
     AccessibleCommon,
     ERC20,
+    Rebase,
     IDTOS
 {
     bytes32 public constant USER_ROLE = keccak256("USER_ROLE");
-    uint256 public baseRate;
-    uint256 public interestRate;
 
     constructor(
         string memory name,
         string memory symbol
-    ) ERC20(name, symbol) {
+    ) ERC20(name, symbol) Rebase(){
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(MINTER_ROLE, _msgSender());
         _setupRole(USER_ROLE, _msgSender());
     }
 
+    function setApyForDurationSecond(uint256 _epochDurationSecond, uint256 _apyForEpochDurationSecond)
+        external onlyOwner
+    {
+        require(epochNumber == 0, "already started");
+        _setApyForDurationSecond(_epochDurationSecond, _apyForEpochDurationSecond);
+    }
+
     function mint(address to, uint256 amount) external virtual override {
         require(hasRole(MINTER_ROLE, _msgSender()), "DTOS: must have minter role to mint");
+        if(!epochFlag) _setEpochFlag(true);
+        _applyRebase(totalSupply());
         _mint(to, amount);
     }
 
     function burnFrom(address account, uint256 amount) external virtual override {
         require(hasRole(MINTER_ROLE, _msgSender()), "DTOS: must have minter role to burn");
+        _applyRebase(totalSupply());
         _burn(account, amount);
     }
 
@@ -44,23 +54,31 @@ contract DTOS is
 
 
     function totalSupply() public view virtual override(ERC20) returns (uint256) {
+        //return super.totalSupply();
 
-        // 전체 tosAmount 값에서 추가해야 하나.
-        // 각 풀에서 추가할때, 디토스 총계를 반영해서 동기화 해야 하는지..
-
-        return super.totalSupply();
+        if(epochNumber == 0 || epochDurationSecond == 0) return _totalSupply;
+        else {
+            uint256 rebaseCount = (block.timestamp - epochStartTime) / epochDurationSecond;
+            if(rebaseCount == 0) return _totalSupply;
+            } else {
+                return compound(_totalSupply, apyForEpochDurationSecond, rebaseCount) ;
+            }
+        }
     }
 
     function balanceOf(address account) public view virtual override(ERC20) returns (uint256) {
-
-        // 사용자가 가지고 있는 rewardToken을 가져와서.. 계산하는건지..
-        // 아니면,, 전체 사용자의 잔액으로 계산이 되는건지..
-
-        return super.balanceOf(account);
+        //return super.balanceOf(account);
+        if(epochNumber == 0 || epochDurationSecond == 0) return _balances[account];
+        else {
+            uint256 rebaseCount = (block.timestamp - epochStartTime) / epochDurationSecond;
+            if(rebaseCount == 0) return _balances[account];
+            } else {
+                return compound(_balances[account], apyForEpochDurationSecond, rebaseCount) ;
+            }
+        }
     }
 
     function transfer(address to, uint256 amount) public virtual override(ERC20) returns (bool) {
-
         return true;
     }
 
