@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.0;
 
 import "./libraries/SafeMath.sol";
 import "./libraries/SafeERC20.sol";
 
 import "./interfaces/IERC20.sol";
 import "./interfaces/IERC20Metadata.sol";
+import "./interfaces/ITOS.sol";
 
 import "./interfaces/ITreasury.sol";
-
 import "./common/ProxyAccessCommon.sol";
 
 
@@ -51,7 +51,6 @@ contract Treasury is ITreasury, ProxyAccessCommon {
 
     constructor(
         address _tos,
-        uint256 _timelock,
         address _owner
     ) {
         require(_tos != address(0), "Zero address: TOS");
@@ -69,7 +68,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         uint256 _amount,
         address _token,
         uint256 _profit
-    ) external returns (uint256 send_) {
+    ) external override returns (uint256 send_) {
         if (permissions[STATUS.RESERVETOKEN][_token]) {
             require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);
         } else if (permissions[STATUS.LIQUIDITYTOKEN][_token]) {
@@ -83,7 +82,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         uint256 value = tokenValue(_token, _amount);
         // mint TOS needed and store amount of rewards for distribution
         send_ = value.sub(_profit);
-        TOS.mint(msg.sender, send_);
+        ITOS(address(TOS)).mint(msg.sender, send_);
 
         totalReserves = totalReserves.add(value);
 
@@ -91,12 +90,12 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     }
 
     //자기가 보유하고 있는 TOS를 burn시키구 그가치에 해당하는 token의 amount를 가지고 간다.
-    function withdraw(uint256 _amount, address _token) external {
+    function withdraw(uint256 _amount, address _token) external override {
         require(permissions[STATUS.RESERVETOKEN][_token], notAccepted); // Only reserves can be used for redemptions
         require(permissions[STATUS.RESERVESPENDER][msg.sender], notApproved);
 
         uint256 value = tokenValue(_token, _amount);
-        TOS.burnFrom(msg.sender, value);
+        ITOS(address(TOS)).burn(msg.sender, value);
 
         totalReserves = totalReserves.sub(value);
 
@@ -106,9 +105,9 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     }
 
     //TOS mint 권한 및 통제? 설정 필요
-    function mint(address _recipient, uint256 _amount) external {
+    function mint(address _recipient, uint256 _amount) external override {
         require(permissions[STATUS.REWARDMANAGER][msg.sender], notApproved);
-        TOS.mint(_recipient, _amount);
+        ITOS(address(TOS)).mint(_recipient, _amount);
         emit Minted(msg.sender, _recipient, _amount);
     }
 
@@ -207,14 +206,19 @@ contract Treasury is ITreasury, ProxyAccessCommon {
      * @param _amount uint256
      * @return value_ uint256
      */
-    function tokenValue(address _token, uint256 _amount) public view returns (uint256 value_) {
+    function tokenValue(address _token, uint256 _amount) public override view returns (uint256 value_) {
         value_ = _amount.mul(10**IERC20Metadata(address(TOS)).decimals()).div(10**IERC20Metadata(_token).decimals());
 
         //erc20일때
-        value_ = IBondingCalculator(bondCalculator[_token]).valuation(_token, _amount);
+        // value_ = IBondingCalculator(bondCalculator[_token]).valuation(_token, _amount);
         //uniswapV3일때
-        value_ = IBondingCalculator(bondCalculator[_token]).valuation(_token, _amount);
+        // value_ = IBondingCalculator(bondCalculator[_token]).valuation(_token, _amount);
         // value_ = IBondingCalculator(address).valuation(address, uint256);
+    }
+
+
+    function tokenValue2(address _token, uint256 _amount) public view returns (uint256 value_) {
+
     }
 
     //eth, weth, market에서 받은 자산 다 체크해야함

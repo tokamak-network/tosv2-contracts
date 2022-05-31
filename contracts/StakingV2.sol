@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.0;
 
 import "./libraries/SafeMath.sol";
 import "./libraries/SafeERC20.sol";
 
 import "./interfaces/IERC20.sol";
-import "./interfaces/IsOHM.sol";
-import "./interfaces/IgOHM.sol";
+import "./interfaces/ITreasury.sol";
 
-import "./types/OlympusAccessControlled.sol";
+import "./common/ProxyAccessCommon.sol";
 
-contract OlympusStaking is OlympusAccessControlled {
+
+contract OlympusStaking is ProxyAccessCommon {
     /* ========== DEPENDENCIES ========== */
 
     using SafeMath for uint256;
@@ -44,13 +44,25 @@ contract OlympusStaking is OlympusAccessControlled {
         bool claim;         // claim 유무          
     }
 
+    struct Rebase {
+        uint256 epoch;
+        uint256 rebase; // 18 decimals
+        uint256 totalStakedBefore;
+        uint256 totalStakedAfter;
+        uint256 amountRebased;
+        uint256 index;
+        uint256 blockNumberOccured;
+    }
+
     /* ========== STATE VARIABLES ========== */
 
     IERC20 public immutable TOS;
     ITreasury public treasury;
 
-
     Epoch public epoch;
+
+    Rebase[] public rebases; // past rebase data
+
 
     uint256 private constant MAX_UINT256 = type(uint256).max;
     uint256 private constant INITIAL_FRAGMENTS_SUPPLY = 5_000_000 * 10**9;
@@ -75,7 +87,9 @@ contract OlympusStaking is OlympusAccessControlled {
 
     uint256 public LTOSSupply;
 
-    uint256 public index;
+    uint256 public index_;
+
+    uint256 public totaldeposit;
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -84,9 +98,8 @@ contract OlympusStaking is OlympusAccessControlled {
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochTime,
-        address _authority,
         ITreasury _treasury
-    ) OlympusAccessControlled(IOlympusAuthority(_authority)) {
+    ) {
         require(_tos != address(0), "Zero address : TOS");
         TOS = IERC20(_tos);
         epoch = Epoch({length: _epochLength, number: _firstEpochNumber, end: _firstEpochTime, distribute: 0});
@@ -111,8 +124,8 @@ contract OlympusStaking is OlympusAccessControlled {
      * @notice set rebase per day
      * @param _perday uint
      */
-    function rebasePerday(uint256 _perday) external onlyOwner {
-        rebasePerday = _rebase;
+    function setRebasePerday(uint256 _perday) external onlyOwner {
+        rebasePerday = _perday;
         epoch.length = (86400 / rebasePerday);
     } 
 
@@ -136,7 +149,7 @@ contract OlympusStaking is OlympusAccessControlled {
     ) external returns (uint256) {
         TOS.safeTransferFrom(msg.sender, address(this), _amount);
         
-        if(_rebaseing == true) {
+        if(_rebasing == true) {
             rebase();
         }
 
@@ -218,9 +231,9 @@ contract OlympusStaking is OlympusAccessControlled {
         uint256 rebaseAmount;
         uint256 circulatingSupply_ = circulatingSupply();
         if (profit_ == 0) {
-            emit LogSupply(epoch_, _totalSupply);
-            emit LogRebase(epoch_, 0, index());
-            return LTOSSupply;
+            // emit LogSupply(epoch_, _totalSupply);
+            // emit LogRebase(epoch_, 0, index());
+            // return LTOSSupply;
         } else if (circulatingSupply_ > 0) {
             rebaseAmount = profit_.mul(LTOSSupply).div(circulatingSupply_);
         } else {
@@ -266,8 +279,8 @@ contract OlympusStaking is OlympusAccessControlled {
             })
         );
 
-        emit LogSupply(epoch_, _totalSupply);
-        emit LogRebase(epoch_, rebasePercent, index());
+        // emit LogSupply(epoch_, _totalSupply);
+        // emit LogRebase(epoch_, rebasePercent, index());
     }
 
     /* ========== VIEW FUNCTIONS ========== */
@@ -276,10 +289,10 @@ contract OlympusStaking is OlympusAccessControlled {
      * @notice returns the sOHM index, which tracks rebase growth
      * @return uint
      */
-    function index() public view returns (uint256 index) {
+    function index() public returns (uint256) {
         uint256 alpha = ((APY+1)**(1/rebasePerday/365))-1;
-        index = index*(1+alpha);
-        return index;
+        index_ = index_*(1+alpha);
+        return index_;
     }
 
     /**
@@ -296,14 +309,14 @@ contract OlympusStaking is OlympusAccessControlled {
         return epoch.end.sub(block.timestamp);
     }
 
-    function gonsForBalance(uint256 amount) public view override returns (uint256) {
+    function gonsForBalance(uint256 amount) public view returns (uint256) {
         return amount.mul(_gonsPerFragment);
     }
 
     // Staking contract holds excess sOHM
-    function circulatingSupply() public view override returns (uint256) {
+    function circulatingSupply() public view returns (uint256) {
         // return LTOSSupply.sub(balanceOf(address(this)));
-        return 추가로 발행해야할 LTOSamount
+        // return 추가로 발행해야할 LTOSamount
         //treasury가지고 있는 TOS에서  - staking 이자 빼기
     }
 
@@ -313,7 +326,7 @@ contract OlympusStaking is OlympusAccessControlled {
      * @notice set warmup period for new stakers
      * @param _warmupPeriod uint
      */
-    function setWarmupLength(uint256 _warmupPeriod) external onlyGovernor {
+    function setWarmupLength(uint256 _warmupPeriod) external onlyPolicyOwner {
         warmupPeriod = _warmupPeriod;
         emit WarmupSet(_warmupPeriod);
     }

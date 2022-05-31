@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
 import "./libraries/FullMath.sol";
 import "./libraries/TickMath.sol";
@@ -48,6 +48,12 @@ interface IIUniswapV3Pool {
         external
         view
         returns (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidityCumulativeX128s);
+
+    function getPool(
+        address tokenA,
+        address tokenB,
+        uint24 fee
+    ) external view returns (address pool);
 }
 
 interface IINonfungiblePositionManager {
@@ -73,14 +79,16 @@ interface IINonfungiblePositionManager {
 contract TOSValueCalculator {
 
     // IUniswapV3Pool public pool;
-    IUniswapV3Factory public UniswapV3Factory;
+    IIUniswapV3Pool public UniswapV3Factory;
 
     address public tos;
-    address public npm;
+    address public weth;
+    address public npm_;
     address public ethTosPool;
 
     function initialize(
         address _tos,
+        address _weth,
         address _npm,
         address _basicpool,
         address _uniswapV3factory
@@ -88,13 +96,16 @@ contract TOSValueCalculator {
         external 
     {
         tos = _tos;
-        npm = _npm;
+        weth = _weth;
+        npm_ = _npm;
         ethTosPool = _basicpool;
-        UniswapV3Factory = IUniswapV3Factory(poolfactory);
+        UniswapV3Factory = IIUniswapV3Pool(_uniswapV3factory);
     }
 
-    function getTOSPrice() public view returns (uint256 price) {
-        uint tosOrder = getTOStoken0(ethTosPool);
+
+    //WETH-TOS Pool에서 1TOS = ? ETH를 반환한다
+    function getWETHPoolTOSPrice() public view returns (uint256 price) {
+        uint tosOrder = getTOStoken0(weth,3000);
         if(tosOrder == 2 && tosOrder == 3) {
             return price = 0;
         }
@@ -107,8 +118,8 @@ contract TOSValueCalculator {
         }
     }
 
-    function getTOSPoolTOSPrice(address _tosERC20Pool) public view returns (uint256 price) {
-        uint tosOrder = getTOStoken0(_tosERC20Pool);
+    function getTOSERC20PoolTOSPrice(address _tosERC20Pool, uint24 fee) public view returns (uint256 price) {
+        uint tosOrder = getTOStoken0(_tosERC20Pool,fee);
         if(tosOrder == 2 && tosOrder == 3) {
             return price = 0;
         }
@@ -122,16 +133,16 @@ contract TOSValueCalculator {
 
     }
 
-
-    //token0이면 0을 리턴, token1이면 1을 리턴, tokenPool 이없으면 2를 리턴, 3은 리턴하면 안됨.
-    function getTOStoken0(address _erc20Addresss) public view returns (uint) {
-        address getPool = UniswapV3Factory.getPool(address(TOS), address(token), fee);
+    //token0이 TOS면 0을 리턴, token1이 TOS면 1을 리턴, tokenPool 이없으면 2를 리턴, 3은 리턴하면 안됨.
+    //_fee is 500, 3000, 10000
+    function getTOStoken0(address _erc20Addresss, uint24 _fee) public view returns (uint) {
+        address getPool = UniswapV3Factory.getPool(address(tos), address(_erc20Addresss), _fee);
         if(getPool == address(0)) {
             return 2;
         }
         // pool = IUniswapV3Pool(getPool);
-        address token0Address = IUniswapV3Pool(getPool).token0();
-        address token1Address = IUniswapV3Pool(getPool).token1();
+        address token0Address = IIUniswapV3Pool(getPool).token0();
+        address token1Address = IIUniswapV3Pool(getPool).token1();
         if(token0Address == address(tos)) {
            return 0;
         } else if(token1Address == address(tos)) {

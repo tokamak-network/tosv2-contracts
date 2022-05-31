@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.0;
 
 import "./libraries/SafeERC20.sol";
 
@@ -127,7 +127,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
      * @notice             disable existing market
      * @param _id          ID of market to close
      */
-    function close(uint256 _id) external onlyOwner {
+    function close(uint256 _id) external override onlyOwner {
         markets[_id].endSaleTime = uint48(block.timestamp);
         markets[_id].capacity = 0;
         emit CloseMarket(_id);
