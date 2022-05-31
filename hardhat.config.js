@@ -25,66 +25,47 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  solidity: {
-    compilers: [
-        {
-            version: "0.8.0",
-            settings: {
-                metadata: {
-                    bytecodeHash: "none",
-                },
-                optimizer: {
-                    enabled: true,
-                    runs: 800,
-                },
-            },
-        },
-        {
-            version: "0.8.0",
-            settings: {
-                metadata: {
-                    bytecodeHash: "none",
-                },
-                optimizer: {
-                    enabled: true,
-                    runs: 800,
-                },
-            },
-        },
-        {
-            version: "0.7.5",
-            settings: {
-                metadata: {
-                    bytecodeHash: "none",
-                },
-                optimizer: {
-                    enabled: true,
-                    runs: 800,
-                },
-            },
-        },
-        {
-            version: "0.5.16",
-        },
-        {
-            version: "0.8.0",
-            settings: {
-                metadata: {
-                    bytecodeHash: "none",
-                },
-                optimizer: {
-                    enabled: true,
-                    runs: 800,
-                },
-            },
-        },
-    ],
-    settings: {
-        outputSelection: {
-            "*": {
-                "*": ["storageLayout"],
-            },
-        },
+  defaultNetwork: "hardhat",
+  networks: {
+    hardhat: {
+      chainId: 31337,
     },
+    local: {
+      chainId: 31337,
+      url: `http://127.0.0.1:8545/`,
+      accounts: [`${process.env.PRIVATE_KEY}`,`${process.env.PRIVATE_KEY_2}`],
+    },
+    rinkeby: {
+      url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts: [`${process.env.PRIVATE_KEY}`,`${process.env.PRIVATE_KEY_2}`,`${process.env.PRIVATE_KEY_3}`],
+    },
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts: [`${process.env.PRIVATE_KEY}`],
+      gasMultiplier: 1.25,
+      gasPrice: 95000000000,
+    },
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
+  },
+  solidity: {
+    version: "0.8.0",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 100,
+      },
+    },
+  },
+  //solidity: "0.8.0",
+  paths: {
+    sources: "./contracts",
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts",
+  },
+  mocha: {
+    timeout: 10000000,
   },
 };
