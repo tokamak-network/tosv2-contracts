@@ -51,6 +51,10 @@ describe("price test", function () {
   let tosCalculator;
   let TOSValueCalculator;
 
+  let etherUint = ethers.utils.parseUnits("1", 18);     
+  let wtonUint = ethers.utils.parseUnits("1", 27);     
+
+
   // rinkeby
   let uniswapInfo={
       poolfactory: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
@@ -60,10 +64,12 @@ describe("price test", function () {
       tosethPool: "0x7715dF692fb4031DC51C53b35eFC2b65d9e752c0",
       wtonWethPool: "0xE032a3aEc591fF1Ca88122928161eA1053a098AC",
       wtonTosPool: "0x516e1af7303a94f81e91e4ac29e20f4319d4ecaf",
+      tosDOCPool: "",
       wton: "0x709bef48982Bbfd6F2D4Be24660832665F53406C",
       tos: "0x73a54e5C054aA64C1AE7373C2B5474d8AFEa08bd",
       weth: "0xc778417e063141139fce010982780140aa0cd5ab",
       usdc: "0x4dbcdf9b62e891a7cec5a2568c3f4faf9e8abe2b",
+      doc: "",
       _fee: ethers.BigNumber.from("3000"),
       NonfungibleTokenPositionDescriptor: "0x91ae842A5Ffd8d12023116943e72A606179294f3"
   }
@@ -103,17 +109,35 @@ describe("price test", function () {
   it("getPriceToken0 Price", async () => {
     let price1 = await TOSValueCalculator.getPriceToken0(uniswapInfo.tosethPool)
     console.log(price1);
+    let uintETHprice = price1/etherUint;
+    console.log(uintETHprice);
   })
 
   it("getPriceToken1 Price", async () => {
     let price2 = await TOSValueCalculator.getPriceToken1(uniswapInfo.tosethPool)
     console.log(price2);
+    let uintETHprice2 = price2/etherUint;
+    console.log(uintETHprice2);
   })
 
   it("get TOS-WETHPool TOSPrice", async () => {
     let tosprice = await TOSValueCalculator.getWETHPoolTOSPrice();
-    console.log(tosprice)
+    console.log("ETH/TOS Price:", tosprice)
     // console.log(Number(tosprice))
+  })
+
+  it("get TOS-WTONPool WTON/TOS Price", async () => {
+    let price = await TOSValueCalculator.getTOSERC20PoolTOSPrice(uniswapInfo.wton,uniswapInfo.wtonTosPool,3000);
+    console.log("WTON/TOS Price:", price)
+    let uintWTONprice = price/wtonUint;
+    console.log(uintWTONprice);
+  })
+
+  it("get TOS-WTONPool TOS/WTON Price", async () => {
+    let tosprice = await TOSValueCalculator.getTOSERC20PoolERC20Price(uniswapInfo.wton,uniswapInfo.wtonTosPool,3000);
+    console.log("TOS/WTON Price:", tosprice)
+    let uintETHprice = tosprice/etherUint;
+    console.log(uintETHprice);
   })
 
 });

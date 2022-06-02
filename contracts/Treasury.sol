@@ -7,8 +7,9 @@ import "./libraries/SafeERC20.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IERC20Metadata.sol";
 import "./interfaces/ITOS.sol";
-
 import "./interfaces/ITreasury.sol";
+import "./interfaces/ITOSValueCalculator.sol";
+
 import "./common/ProxyAccessCommon.sol";
 
 
@@ -33,13 +34,23 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         REWARDMANAGER
     }
 
+    struct Backing {
+        address erc20Address;
+        address tosPoolAddress;
+        uint24 fee; 
+    }
+
     IERC20 public TOS;
+
+    address public calculator;
 
     mapping(STATUS => address[]) public registry;
     mapping(STATUS => mapping(address => bool)) public permissions;
     mapping(address => address) public bondCalculator;
 
     uint256 public totalReserves;
+
+    Backing[] public backings;
 
     address[] public backingLists;
     mapping(uint256 => uint256) public backingList;
@@ -51,10 +62,11 @@ contract Treasury is ITreasury, ProxyAccessCommon {
 
     constructor(
         address _tos,
-        address _owner
+        address _calculator
     ) {
         require(_tos != address(0), "Zero address: TOS");
         TOS = IERC20(_tos);
+        calculator = _calculator;
     }
 
     /**
@@ -172,20 +184,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         permissions[_status][_toDisable] = false;
         emit Permissioned(_toDisable, _status, false);
     }
-
-    function addbackingList(address _address) external onlyPolicyOwner {
-        uint256 amount = IERC20(_address).balanceOf(address(this));
-        backingList[backingLists.length] = amount;
-        backingLists.push(_address);
-    }
-
-    function backingUpdate() public override {
-        for (uint256 i = 0; i < backingLists.length; i++) {
-            uint256 amount = IERC20(backingLists[backingLists.length]).balanceOf(address(this));
-            backingList[backingLists.length] = amount;
-        }
-    }
-
+ 
     /**
      * @notice check if registry contains address
      * @return (bool, uint256)
@@ -198,6 +197,31 @@ contract Treasury is ITreasury, ProxyAccessCommon {
             }
         }
         return (false, 0);
+    }
+
+    function addbackingList(address _address,address _tosPooladdress, uint24 _fee) external onlyPolicyOwner {
+        uint256 amount = IERC20(_address).balanceOf(address(this));
+        backingList[backings.length] = amount;
+        // backingList[backingLists.length] = amount;
+        // backingLists.push(_address);
+        backings.push(
+            Backing({
+                erc20Address: _address,
+                tosPoolAddress: _tosPooladdress,
+                fee: _fee
+            })
+        );
+    }
+
+    function backingUpdate() public override {
+        // for (uint256 i = 0; i < backingLists.length; i++) {
+        //     uint256 amount = IERC20(backingLists[i]).balanceOf(address(this));
+        //     backingList[i] = amount;
+        // }
+        for (uint256 i = 0; i < backings.length; i++) {
+            uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));
+            backingList[i] = amount;
+        }
     }
 
     /**
@@ -216,18 +240,17 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         // value_ = IBondingCalculator(address).valuation(address, uint256);
     }
 
-
-    function tokenValue2(address _token, uint256 _amount) public view returns (uint256 value_) {
-
-    }
-
     //eth, weth, market에서 받은 자산 다 체크해야함
     //mint할 수 있는 양을 초과했다 -> 
     //환산은 eth단위로 
     function backingReserve() public view returns (uint256) {
         uint256 totalValue;
-        for(uint256 i = 0; i < backingLists.length; i++) {
-            
+        uint256 tosETHPrice = ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
+        for(uint256 i = 0; i < backings.length; i++) {
+            uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));
+            uint256 tosERC20Price = ITOSValueCalculator(calculator).getTOSERC20PoolTOSPrice(backings[i].erc20Address,backings[i].tosPoolAddress,backings[i].fee);
+            totalValue = totalValue + (amount * tosERC20Price * tosETHPrice);
         }
+        return totalValue;
     }
 }
