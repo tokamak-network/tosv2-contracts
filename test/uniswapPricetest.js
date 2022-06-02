@@ -52,7 +52,7 @@ describe("price test", function () {
   let TOSValueCalculator;
 
   let etherUint = ethers.utils.parseUnits("1", 18);     
-  let wtonUint = ethers.utils.parseUnits("1", 27);     
+  // let wtonUint = ethers.utils.parseUnits("1", 27);     
 
 
   // rinkeby
@@ -128,16 +128,21 @@ describe("price test", function () {
 
   it("get TOS-WTONPool WTON/TOS Price", async () => {
     let price = await TOSValueCalculator.getTOSERC20PoolTOSPrice(uniswapInfo.wton,uniswapInfo.wtonTosPool,3000);
+    let decimal = await TOSValueCalculator.getDecimals(uniswapInfo.wton,uniswapInfo.tos)
+    let priceDecimal = ethers.utils.parseUnits("1", decimal.token0Decimals);     
+
     console.log("WTON/TOS Price:", price)
-    let uintWTONprice = price/wtonUint;
-    console.log(uintWTONprice);
+    // let uintWTONprice = price/priceDecimal;
+    // console.log(uintWTONprice);
   })
 
   it("get TOS-WTONPool TOS/WTON Price", async () => {
     let tosprice = await TOSValueCalculator.getTOSERC20PoolERC20Price(uniswapInfo.wton,uniswapInfo.wtonTosPool,3000);
+    let decimal = await TOSValueCalculator.getDecimals(uniswapInfo.wton,uniswapInfo.tos)
+    let priceDecimal = ethers.utils.parseUnits("1", decimal.token1Decimals);   
     console.log("TOS/WTON Price:", tosprice)
-    let uintETHprice = tosprice/etherUint;
-    console.log(uintETHprice);
+    // let uintETHprice = tosprice/priceDecimal;
+    // console.log(uintETHprice);
   })
 
 });

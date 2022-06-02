@@ -45,6 +45,10 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         IStaking _staking,
         ITreasury _treasury
     ) {
+        _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
+        _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        
         tos = _tos;
         dTOS = _dtos;
         staking = _staking;

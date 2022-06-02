@@ -65,6 +65,11 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         address _calculator
     ) {
         require(_tos != address(0), "Zero address: TOS");
+
+        _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
+        _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+
         TOS = IERC20(_tos);
         calculator = _calculator;
     }
@@ -241,10 +246,11 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     }
 
     //eth, weth, market에서 받은 자산 다 체크해야함
+    //
     //mint할 수 있는 양을 초과했다 -> 
     //환산은 eth단위로 
     function backingReserve() public view returns (uint256) {
-        uint256 totalValue;
+        uint256 totalValue = address(this).balance;
         uint256 tosETHPrice = ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
         for(uint256 i = 0; i < backings.length; i++) {
             uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));

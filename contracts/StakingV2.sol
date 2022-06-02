@@ -101,6 +101,11 @@ contract OlympusStaking is ProxyAccessCommon {
         ITreasury _treasury
     ) {
         require(_tos != address(0), "Zero address : TOS");
+        
+        _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
+        _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        
         TOS = IERC20(_tos);
         epoch = Epoch({length: _epochLength, number: _firstEpochNumber, end: _firstEpochTime, distribute: 0});
 

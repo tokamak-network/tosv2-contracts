@@ -123,27 +123,42 @@ contract TOSValueCalculator is ITOSValueCalculator {
 
     function getTOSERC20PoolTOSPrice(address _erc20address, address _tosERC20Pool, uint24 fee) public override view returns (uint256 price) {
         uint tosOrder = getTOStoken0(_erc20address,fee);
+        uint decimalCalcul;
         if(tosOrder == 2 && tosOrder == 3) {
             return price = 0;
         }
+        (uint256 token0Decimal, uint256 token1Decimal) = getDecimals(tos,_erc20address);
+        if(token0Decimal >= token1Decimal){
+            decimalCalcul = 0;
+        } else if (token0Decimal < token1Decimal) {
+            decimalCalcul = token1Decimal - token0Decimal;
+        }
+
         if(tosOrder == 0) {
-            return price = getPriceToken0(_tosERC20Pool);
+            return price = getPriceToken0(_tosERC20Pool)/(10 ** decimalCalcul);
         } else if (tosOrder == 1) {
-            return price = getPriceToken1(_tosERC20Pool);
+            return price = getPriceToken1(_tosERC20Pool)/(10 ** decimalCalcul);
         } else {
             return price = 0;
         }
     }
 
-    function getTOSERC20PoolERC20Price(address __erc20address, address _tosERC20Pool, uint24 fee) public override view returns (uint256 price) {
-        uint tosOrder = getTOStoken0(__erc20address,fee);
+    function getTOSERC20PoolERC20Price(address _erc20address, address _tosERC20Pool, uint24 fee) public override view returns (uint256 price) {
+        uint tosOrder = getTOStoken0(_erc20address,fee);
+        uint decimalCalcul;
         if(tosOrder == 2 && tosOrder == 3) {
             return price = 0;
         }
+        (uint256 token0Decimal, uint256 token1Decimal) = getDecimals(tos,_erc20address);
+        if(token0Decimal <= token1Decimal){
+            decimalCalcul = 0;
+        } else if (token0Decimal > token1Decimal) {
+            decimalCalcul = token0Decimal - token1Decimal;
+        }
         if(tosOrder == 0) {
-            return price = getPriceToken1(_tosERC20Pool);
+            return price = getPriceToken1(_tosERC20Pool)/(10 ** decimalCalcul);
         } else if (tosOrder == 1) {
-            return price = getPriceToken0(_tosERC20Pool);
+            return price = getPriceToken0(_tosERC20Pool)/(10 ** decimalCalcul);
         } else {
             return price = 0;
         }
