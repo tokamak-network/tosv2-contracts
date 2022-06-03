@@ -53,7 +53,7 @@ describe("price test", function () {
   let TOSValueCalculator;
 
   let treasurycont;
-  let treasurycontract;
+  let treasuryContract;
 
   let stakingcont;
   let stakingContract;
@@ -66,6 +66,14 @@ describe("price test", function () {
   let firstEpochNumber = 0;
   let firstEndEpochTime
   let epochLength = 60;
+
+  let sellingTime = 120;
+
+  let sellTosAmount = ethers.utils.parseUnits("10000", 18); //1ETH = 1000TOS 라서 10ETH받으면 끝임
+  let mintRate = 100;
+
+  let ETHPrice = 1000000
+  let TOSPrice = 1000
 
   let minter_role = "0xf0887ba65ee2024ea881d91b74c2450ef19e1557f03bed3ea9f16b037cbe2dc9";
 
@@ -128,11 +136,21 @@ describe("price test", function () {
 
   it("deploy Treasury", async () => {
     treasurycont = await ethers.getContractFactory("Treasury");
-    treasurycontract = await treasurycont.deploy(uniswapInfo.tos,TOSValueCalculator.address);
-    await treasurycontract.deployed();
+    treasuryContract = await treasurycont.connect(admin1).deploy(uniswapInfo.tos,TOSValueCalculator.address);
+    await treasuryContract.deployed();
 
-    let code = await ethers.provider.getCode(treasurycontract.address);
+    let code = await ethers.provider.getCode(treasuryContract.address);
     expect(code).to.not.eq("0x");
+  })
+
+  it("treasury admin, proxyAdmin check", async () => {
+    expect(await treasuryContract.isAdmin(admin1.address)).to.be.equal(true)
+    expect(await treasuryContract.isProxyAdmin(admin1.address)).to.be.equal(true)
+  })
+
+  it("treasury add policyAdmin", async () => {
+      await treasuryContract.connect(admin1).addPolicy(admin1.address)
+      expect(await treasuryContract.isPolicy(admin1.address)).to.be.equal(true)
   })
 
   it("bring the TOS function", async () => {
@@ -143,9 +161,9 @@ describe("price test", function () {
   })
 
   it("give the mintRole to treasury", async () => {
-    await tosContract.connect(admin1).grantRole(minter_role,treasurycontract.address);
+    await tosContract.connect(admin1).grantRole(minter_role,treasuryContract.address);
 
-    let tx = await tosContract.hasRole(minter_role,treasurycontract.address);
+    let tx = await tosContract.hasRole(minter_role,treasuryContract.address);
     expect(tx).to.be.equal(true);
   })
   
@@ -160,7 +178,7 @@ describe("price test", function () {
         epochLength,
         0,
         firstEndEpochTime,
-        treasurycontract.address
+        treasuryContract.address
     );
     await stakingContract.deployed();
 
@@ -196,7 +214,7 @@ describe("price test", function () {
         uniswapInfo.tos,
         uniswapInfo.wton,
         stakingContract.address,
-        treasurycontract.address
+        treasuryContract.address
     )
     await bondDepositoryContract.deployed();
 
@@ -204,6 +222,34 @@ describe("price test", function () {
     expect(code).to.not.eq("0x");
   })
 
-  
+  it("bondDepository add policyAdmin", async () => {
+    await bondDepositoryContract.addPolicy(admin1.address);
+    expect(await bondDepositoryContract.isPolicy(admin1.address)).to.be.equal(true)
+  })
+
+  it("treasury set the mint possible the bondDepository", async () => {
+    await treasuryContract.connect(admin1).enable(7,bondDepositoryContract.address,admin1.address);
+    let checkPermission = await treasuryContract.permissions(7,bondDepositoryContract.address);
+    expect(checkPermission).to.be.equal(true)
+  })
+
+  it("setting MintRate on BondDepository", async () => {
+    await bondDepositoryContract.setMR(mintRate);
+  })
+
+  it("create the ETH market", async () => {
+    const block = await ethers.provider.getBlock('latest')
+    let finishTime = block.timestamp + sellingTime
+    let marketbefore = await bondDepositoryContract.marketsLength();
+    console.log(marketbefore)
+    await bondDepositoryContract.connect(admin1).create(
+        true,
+        admin1.address,
+        0,
+        [sellTosAmount,finishTime,ETHPrice,TOSPrice]
+    )
+    let marketafter = await bondDepositoryContract.marketsLength();
+    console.log(marketafter)
+  })
 
 });

@@ -303,4 +303,8 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         return ((market.capacity*1e10)/tokenPrice(_id));
     }
 
+    function marketsLength() external view returns (uint256 length) {
+        return markets.length;
+    }
+
 }
