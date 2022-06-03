@@ -4,12 +4,14 @@ pragma solidity > 0.8.0;
 /// @title LibDTOS
 library LibDTOS
 {
-    // epochNumber - Rebase
-    struct Rebase {
-        uint256 end;
-        uint256 distributedAmount;
-        uint256 totalSupply;
-        // uint256 apyForEpochDurationSecond;
-        uint256 rebaseCount;
+    struct BalanceSnapshots {
+        uint256[] ids;
+        uint256[] balances;
+    }
+
+    struct FactorSnapshots {
+        uint256[] ids;
+        uint256[] factors;
+        uint256[] refactorCounts;
     }
 }

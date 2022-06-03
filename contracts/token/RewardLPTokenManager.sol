@@ -126,7 +126,7 @@ contract RewardLPTokenManager is
 
         LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
 
-        IDTOS(dtos).burnFrom(info.owner, info.tosAmount);
+        IDTOS(dtos).burn(info.owner, info.tosAmount);
 
         _burn(tokenId);
         deleteUserToken(info.owner, tokenId);
@@ -156,7 +156,6 @@ contract RewardLPTokenManager is
         // dtos 가 토스 총계로 한번에 계산가능한지
         // 또는 각 아이디별 이자율이 별도로 계산되어야 하는지 확인이 필요함.
     }
-
 
     function use(
         address account,
