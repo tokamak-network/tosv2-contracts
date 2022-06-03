@@ -48,7 +48,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
         _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        
+
         tos = _tos;
         dTOS = _dtos;
         staking = _staking;
@@ -185,12 +185,6 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
             })
         );
 
-        //if have reward, give reward (market reward)
-
-        //update the backingData
-        treasury.backingUpdate();
-
-
         //tos를 산 후 MR을 곱해서 treasury에서 mint함
         uint256 mrAmount = payout_ * mintRate;
         treasury.mint(address(this), mrAmount);        
@@ -198,6 +192,8 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         emit Bond(_id, _amount, payout_);
 
         market.quoteToken.safeTransferFrom(msg.sender, address(treasury), _amount);
+        //update the backingData
+        treasury.backingUpdate();
 
         //tos staking route        
         staking.stake(msg.sender,payout_,_time,true,_claim);
@@ -250,11 +246,6 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
             })
         );
 
-        //if have reward, give reward (market reward)
-        
-        //update the backingData
-        treasury.backingUpdate();
-
         //tos를 산 후 MR을 곱해서 treasury에서 mint함
         uint256 mrAmount = payout_ * mintRate;
         treasury.mint(address(this), mrAmount);        
@@ -262,6 +253,9 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         emit Bond(_id, _amount, payout_);
 
         treasuryContract.transfer(msg.value);
+
+        //update the backingData
+        treasury.backingUpdate();
 
         //tos staking route        
         staking.stake(msg.sender,_amount,_time,true,_claim);
@@ -272,19 +266,6 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
            emit CloseMarket(_id);
         }
     }
-
-    //LP token Deposit
-    function LPDeposit(
-
-    )
-        external
-        returns (
-            uint256 payout_
-        ) 
-    {
-
-    }
-
 
     function setMR(uint256 _mrRate) external onlyPolicyOwner {
         mintRate = _mrRate;

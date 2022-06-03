@@ -10,7 +10,7 @@ import "./interfaces/ITreasury.sol";
 import "./common/ProxyAccessCommon.sol";
 
 
-contract OlympusStaking is ProxyAccessCommon {
+contract StakingV2 is ProxyAccessCommon {
     /* ========== DEPENDENCIES ========== */
 
     using SafeMath for uint256;
@@ -23,7 +23,7 @@ contract OlympusStaking is ProxyAccessCommon {
     /* ========== DATA STRUCTURES ========== */
 
     struct Epoch {
-        uint256 length; // in seconds
+        uint256 length_; // in seconds
         uint256 number; // since inception
         uint256 end; // timestamp
         uint256 distribute; // amount
@@ -101,13 +101,13 @@ contract OlympusStaking is ProxyAccessCommon {
         ITreasury _treasury
     ) {
         require(_tos != address(0), "Zero address : TOS");
-        
+
         _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
         _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         
         TOS = IERC20(_tos);
-        epoch = Epoch({length: _epochLength, number: _firstEpochNumber, end: _firstEpochTime, distribute: 0});
+        epoch = Epoch({length_: _epochLength, number: _firstEpochNumber, end: _firstEpochTime, distribute: 0});
 
         LTOSSupply = INITIAL_FRAGMENTS_SUPPLY;
         _gonsPerFragment = TOTAL_GONS.div(LTOSSupply);
@@ -131,7 +131,7 @@ contract OlympusStaking is ProxyAccessCommon {
      */
     function setRebasePerday(uint256 _perday) external onlyOwner {
         rebasePerday = _perday;
-        epoch.length = (86400 / rebasePerday);
+        epoch.length_ = (86400 / rebasePerday);
     } 
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -212,7 +212,7 @@ contract OlympusStaking is ProxyAccessCommon {
         if (epoch.end <= block.timestamp) {
             rebasebyStaker(epoch.distribute, epoch.number);
 
-            epoch.end = epoch.end.add(epoch.length);
+            epoch.end = epoch.end.add(epoch.length_);
             epoch.number++;
 
             uint256 balance = TOS.balanceOf(address(this));         //staking되어있는 물량

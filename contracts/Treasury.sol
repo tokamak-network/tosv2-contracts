@@ -49,6 +49,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     mapping(address => address) public bondCalculator;
 
     uint256 public totalReserves;
+    uint256 public ETHbacking;
 
     Backing[] public backings;
 
@@ -223,6 +224,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         //     uint256 amount = IERC20(backingLists[i]).balanceOf(address(this));
         //     backingList[i] = amount;
         // }
+        ETHbacking = address(this).balance;
         for (uint256 i = 0; i < backings.length; i++) {
             uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));
             backingList[i] = amount;
@@ -246,17 +248,17 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     }
 
     //eth, weth, market에서 받은 자산 다 체크해야함
-    //
     //mint할 수 있는 양을 초과했다 -> 
     //환산은 eth단위로 
     function backingReserve() public view returns (uint256) {
-        uint256 totalValue = address(this).balance;
+        uint256 totalValue;
         uint256 tosETHPrice = ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
         for(uint256 i = 0; i < backings.length; i++) {
             uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));
             uint256 tosERC20Price = ITOSValueCalculator(calculator).getTOSERC20PoolTOSPrice(backings[i].erc20Address,backings[i].tosPoolAddress,backings[i].fee);
             totalValue = totalValue + (amount * tosERC20Price * tosETHPrice);
         }
+        totalValue = totalValue + ETHbacking;
         return totalValue;
     }
 }
