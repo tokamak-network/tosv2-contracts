@@ -248,11 +248,12 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
 
         //tos를 산 후 MR을 곱해서 treasury에서 mint함
         uint256 mrAmount = payout_ * mintRate;
-        treasury.mint(address(this), mrAmount);        
-
-        emit Bond(_id, _amount, payout_);
+        treasury.mint(address(this), mrAmount);       
 
         treasuryContract.transfer(msg.value);
+
+        uint256 transAmount = mrAmount - payout_;
+        tos.safeTransfer(address(ITreasury(treasury)),transAmount);
 
         //update the backingData
         treasury.backingUpdate();
@@ -265,6 +266,8 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
             true,
             _claim
         );
+
+        emit Bond(_id, _amount, payout_);
 
         //종료해야하는지 확인
         if (meta.totalSaleAmount <= market.sold) {

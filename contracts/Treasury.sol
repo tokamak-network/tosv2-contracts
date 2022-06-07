@@ -261,4 +261,8 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         totalValue = totalValue + ETHbacking;
         return totalValue;
     }
+
+    function enableStaking() public view returns (uint256) {
+        return TOS.balanceOf(address(this));
+    }
 }

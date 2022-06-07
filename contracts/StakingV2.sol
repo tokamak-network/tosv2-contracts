@@ -166,7 +166,7 @@ contract StakingV2 is ProxyAccessCommon {
         TOS.safeTransferFrom(msg.sender, address(this), _amount);
         
         if(_rebasing == true) {
-            rebase();
+            rebaseIndex();
         }
 
         Users memory info = userInfo[_to];
@@ -214,9 +214,10 @@ contract StakingV2 is ProxyAccessCommon {
         TOS.safeTransfer(_to, amount_);
     }
 
-    function rebase() public {
+    function rebaseIndex() public {
         if(epoch.end <= block.timestamp) {
-
+            epoch.end = epoch.end.add(epoch.length_);
+            epoch.number++;
         }
     }
 
