@@ -46,6 +46,16 @@ let UniswapV3LiquidityChangerAddress = "0xa839a0e64b27a34ed293d3d81e1f2f8b463c35
 
 
 describe("price test", function () {
+  //시나리오
+  //팔려고하는 tos 목표치 = 10,000 -> 10ETH 받으면 판매 종료
+  //받는 token(ETH)의 가격 = 1,000,000
+  //TOS의 가격 = 1,000
+  //1ETH = 1,000TOS
+  //실제 ETH 가격 = 1,500,000, TOS의 가격 = 1,000 -> 1ETH = 1,500 TOS
+  //500개의 tos만 더 생산되어도됨
+  //mintRate = 10 -> ex) 1ETH가 들어오면 1000TOS * 10 -> 10,000TOS mint -> 1,000개는 유저에게, 9,000개는 treasury에 있음
+  //staking index가 증가되는 조건
+  //staking index 증가시키는 시점
   let provider;
   let nonfungiblePositionManager, uniswapV3Pool, uniswapV3LiquidityChanger ;
 
@@ -176,7 +186,7 @@ describe("price test", function () {
     stakingContract = await stakingcont.deploy(
         uniswapInfo.tos,
         epochLength,
-        0,
+        firstEpochNumber,
         firstEndEpochTime,
         treasuryContract.address
     );

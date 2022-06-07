@@ -258,10 +258,16 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         treasury.backingUpdate();
 
         //tos staking route        
-        staking.stake(msg.sender,_amount,_time,true,_claim);
+        staking.stake(
+            msg.sender,
+            payout_,
+            _time,
+            true,
+            _claim
+        );
 
         //종료해야하는지 확인
-        if (meta.totalSaleAmount <= (market.sold + 1e18)) {
+        if (meta.totalSaleAmount <= market.sold) {
            market.capacity = 0;
            emit CloseMarket(_id);
         }
@@ -288,7 +294,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
             uint256 payout
         ) 
     {
-        payout = ((((_tokenPrice * 1e10)/_tosPrice) * _amount) / 1e10);
+        return payout = ((((_tokenPrice * 1e10)/_tosPrice) * _amount) / 1e10);
     }
 
 

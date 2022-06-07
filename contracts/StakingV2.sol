@@ -89,6 +89,8 @@ contract StakingV2 is ProxyAccessCommon {
 
     uint256 public index_;
 
+    uint8 public rebaseRate;
+
     uint256 public totaldeposit;
 
     /* ========== CONSTRUCTOR ========== */
@@ -133,6 +135,15 @@ contract StakingV2 is ProxyAccessCommon {
         rebasePerday = _perday;
         epoch.length_ = (86400 / rebasePerday);
     } 
+
+    function setindex(uint256 _index) external onlyOwner {
+        index_ = _index;
+    }
+
+    function rebaseInterestRate(uint8 _rate) external onlyOwner {
+        rebaseRate = _rate;
+    }
+
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
@@ -203,11 +214,17 @@ contract StakingV2 is ProxyAccessCommon {
         TOS.safeTransfer(_to, amount_);
     }
 
+    function rebase() public {
+        if(epoch.end <= block.timestamp) {
+
+        }
+    }
+
     /**
      * @notice trigger rebase if epoch over
      * @return uint256
      */
-    function rebase() public returns (uint256) {
+    function rebase2() public returns (uint256) {
         uint256 bounty;
         if (epoch.end <= block.timestamp) {
             rebasebyStaker(epoch.distribute, epoch.number);
