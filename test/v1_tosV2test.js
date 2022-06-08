@@ -56,6 +56,7 @@ describe("price test", function () {
   //mintRate = 10 -> ex) 1ETH가 들어오면 1000TOS * 10 -> 10,000TOS mint -> 1,000개는 유저에게, 9,000개는 treasury에 있음
   //staking index가 증가되는 조건
   //staking index 증가시키는 시점
+  //LTOS lockup 기간, TOS -> LTOS, TOS랑 이자는 Treasury에서 나오게함 돌려줌
   let provider;
   let nonfungiblePositionManager, uniswapV3Pool, uniswapV3LiquidityChanger ;
 

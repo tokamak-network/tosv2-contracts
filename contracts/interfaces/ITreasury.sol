@@ -15,4 +15,6 @@ interface ITreasury {
     function mint(address _recipient, uint256 _amount) external;
 
     function backingUpdate() external;
+
+    function enableStaking() external view returns (uint256);
 }

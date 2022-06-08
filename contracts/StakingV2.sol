@@ -341,6 +341,8 @@ contract StakingV2 is ProxyAccessCommon {
         // return LTOSSupply.sub(balanceOf(address(this)));
         // return 추가로 발행해야할 LTOSamount
         //treasury가지고 있는 TOS에서  - staking 이자 빼기
+        uint256 amount = treasury.enableStaking() - (totaldeposit * index_);
+        return amount;
     }
 
     /* ========== MANAGERIAL FUNCTIONS ========== */
