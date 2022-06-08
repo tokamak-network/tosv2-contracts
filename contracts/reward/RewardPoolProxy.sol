@@ -2,9 +2,13 @@
 pragma solidity ^0.8.0;
 
 import "./RewardPoolStorage.sol";
-import "../proxy/VaultProxy.sol";
+import "../proxy/BaseProxy.sol";
 
-contract RewardPoolProxy is RewardPoolStorage, VaultProxy  {
+
+contract RewardPoolProxy is
+    RewardPoolStorage,
+    BaseProxy
+{
 
     function initializeProxy(
         address poolAddress,
@@ -36,5 +40,6 @@ contract RewardPoolProxy is RewardPoolStorage, VaultProxy  {
         nonfungiblePositionManager = INonfungiblePositionManager(npm);
         rewardLPTokenManager = IRewardLPTokenManagerAction(rlpm);
         tosAddress = tos;
+        availableDTOS = true;
     }
 }

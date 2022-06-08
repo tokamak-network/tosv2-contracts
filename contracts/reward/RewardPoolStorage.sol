@@ -29,12 +29,22 @@ contract RewardPoolStorage {
     uint256[] public stakedTokensInPool;
     mapping(uint256 => uint256) public stakedTokensInPoolIndexs;
 
-
     uint256 public totalTOS;
     uint128 public totalLiquidity;
+
+    bool public availableDTOS;
 
     modifier nonZero(uint256 value) {
         require(value > 0, "zero value");
         _;
     }
+
+    modifier nonZeroAddress(address account) {
+        require(
+            account != address(0),
+            "zero address"
+        );
+        _;
+    }
+
 }

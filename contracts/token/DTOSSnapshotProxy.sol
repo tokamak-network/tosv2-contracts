@@ -1,16 +1,21 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "./DTOSStorage.sol";
+import "./DTOSSnapshotStorage.sol";
 import "../proxy/BaseProxy.sol";
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
+import "../interfaces/IProxyEvent.sol";
+import "../interfaces/IProxyAction.sol";
 
-contract DTOSProxy is
-    DTOSStorage,
+// import "hardhat/console.sol";
+
+contract DTOSSnapshotProxy is
+    DTOSSnapshotStorage,
     BaseProxy
 {
+
 
     function initialize(string memory _name, string memory _symbol)
         external onlyOwner
@@ -20,7 +25,12 @@ contract DTOSProxy is
 
         name = _name;
         symbol = _symbol;
-        _factor = DEFAULT_FACTOR;
+
+        currentSnapshotId++;
+        factorSnapshots.ids.push(currentSnapshotId);
+        factorSnapshots.factors.push(10**18);
+        factorSnapshots.refactorCounts.push(0);
+
     }
 
 

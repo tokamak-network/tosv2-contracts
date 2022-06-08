@@ -3,6 +3,9 @@ pragma solidity ^0.8.0;
 
 
 import "./RewardPoolStorage.sol";
+
+import "../common/AccessibleCommon.sol";
+
 import "../interfaces/IERC20Minimal.sol";
 
 import "../interfaces/IRewardPoolEvent.sol";
@@ -15,7 +18,16 @@ interface IIERC721{
 }
 
 
-contract RewardPool is RewardPoolStorage, IRewardPoolEvent, IRewardPoolAction {
+contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IRewardPoolAction {
+
+
+    function setAvailableDTOS(address _addr)
+        external
+        nonZeroAddress(_addr) onlyOwner
+    {
+        require(address(rewardLPTokenManager) != _addr, "same address");
+        rewardLPTokenManager = IRewardLPTokenManagerAction(_addr);
+    }
 
     function stake(uint256 tokenId) external override {
         require(IIERC721(address(nonfungiblePositionManager)).ownerOf(tokenId) == msg.sender, "tokenId is not yours.");

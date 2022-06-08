@@ -4,14 +4,17 @@ pragma solidity > 0.8.0;
 /// @title LibDTOS
 library LibDTOS
 {
-    struct BalanceSnapshots {
-        uint256[] ids;
-        uint256[] balances;
+
+    struct Balance {
+        uint256 balance;
+        uint256 refactoredCount;
+        uint256 remain;
     }
 
-    struct FactorSnapshots {
-        uint256[] ids;
-        uint256[] factors;
-        uint256[] refactorCounts;
+    struct Rebase {
+        uint256 start;
+        uint256 factor;
+        uint256 refactorCount;
     }
+
 }

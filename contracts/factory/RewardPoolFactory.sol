@@ -66,7 +66,6 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
             "RewardPoolProxy zero"
         );
 
-        _proxy.addProxyAdmin(upgradeAdmin);
         _proxy.addAdmin(upgradeAdmin);
         _proxy.setImplementation2(vaultLogic, 0, true);
 
@@ -79,8 +78,7 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
             tosAddress
         );
 
-        _proxy.removeAdmin();
-        // _proxy.removeProxyAdmin();
+        _proxy.removeAdmin(address(this));
 
         createdContracts[totalCreatedContracts] = ContractInfo(address(_proxy), _name);
         totalCreatedContracts++;

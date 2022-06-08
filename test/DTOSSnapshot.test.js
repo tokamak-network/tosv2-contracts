@@ -6,7 +6,7 @@ const {
   keccak256,
 } = require("web3-utils");
 
-describe("DTOS", function () {
+describe("DTOSSnapshot", function () {
 
     let dtosImpl, dtosProxy, testLogicAddress ;
     // let rebaseInterestRate = '30000000000000000'; // 연 이자율 3%
@@ -23,8 +23,8 @@ describe("DTOS", function () {
         contract: null,
         contractImp: null,
         implAddress: null,
-        name: 'DTOS',
-        symbol: 'DTOS',
+        name: 'DTOSSnapshot',
+        symbol: 'DTOSSH',
         decimals: 18,
         factor: ethers.BigNumber.from('1'),
         totalSupply: ethers.BigNumber.from('0'),
@@ -42,14 +42,14 @@ describe("DTOS", function () {
 
     });
 
-    it("Create DTOS", async function () {
+    it("Create DTOSSnapshot", async function () {
 
-        const DTOS = await ethers.getContractFactory("DTOS");
+        const DTOS = await ethers.getContractFactory("DTOSSnapshot");
         dtosImpl = await DTOS.connect(admin).deploy();
         await dtosImpl.deployed();
 
 
-        const DTOSProxy = await ethers.getContractFactory("DTOSProxy")
+        const DTOSProxy = await ethers.getContractFactory("DTOSSnapshotProxy")
         dtosProxy = await DTOSProxy.connect(admin).deploy();
         await dtosProxy.deployed();
 
@@ -255,7 +255,7 @@ describe("DTOS", function () {
 
             expect(await dtosProxy.pauseProxy()).to.be.eq(true);
 
-            dTOS.contractImp = await ethers.getContractAt("DTOS", dtosProxy.address);
+            dTOS.contractImp = await ethers.getContractAt("DTOSSnapshot", dtosProxy.address);
 
             await expect(
                 dTOS.contractImp.totalSupply()
@@ -273,8 +273,7 @@ describe("DTOS", function () {
         it("2-1. setRewardLPTokenManager : when not admin, fail", async function () {
 
             expect(await dTOS.contractImp.isAdmin(user2.address)).to.be.eq(false);
-            await expect(dTOS.contractImp.connect(user2).setRewardLPTokenManager(user2.address))
-                .to.be.revertedWith("Accessible: Caller is not an admin");
+            await expect(dTOS.contractImp.connect(user2).setRewardLPTokenManager(user2.address)).to.be.revertedWith("Accessible: Caller is not an admin");
         });
 
         it("2-1. setRewardLPTokenManager ", async function () {
