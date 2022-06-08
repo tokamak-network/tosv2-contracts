@@ -37,7 +37,8 @@ contract StakingV2 is ProxyAccessCommon {
     }
 
     struct Users {
-        uint256 deposit;    // if forfeiting
+        uint256 deposit;    // tos staking한 양
+        uint256 LTOS;       // LTOS 양
         uint256 startTime;  // 시작 startTime
         uint256 epoEnd;     // lock기간
         uint256 getReward;  // 이미 받아간 claim 양
@@ -92,6 +93,7 @@ contract StakingV2 is ProxyAccessCommon {
     uint8 public rebaseRate;
 
     uint256 public totaldeposit;
+    uint256 public totalLTOS;
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -165,20 +167,24 @@ contract StakingV2 is ProxyAccessCommon {
     ) external returns (uint256) {
         TOS.safeTransferFrom(msg.sender, address(this), _amount);
         
-        if(_rebasing == true) {
-            rebaseIndex();
-        }
-
         Users memory info = userInfo[_to];
+
+        uint256 LTOSamount = _amount/index_;
 
         userInfo[_to] = Users({
             deposit: info.deposit.add(_amount),
+            LTOS: info.LTOS + LTOSamount,
             startTime: block.timestamp,
             epoEnd: block.timestamp + _period,
             getReward: info.getReward,
             claim: false
         });
 
+        if(_rebasing == true) {
+            rebaseIndex();
+        }
+
+        totalLTOS = totalLTOS + info.LTOS;
         totaldeposit = totaldeposit + info.deposit;
         gonsInWarmup = gonsInWarmup.add(gonsForBalance(_amount));
 
@@ -336,13 +342,16 @@ contract StakingV2 is ProxyAccessCommon {
         return amount.mul(_gonsPerFragment);
     }
 
-    // Staking contract holds excess sOHM
+    // LTOS를 TOS로 보상해주고 남은 TOS 물량
     function circulatingSupply() public view returns (uint256) {
-        // return LTOSSupply.sub(balanceOf(address(this)));
-        // return 추가로 발행해야할 LTOSamount
-        //treasury가지고 있는 TOS에서  - staking 이자 빼기
-        uint256 amount = treasury.enableStaking() - (totaldeposit * index_);
+        //treasury가지고 있는 TOS  - staking 이자 빼기
+        uint256 amount = treasury.enableStaking() - ((totalLTOS * index_) - totaldeposit);
         return amount;
+    }
+
+    // LTOS에 대한 이자 (LTOS -> TOS로 환산 후 staking된 TOS를 뺴줌)
+    function LTOSinterest() public view returns (uint256) {
+        return (totalLTOS * index_) - totaldeposit;
     }
 
     /* ========== MANAGERIAL FUNCTIONS ========== */
