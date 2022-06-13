@@ -9,6 +9,8 @@
     "hardhat": "^2.9.3"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.5.0"
+    "@openzeppelin/contracts": "^4.5.0",
+    "hardhat-gas-reporter": "^1.0.8",
+    "web3-eth-abi": "^1.7.3"
   }
 }

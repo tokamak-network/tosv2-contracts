@@ -13,6 +13,7 @@ contract RewardPoolStorage {
     address public token0;
     address public token1;
     address public tosAddress;
+    address public rewardPoolManager;
 
     IUniswapV3Factory public uniswapV3Factory;
     INonfungiblePositionManager public nonfungiblePositionManager;
@@ -32,7 +33,7 @@ contract RewardPoolStorage {
     uint256 public totalTOS;
     uint128 public totalLiquidity;
 
-    bool public availableDTOS;
+    uint256 public dTosBaseRates;
 
     modifier nonZero(uint256 value) {
         require(value > 0, "zero value");

@@ -98,7 +98,7 @@ contract RewardLPTokenManager is
 
         deposits[tokenId] = LibRewardLPToken.RewardTokenInfo({
             rewardPool: msg.sender,
-            pool: pool,
+            // pool: pool,
             owner: to,
             poolTokenId: poolTokenId,
             tosAmount: tosAmount,

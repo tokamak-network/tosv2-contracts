@@ -21,14 +21,6 @@ interface IIERC721{
 contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IRewardPoolAction {
 
 
-    function setAvailableDTOS(address _addr)
-        external
-        nonZeroAddress(_addr) onlyOwner
-    {
-        require(address(rewardLPTokenManager) != _addr, "same address");
-        rewardLPTokenManager = IRewardLPTokenManagerAction(_addr);
-    }
-
     function stake(uint256 tokenId) external override {
         require(IIERC721(address(nonfungiblePositionManager)).ownerOf(tokenId) == msg.sender, "tokenId is not yours.");
         nonfungiblePositionManager.transferFrom(msg.sender, address(this), tokenId);
@@ -75,9 +67,13 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
             // caculate with the ratio price0, price1
             //tosAmount += amount0;
         }
+
+        //
     }
 
     function _stake(address sender, uint256 tokenId) internal {
+
+        require(dTosBaseRates > 0, "dTosBaseRates is zero");
 
         (,, address token0, address token1,,int24 tickLower, int24 tickUpper, uint128 liquidity,,,,)
             = nonfungiblePositionManager.positions(tokenId);
@@ -89,6 +85,8 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
 
         uint256 tosAmount = evaluateTOS(tokenId, token0, token1);
 
+        require(tosAmount > 0, "tosAmount is zero");
+
         uint256 rTokenId = rewardLPTokenManager.mint(sender, address(pool), tokenId, tosAmount, liquidity);
 
         addTokenInPool(tokenId);
@@ -98,6 +96,7 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
         totalLiquidity += liquidity;
 
         emit Staked(sender, tokenId);
+
     }
 
     function addTokenInPool(uint256 tokenId) internal {
