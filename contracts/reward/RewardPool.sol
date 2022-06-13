@@ -11,16 +11,18 @@ import "../interfaces/IERC20Minimal.sol";
 import "../interfaces/IRewardPoolEvent.sol";
 import "../interfaces/IRewardPoolAction.sol";
 
+import {DSMath} from "../libraries/DSMath.sol";
 import "../libraries/UniswapV3LiquidityEvaluator.sol";
 import "../libraries/LibRewardLPToken.sol";
 import "../libraries/LibSnapshot.sol";
 import "../libraries/SArrays.sol";
+import "../libraries/ABDKMath64x64.sol";
 
 interface IIERC721{
     function ownerOf(uint256 tokenId) external view returns (address owner);
 }
 
-contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IRewardPoolAction {
+contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolEvent, IRewardPoolAction {
 
     using SArrays for uint256[];
 
@@ -47,12 +49,13 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
         deleteUserToken(from, tokenId);
         addUserToken(to, tokenId);
 
+        rebase();
+
         _burn(from, amount);
         _mint(to, amount);
 
         emit TransferFrom(from, to, tokenId, amount);
     }
-
 
     function evaluateTOS(uint256 tokenId, address token0, address token1) public view returns (uint256 tosAmount) {
 
@@ -84,10 +87,15 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
         require(tickLower < tick && tick < tickUpper, "out of range");
         // require(UniswapV3LiquidityEvaluator.availablePriceTick(tick, fee), "unavailablePriceTick ");
 
+        rebase();
+
         uint256 tosAmount = evaluateTOS(tokenId, token0, token1);
         require(tosAmount > 0, "tosAmount is zero");
+        uint256 dtosAmount = tosToDtosAmount(tosAmount);
+        uint256 factoredAmount = 0;
+        if(dtosAmount > 0) factoredAmount = wdiv2(dtosAmount, factor);
 
-        uint256 rTokenId = rewardLPTokenManager.mint(sender, address(pool), tokenId, tosAmount, liquidity);
+        uint256 rTokenId = rewardLPTokenManager.mint(sender, address(pool), tokenId, tosAmount, liquidity, factoredAmount);
         rewardLPs[tokenId] = rTokenId;
 
         addTokenInPool(tokenId);
@@ -96,7 +104,16 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
         _mint(sender, tosAmount);
         totalLiquidity += liquidity;
 
+        if (factoredAmount > 0) {
+            factoredAmounts[sender] += factoredAmount;
+             totalFactoredAmount += factoredAmount;
+        }
+
         emit Staked(sender, tokenId, tosAmount, liquidity);
+    }
+
+    function tosToDtosAmount(uint256 _amount) public view virtual  returns (uint256) {
+        return (_amount *  dTosBaseRates / 10**18);
     }
 
     function _unstake(address sender, uint256 tokenId) internal {
@@ -113,9 +130,16 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
         deleteTokenInPool(tokenId);
         deleteUserToken(sender, tokenId);
 
+        rebase();
+
         _burn(sender, info.tosAmount);
         totalLiquidity -= info.liquidity;
         rewardLPs[tokenId] = 0;
+
+        if (info.factoredAmount > 0) {
+            factoredAmounts[sender] -= info.factoredAmount;
+            totalFactoredAmount -= info.factoredAmount;
+        }
 
         emit Unstaked(sender, tokenId, info.tosAmount, info.liquidity, rTokenId);
     }
@@ -267,9 +291,21 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
         return snapshotted ? value : totalSupply();
     }
 
-
     function getCurrentSnapshotId() public view  returns (uint256) {
         return currentSnapshotId;
+    }
+
+    function dtosBalanceOf(address account) public view virtual  returns (uint256 amount) {
+        uint256 factoredAmount = factoredAmounts[account];
+        if (factoredAmount > 0) {
+            amount = wmul2(factoredAmount, factor);
+        }
+    }
+
+    function dtosTotalSupply() public view virtual  returns (uint256 amount) {
+        if (totalFactoredAmount > 0) {
+            amount = wmul2(totalFactoredAmount, factor);
+        }
     }
 
     /// Internal Functions
@@ -353,13 +389,87 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
     function setDtosBaseRates(
         uint256 _baseRates
     )
-        external
+        external onlyOwner
     {
-        require(msg.sender == rewardPoolManager, "sender is not rewardPoolManager");
+        // require(msg.sender == rewardPoolManager, "sender is not rewardPoolManager");
 
         require(dTosBaseRates != _baseRates, "same value");
 
         dTosBaseRates = _baseRates;
+    }
+
+    function setRebaseInfo(uint256 _period, uint256 _interest)
+        external
+        nonZero(_period)
+        onlyOwner
+    {
+        require(rebaseIntervalSecond != _period, "same rebase period");
+        require(compoundInteresRatePerRebase != _interest, "same compound interest rate");
+        rebaseIntervalSecond = _period;
+        compoundInteresRatePerRebase = _interest;
+    }
+
+    function rebase() internal
+    {
+        if (rebaseIntervalSecond > 0 && compoundInteresRatePerRebase > 0) {
+            uint256 curTime = block.timestamp;
+            uint256 total = dtosTotalSupply();
+            uint256 period = 0;
+
+            if ( (lastRebaseTime == 0 && total > 0) || total == 0) {
+                lastRebaseTime = curTime;
+            } else if (curTime > lastRebaseTime && total > 0 ) {
+
+                period = (curTime - lastRebaseTime) / rebaseIntervalSecond;
+
+                if(period > 0){
+                    uint256 prevFactor = factor;
+                    uint256 addAmount = compound(total, compoundInteresRatePerRebase, period);
+
+                    uint256 newFactor = _calcNewFactor(total, addAmount, factor);
+
+                    _setFactor(newFactor);
+
+                    lastRebaseTime = curTime;
+                    emit Rebased(prevFactor, factor, lastRebaseTime, addAmount, addAmount-total);
+                }
+            }
+        }
+    }
+
+    function _setFactor(uint256 _factor)
+        internal
+    {
+        factor = _factor;
+    }
+
+    function _calcNewFactor(uint256 source, uint256 target, uint256 oldFactor) internal pure returns (uint256) {
+        return wdiv(wmul(target, oldFactor), source);
+    }
+
+    function pow (int128 x, uint n) public pure returns (int128 r) {
+        r = ABDKMath64x64.fromUInt (1);
+        while (n > 0) {
+            if (n % 2 == 1) {
+                r = ABDKMath64x64.mul (r, x);
+                n -= 1;
+            } else {
+                x = ABDKMath64x64.mul (x, x);
+                n /= 2;
+            }
+        }
+    }
+
+    function compound (uint principal, uint ratio, uint n) public pure returns (uint) {
+        return ABDKMath64x64.mulu (
+                pow (
+                ABDKMath64x64.add (
+                    ABDKMath64x64.fromUInt (1),
+                    ABDKMath64x64.divu (
+                    ratio,
+                    10**18)),
+                n),
+                principal);
     }
 
 }

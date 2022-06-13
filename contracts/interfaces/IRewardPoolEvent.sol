@@ -9,5 +9,7 @@ interface IRewardPoolEvent {
     event Unstaked(address sender, uint256 tokenId, uint256 tosAmount, uint256 liquidity, uint256 rewardTokenId);
 
     event TransferFrom(address from, address to, uint256 tokenId, uint256 amount);
+
+    event Rebased(uint256 prevFactor, uint256 newFactor, uint256 lastRebaseTime, uint256 total, uint256 profits);
 }
 

@@ -20,7 +20,7 @@ contract RewardPoolStorage {
     string public name;
     string public symbol;
     uint8 public decimals = 18;
-    uint256 public DEFAULT_FACTOR = 10**18;
+
     mapping(address => LibSnapshot.Snapshots) internal accountBalanceSnapshots;
     LibSnapshot.Snapshots internal totalSupplySnapshots;
     uint256 public currentSnapshotId;
@@ -49,6 +49,16 @@ contract RewardPoolStorage {
     // tokenIds - rewardLP
     mapping(uint256 => uint256) public rewardLPs;
     uint256 public dTosBaseRates;
+
+    //
+    uint256 public compoundInteresRatePerRebase; // 리베이스당 이자율
+    uint256 public rebaseIntervalSecond; // 리베이스 (해당 초마다 리베이스)
+    uint256 public lastRebaseTime;
+
+    uint256 public DEFAULT_FACTOR = 10**18;
+    uint256 public factor;
+    mapping(address => uint256) public factoredAmounts;
+    uint256 public totalFactoredAmount;
 
     event Snapshot(uint256 id);
 

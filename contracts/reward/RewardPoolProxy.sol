@@ -48,6 +48,7 @@ contract RewardPoolProxy is
         rewardLPTokenManager = IRewardLPTokenManagerAction(rlpm);
         tosAddress = tos;
         rewardPoolManager = poolManager;
+        factor = DEFAULT_FACTOR;
     }
 
     /*

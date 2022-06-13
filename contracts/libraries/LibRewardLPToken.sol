@@ -12,7 +12,7 @@ library LibRewardLPToken
         uint256 tosAmount;
         uint256 usedAmount;
         uint256 stakedTime;
-        uint256 dtosFactor;
+        uint256 factoredAmount;
         uint128 liquidity;
     }
 

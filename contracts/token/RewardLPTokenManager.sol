@@ -92,7 +92,8 @@ contract RewardLPTokenManager is
         address pool,
         uint256 poolTokenId,
         uint256 tosAmount,
-        uint128 liquidity
+        uint128 liquidity,
+        uint256 factoredAmount
     ) external override whenNotPaused zeroAddress(dtos) returns (uint256) {
 
         require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
@@ -110,7 +111,7 @@ contract RewardLPTokenManager is
             tosAmount: tosAmount,
             usedAmount: 0,
             stakedTime: block.timestamp,
-            dtosFactor: factor,
+            factoredAmount: factoredAmount,
             liquidity: liquidity
         });
 
