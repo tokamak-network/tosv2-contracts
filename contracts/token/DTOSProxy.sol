@@ -23,5 +23,28 @@ contract DTOSProxy is
         _factor = DEFAULT_FACTOR;
     }
 
+    function addPool(address _pool) public
+    {
+        require(
+            msg.sender == rewardPoolFactory
+            || isAdmin(msg.sender)
+            , "sender is not RewardPoolFactory or Admin");
+
+        if (poolIndex[_pool] == 0) {
+            poolIndex[_pool] = pools.length;
+            pools.push(_pool);
+        }
+    }
+
+    function deletePool(address _pool) public  onlyOwner
+    {
+        uint256 _index = poolIndex[_pool];
+        if (_index > 0 && _index < pools.length) {
+            if (_index < pools.length-1) pools[_index] = pools[pools.length-1];
+            pools.pop();
+            poolIndex[_pool] = 0;
+            poolDtosBaseRate[_pool] = 0;
+        }
+    }
 
 }

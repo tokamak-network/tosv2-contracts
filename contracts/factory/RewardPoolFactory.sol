@@ -7,12 +7,19 @@ import "../reward/RewardPoolProxy.sol";
 import "../interfaces/IRewardPoolFactory.sol";
 import "../interfaces/IUniswapV3Pool.sol";
 
+interface IIDTOS_RPF {
+    function addPool(address pool) external ;
+
+}
+
 contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
 {
     address public uniswapV3Factory;
     address public nonfungiblePositionManager;
     address public rewardLPTokenManager;
     address public tosAddress;
+    address public dtos;
+    address public rewardPoolManager;
 
     constructor() {}
 
@@ -21,18 +28,24 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
         address _factory,
         address _npm,
         address _rLPM,
-        address _tos
+        address _tos,
+        address _dtos,
+        address _rewardPoolManager
         )
         external onlyOwner
         nonZeroAddress(_factory)
         nonZeroAddress(_npm)
         nonZeroAddress(_rLPM)
         nonZeroAddress(_tos)
+        nonZeroAddress(_dtos)
+        nonZeroAddress(_rewardPoolManager)
     {
         uniswapV3Factory = _factory;
         nonfungiblePositionManager =_npm;
         rewardLPTokenManager = _rLPM;
         tosAddress = _tos;
+        dtos = _dtos;
+        rewardPoolManager = _rewardPoolManager;
     }
 
 
@@ -42,13 +55,14 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
         address poolAddress,
         address projectAdmin
     )
-        external override
+        external override onlyOwner
         nonZeroAddress(vaultLogic)
         nonZeroAddress(upgradeAdmin)
         nonZeroAddress(uniswapV3Factory)
         nonZeroAddress(nonfungiblePositionManager)
         nonZeroAddress(rewardLPTokenManager)
         nonZeroAddress(tosAddress)
+        nonZeroAddress(dtos)
         returns (address)
     {
         require(bytes(_name).length > 0,"name is empty");
@@ -75,13 +89,16 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
             uniswapV3Factory,
             nonfungiblePositionManager,
             rewardLPTokenManager,
-            tosAddress
+            tosAddress,
+            rewardPoolManager
         );
 
         _proxy.removeAdmin(address(this));
 
         createdContracts[totalCreatedContracts] = ContractInfo(address(_proxy), _name);
         totalCreatedContracts++;
+
+        IIDTOS_RPF(dtos).addPool(address(_proxy));
 
         emit CreatedRewardPool(address(_proxy), _name);
 

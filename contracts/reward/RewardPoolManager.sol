@@ -7,16 +7,16 @@ import "./RewardPoolManagerStorage.sol";
 import "../common/AccessibleCommon.sol";
 
 interface IIRewardPool{
-    function changeDtosBaseRate(uint256 tokenId) external view returns (address owner);
+    function setDtosBaseRates(uint256 tokenId) external view returns (address owner);
 }
 
 
 contract RewardPoolManager is RewardPoolManagerStorage, AccessibleCommon {
 
     function setDtosBaseRates(address _rewardPool, uint256 _baseRate)
-        external
-        nonZeroAddress(_rewardPool) onlyOwner
+        external onlyOwner
     {
+        require(_rewardPool != address(0), "zero address");
         IIRewardPool(_rewardPool).setDtosBaseRates(_baseRate);
     }
 }

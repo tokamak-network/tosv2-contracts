@@ -50,6 +50,7 @@ contract RewardPoolProxy is
         rewardPoolManager = poolManager;
     }
 
+    /*
     function changeInitializeAddress(
         address factory,
         address npm,
@@ -91,6 +92,6 @@ contract RewardPoolProxy is
 
         dTosBaseRates = _baseRates;
     }
-
+    */
 
 }

@@ -151,13 +151,12 @@ library UniswapV3LiquidityEvaluator {
             );
         }
     }
-    /// @inheritdoc IInitialLiquidityVaultAction
-    function getMinTick(int24 tickSpacings) public view override returns (int24){
+
+    function getMinTick(int24 tickSpacings) public view returns (int24){
            return (TickMath.MIN_TICK / tickSpacings) * tickSpacings ;
     }
 
-    /// @inheritdoc IInitialLiquidityVaultAction
-    function getMaxTick(int24 tickSpacings) public view override  returns (int24){
+    function getMaxTick(int24 tickSpacings) public view  returns (int24){
            return (TickMath.MAX_TICK / tickSpacings) * tickSpacings ;
     }
 

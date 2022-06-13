@@ -56,6 +56,60 @@ contract DTOS is
         rewardLPTokenManager = _addr;
     }
 
+    function setRewardPoolFactory(address _addr)
+        external
+        nonZeroAddress(_addr) onlyOwner
+    {
+        require(rewardPoolFactory != _addr, "same address");
+        rewardPoolFactory = _addr;
+    }
+
+    function setInitialDtosBaseRate(uint256 _rate)
+        external onlyOwner
+    {
+        require(initialDtosBaseRate != _rate, "same value");
+        initialDtosBaseRate = _rate;
+    }
+
+    function setDtosBaseRate(address _pool, uint256 _rate)
+        external nonZeroAddress(_pool) onlyOwner
+    {
+        require(poolIndex[_pool] > 0, "zero pool index");
+
+        if (_rate > 0) {
+            poolDtosBaseRate[_pool] = _rate;
+        } else {
+            deletePool(_pool);
+        }
+    }
+
+
+    function addPool(address _pool) public nonZeroAddress(_pool)
+    {
+        require(
+            msg.sender == rewardPoolFactory
+            || isAdmin(msg.sender)
+            , "sender is not RewardPoolFactory or Admin");
+
+        if(pools.length == 0) pools.push(address(0));
+
+        if (poolIndex[_pool] == 0) {
+            poolIndex[_pool] = pools.length;
+            poolDtosBaseRate[_pool] = initialDtosBaseRate;
+            pools.push(_pool);
+        }
+    }
+
+    function deletePool(address _pool) public nonZeroAddress(_pool) onlyOwner
+    {
+        uint256 _index = poolIndex[_pool];
+        if (_index > 0 && _index < pools.length) {
+            if (_index < pools.length-1) pools[_index] = pools[pools.length-1];
+            pools.pop();
+            poolIndex[_pool] = 0;
+            poolDtosBaseRate[_pool] = 0;
+        }
+    }
 
     function setRebaseInfo(uint256 _period, uint256 _interest)
         external

@@ -31,11 +31,11 @@ contract RewardLPTokenManager is
     IRewardLPTokenManagerEvent,
     IRewardLPTokenManagerAction
 {
-    using Counters for Counters.Counter;
+    //using Counters for Counters.Counter;
 
     bytes32 public constant USER_ROLE = keccak256("USER_ROLE");
 
-    Counters.Counter private _tokenIdTracker;
+    uint256 private _tokenIdTracker;
 
     string private _baseTokenURI;
 
@@ -65,7 +65,6 @@ contract RewardLPTokenManager is
         _setupRole(MINTER_ROLE, _msgSender());
     }
 
-
     function _baseURI() internal view virtual override returns (string memory) {
         return _baseTokenURI;
     }
@@ -93,13 +92,14 @@ contract RewardLPTokenManager is
         address pool,
         uint256 poolTokenId,
         uint256 tosAmount,
-        uint256 dtosPrincipal,
         uint128 liquidity
     ) external override whenNotPaused zeroAddress(dtos) returns (uint256) {
 
         require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
 
-        uint256 tokenId = _tokenIdTracker.current();
+        _tokenIdTracker++;
+
+        uint256 tokenId = _tokenIdTracker;
         uint256 factor = IIDTOS(dtos).getFactor();
 
         deposits[tokenId] = LibRewardLPToken.RewardTokenInfo({
@@ -108,7 +108,6 @@ contract RewardLPTokenManager is
             pool: pool,
             poolTokenId: poolTokenId,
             tosAmount: tosAmount,
-            dtosPrincipal: dtosPrincipal,
             usedAmount: 0,
             stakedTime: block.timestamp,
             dtosFactor: factor,
@@ -116,15 +115,14 @@ contract RewardLPTokenManager is
         });
 
         _mint(to, tokenId);
-        _tokenIdTracker.increment();
 
         addUserToken(to, tokenId);
-        if(dtosPrincipal > 0) IDTOS(dtos).mint(to, dtosPrincipal);
+        // if(dtosPrincipal > 0) IDTOS(dtos).mint(to, pool, dtosPrincipal);
 
-        emit MintedRewardToken(tokenId, to, pool, poolTokenId, tosAmount, dtosPrincipal);
+        emit MintedRewardToken(tokenId, to, pool, poolTokenId, tosAmount);
         return tokenId;
     }
-
+    /*
     function mintableAmount(uint256 tokenId) public view returns (uint256 amount) {
         LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
         uint256 factor = IIDTOS(dtos).getFactor();
@@ -137,6 +135,7 @@ contract RewardLPTokenManager is
             else amount = 0;
         }
     }
+    */
 
     // 소각은 리워드 풀에 의해서만 가능하다. 리워드 풀에서 언스테이크 할때만 가능
     function burn(
@@ -147,11 +146,11 @@ contract RewardLPTokenManager is
 
         LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
 
-        uint256 amount = mintableAmount(tokenId);
-        uint256 balance = IDTOS(dtos).balanceOf(info.owner);
+        // uint256 amount = mintableAmount(tokenId);
+        // uint256 balance = IDTOS(dtos).balanceOf(info.owner);
 
-        if(amount <= balance) IDTOS(dtos).burn(info.owner, amount);
-        else IDTOS(dtos).burn(info.owner, balance);
+        // if(amount <= balance) IDTOS(dtos).burn(info.owner, amount);
+        // else IDTOS(dtos).burn(info.owner, balance);
 
         _burn(tokenId);
         deleteUserToken(info.owner, tokenId);
@@ -161,7 +160,7 @@ contract RewardLPTokenManager is
         emit BurnedRewardToken(tokenId, info.owner, info.pool, info.poolTokenId);
     }
 
-
+    /*
     function usableAmount(address account)
         public view
         returns (uint256 dtosBalance, uint256 tosAmount, uint256 usedAmount)
@@ -181,37 +180,39 @@ contract RewardLPTokenManager is
         // dtos 가 토스 총계로 한번에 계산가능한지
         // 또는 각 아이디별 이자율이 별도로 계산되어야 하는지 확인이 필요함.
     }
+    */
 
     function use(
         address account,
         uint256 amount
     ) external override whenNotPaused {
 
-        require(hasRole(USER_ROLE, _msgSender()), "RewardLPTokenManager: must have user role to use");
-        require(amount > 0, "zero amount");
+        // require(hasRole(USER_ROLE, _msgSender()), "RewardLPTokenManager: must have user role to use");
+        // require(amount > 0, "zero amount");
 
-        (uint256 dtosBalance, uint256 tosAmount, uint256 usedAmount) = usableAmount(account);
+        // (uint256 dtosBalance, uint256 tosAmount, uint256 usedAmount) = usableAmount(account);
 
-        require(dtosBalance > usedAmount && dtosBalance - usedAmount >= amount, "balance is insufficient.");
+        // require(dtosBalance > usedAmount && dtosBalance - usedAmount >= amount, "balance is insufficient.");
 
-        uint256[] memory tokens = userTokens[account];
+        // uint256[] memory tokens = userTokens[account];
 
-        for(uint256 i = 0; i < tokens.length; i++){
-            LibRewardLPToken.RewardTokenInfo memory info = deposits[tokens[i]];
+        // for(uint256 i = 0; i < tokens.length; i++){
+        //     LibRewardLPToken.RewardTokenInfo memory info = deposits[tokens[i]];
 
-            // 사용금액에 반영한다.
-            //info.usedAmount
-        }
+        //     // 사용금액에 반영한다.
+        //     //info.usedAmount
+        // }
 
         emit UsedRewardToken(account, amount);
     }
 
-    function tokensOfOwner(address account) external view returns (uint256[] memory)
+
+    function tokensOfOwner(address account) external view override returns (uint256[] memory)
     {
         return userTokens[account];
     }
 
-    function deposit(uint256 tokenId) external view returns (LibRewardLPToken.RewardTokenInfo memory)
+    function deposit(uint256 tokenId) external view override returns (LibRewardLPToken.RewardTokenInfo memory)
     {
         return deposits[tokenId];
     }
@@ -225,7 +226,7 @@ contract RewardLPTokenManager is
 
         if(from != address(0) && to != address(0)){
             LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
-            IRewardPoolAction(info.rewardPool).transferFrom(from, to, info.poolTokenId);
+            IRewardPoolAction(info.rewardPool).transferFrom(from, to, info.poolTokenId, info.tosAmount);
         }
     }
 

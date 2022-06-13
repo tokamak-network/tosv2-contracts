@@ -19,7 +19,10 @@ interface IRewardPoolAction {
     /// @param from  from address
     /// @param to  to address
     /// @param tokenId tokenId
-    function transferFrom(address from, address to, uint256 tokenId) external ;
+    /// @param amount amount
+    function transferFrom(address from, address to, uint256 tokenId, uint256 amount) external ;
 
+
+    function snapshot() external returns (uint256);
 }
 

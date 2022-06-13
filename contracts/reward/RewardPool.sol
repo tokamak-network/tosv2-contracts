@@ -12,16 +12,20 @@ import "../interfaces/IRewardPoolEvent.sol";
 import "../interfaces/IRewardPoolAction.sol";
 
 import "../libraries/UniswapV3LiquidityEvaluator.sol";
+import "../libraries/LibRewardLPToken.sol";
+import "../libraries/LibSnapshot.sol";
+import "../libraries/SArrays.sol";
 
 interface IIERC721{
     function ownerOf(uint256 tokenId) external view returns (address owner);
 }
 
-
 contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IRewardPoolAction {
 
+    using SArrays for uint256[];
 
     function stake(uint256 tokenId) external override {
+
         require(IIERC721(address(nonfungiblePositionManager)).ownerOf(tokenId) == msg.sender, "tokenId is not yours.");
         nonfungiblePositionManager.transferFrom(msg.sender, address(this), tokenId);
         _stake(msg.sender, tokenId);
@@ -29,16 +33,11 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
 
     function unstake(uint256 tokenId) external override {
 
-        require(IIERC721(address(nonfungiblePositionManager)).ownerOf(tokenId) == msg.sender, "owner is not you.");
-
-        deleteTokenInPool(tokenId);
-        deleteUserToken(msg.sender, tokenId);
+        _unstake(msg.sender, tokenId);
         nonfungiblePositionManager.transferFrom(address(this), msg.sender, tokenId);
-
-        emit Unstaked(msg.sender, tokenId);
     }
 
-    function transferFrom(address from, address to, uint256 tokenId) external override {
+    function transferFrom(address from, address to, uint256 tokenId, uint256 amount) external override {
 
         require(msg.sender == address(rewardLPTokenManager), "sender is not rewardLPTokenManager.");
 
@@ -47,8 +46,13 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
 
         deleteUserToken(from, tokenId);
         addUserToken(to, tokenId);
-        emit TransferFrom(from, to, tokenId);
+
+        _burn(from, amount);
+        _mint(to, amount);
+
+        emit TransferFrom(from, to, tokenId, amount);
     }
+
 
     function evaluateTOS(uint256 tokenId, address token0, address token1) public view returns (uint256 tosAmount) {
 
@@ -78,23 +82,102 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
 
         (,int24 tick,,,,,) = pool.slot0();
         require(tickLower < tick && tick < tickUpper, "out of range");
-        require(availablePriceTick(tick, fee), "unavailablePriceTick ");
+        // require(UniswapV3LiquidityEvaluator.availablePriceTick(tick, fee), "unavailablePriceTick ");
 
         uint256 tosAmount = evaluateTOS(tokenId, token0, token1);
         require(tosAmount > 0, "tosAmount is zero");
 
-        uint256 dtosPrincipal = tosAmount * dTosBaseRates;
-
-        uint256 rTokenId = rewardLPTokenManager.mint(sender, address(pool), tokenId, tosAmount, dtosPrincipal, liquidity);
+        uint256 rTokenId = rewardLPTokenManager.mint(sender, address(pool), tokenId, tosAmount, liquidity);
+        rewardLPs[tokenId] = rTokenId;
 
         addTokenInPool(tokenId);
         addUserToken(sender, tokenId);
 
-        totalTOS += tosAmount;
+        _mint(sender, tosAmount);
         totalLiquidity += liquidity;
 
-        emit Staked(sender, tokenId);
+        emit Staked(sender, tokenId, tosAmount, liquidity);
+    }
 
+    function _unstake(address sender, uint256 tokenId) internal {
+        uint256 rTokenId = rewardLPs[tokenId];
+        require(rTokenId > 0, "zero rTokenId");
+        LibRewardLPToken.RewardTokenInfo memory info = rewardLPTokenManager.deposit(rTokenId);
+
+        require(info.rewardPool == address(this), "not pool's token");
+        require(info.owner == sender, "not owner");
+        require(info.poolTokenId == rTokenId, "not same token");
+
+        rewardLPTokenManager.burn(rTokenId);
+
+        deleteTokenInPool(tokenId);
+        deleteUserToken(sender, tokenId);
+
+        _burn(sender, info.tosAmount);
+        totalLiquidity -= info.liquidity;
+        rewardLPs[tokenId] = 0;
+
+        emit Unstaked(sender, tokenId, info.tosAmount, info.liquidity, rTokenId);
+    }
+
+    function _burn(
+        address account,
+        uint256 amount
+    ) internal {
+
+        uint256 currentBalance = balanceOf(account);
+        uint256 currentTotal = totalSupply();
+
+        if (currentBalance < amount) amount = currentBalance;
+
+        if(currentTotal < currentBalance) amount = currentTotal;
+
+        updateAccount(account, currentBalance - amount);
+        updateTotalSupply(currentTotal - amount);
+    }
+
+    function _mint(address account, uint256 amount) internal virtual {
+        require(account != address(0), "RewardPool: mint to the zero address");
+        require(amount > 0, "RewardPool: zero amount");
+
+        updateAccount(account, balanceOf(account) + amount);
+        updateTotalSupply(totalSupply() + amount);
+    }
+
+    function updateAccount(address account, uint256 amount) internal {
+
+        _updateBalanceSnapshots(
+            accountBalanceSnapshots[account],
+            account,
+            amount
+            );
+    }
+
+    function updateTotalSupply(uint256 amount) internal {
+
+        _updateBalanceSnapshots(
+            totalSupplySnapshots,
+            address(0),
+            amount
+            );
+    }
+
+    function _updateBalanceSnapshots(
+            LibSnapshot.Snapshots storage snapshots,
+            address account,
+            uint256 balances
+    ) internal  {
+
+        uint256 currentId = currentSnapshotId;
+
+        uint256 index = _lastSnapshotId(snapshots.ids);
+
+        if (index < currentId) {
+            snapshots.ids.push(currentId);
+            snapshots.values.push(balances);
+        } else {
+            snapshots.values[snapshots.ids.length-1] = balances;
+        }
     }
 
     function addTokenInPool(uint256 tokenId) internal {
@@ -136,14 +219,147 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
         }
     }
 
-
     function onERC721Received(address from, address sender, uint256 tokenId, bytes calldata data) external returns (bytes4){
-        // console.log('onERC721Received from %s', from);
-        // console.log('onERC721Received sender %s', sender);
-        // console.log('onERC721Received tokenId %s', tokenId);
         require(msg.sender == address(nonfungiblePositionManager), "operator is not nonfungiblePositionManager");
         _stake(from, tokenId);
-
         return this.onERC721Received.selector;
     }
+
+    /// Can Anybody
+
+    function snapshot() public override returns (uint256) {
+        return _snapshot();
+    }
+    /*
+    function transfer(address recipient, uint256 amount) public virtual returns (bool) {
+        return false;
+    }
+
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public virtual  returns (bool) {
+        return false;
+    }
+
+    function approve(address spender, uint256 amount) public virtual returns (bool) {
+        return false;
+    }
+    */
+    function balanceOf(address account) public view virtual  returns (uint256) {
+        return balanceOfAt(account, getCurrentSnapshotId());
+    }
+
+    function totalSupply() public view virtual returns (uint256) {
+        return totalSupplyAt(getCurrentSnapshotId());
+    }
+
+    function balanceOfAt(address account, uint256 snapshotId) public view virtual returns (uint256) {
+        (bool snapshotted, uint256 value) = _valueAt(snapshotId, accountBalanceSnapshots[account]);
+
+        return snapshotted ? value : balanceOf(account);
+    }
+
+    function totalSupplyAt(uint256 snapshotId) public view virtual returns (uint256) {
+        (bool snapshotted, uint256 value) = _valueAt(snapshotId, totalSupplySnapshots);
+
+        return snapshotted ? value : totalSupply();
+    }
+
+
+    function getCurrentSnapshotId() public view  returns (uint256) {
+        return currentSnapshotId;
+    }
+
+    /// Internal Functions
+
+    function _snapshot() internal virtual returns (uint256) {
+        currentSnapshotId++;
+        uint256 currentId = getCurrentSnapshotId();
+        emit Snapshot(currentId);
+        return currentId;
+    }
+
+    function _valueAt(uint256 snapshotId, LibSnapshot.Snapshots storage snapshots) internal view returns (bool, uint256) {
+        require(snapshotId > 0, "RewardPool: id is 0");
+        require(snapshotId <= getCurrentSnapshotId(), "RewardPool: nonexistent id");
+
+        uint256 index = snapshots.ids.findUpperBound(snapshotId);
+
+        if (index == snapshots.ids.length) {
+            return (false, 0);
+        } else {
+            return (true, snapshots.values[index]);
+        }
+    }
+
+    function _updateAccountSnapshot(address account) internal {
+        _updateSnapshot(accountBalanceSnapshots[account], balanceOf(account));
+    }
+
+    function _updateTotalSupplySnapshot() internal {
+        _updateSnapshot(totalSupplySnapshots, totalSupply());
+    }
+
+    function _updateSnapshot(LibSnapshot.Snapshots storage snapshots, uint256 currentValue) internal {
+        uint256 currentId = getCurrentSnapshotId();
+        if (_lastSnapshotId(snapshots.ids) < currentId) {
+            snapshots.ids.push(currentId);
+            snapshots.values.push(currentValue);
+        }
+    }
+
+    function _lastSnapshotId(uint256[] storage ids) internal view returns (uint256) {
+        if (ids.length == 0) {
+            return 0;
+        } else {
+            return ids[ids.length - 1];
+        }
+    }
+
+    ///
+
+    function changeInitializeAddress(
+        address factory,
+        address npm,
+        address rlpm,
+        address tos,
+        address poolManager
+    )
+        external
+        nonZeroAddress(factory)
+        nonZeroAddress(npm)
+        nonZeroAddress(rlpm)
+        nonZeroAddress(tos)
+        nonZeroAddress(poolManager)
+        onlyOwner
+    {
+        require(
+            factory != address(uniswapV3Factory)
+            || npm != address(nonfungiblePositionManager)
+            || rlpm != address(rewardLPTokenManager)
+            || tos != tosAddress
+            || poolManager != rewardPoolManager
+            , "same all address");
+
+        uniswapV3Factory = IUniswapV3Factory(factory);
+        nonfungiblePositionManager = INonfungiblePositionManager(npm);
+        rewardLPTokenManager = IRewardLPTokenManagerAction(rlpm);
+        tosAddress = tos;
+        rewardPoolManager = poolManager;
+    }
+
+    function setDtosBaseRates(
+        uint256 _baseRates
+    )
+        external
+    {
+        require(msg.sender == rewardPoolManager, "sender is not rewardPoolManager");
+
+        require(dTosBaseRates != _baseRates, "same value");
+
+        dTosBaseRates = _baseRates;
+    }
+
 }
