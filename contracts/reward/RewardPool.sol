@@ -59,35 +59,33 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, IRewardPoolEvent, IR
 
         if(token0 == tosAddress){
             tosAmount += amount0;
-            // caculate with the ratio price0, price1
-            //tosAmount += amount0;
+            uint256 price = UniswapV3LiquidityEvaluator.getPriceToken1(address(pool));
+            if(price > 0) tosAmount += price * amount1;
         }
         if(token1 == tosAddress) {
             tosAmount += amount1;
-            // caculate with the ratio price0, price1
-            //tosAmount += amount0;
+            uint256 price = UniswapV3LiquidityEvaluator.getPriceToken0(address(pool));
+            if(price > 0) tosAmount += price * amount0;
         }
-
-        //
     }
 
     function _stake(address sender, uint256 tokenId) internal {
 
-        require(dTosBaseRates > 0, "dTosBaseRates is zero");
-
-        (,, address token0, address token1,,int24 tickLower, int24 tickUpper, uint128 liquidity,,,,)
+        (,, address token0, address token1, uint24 fee, int24 tickLower, int24 tickUpper, uint128 liquidity,,,,)
             = nonfungiblePositionManager.positions(tokenId);
 
         require(liquidity > 0, "zero liquidity");
 
         (,int24 tick,,,,,) = pool.slot0();
-        require(tickLower < tick && tick < tickUpper, "tick is out of range");
+        require(tickLower < tick && tick < tickUpper, "out of range");
+        require(availablePriceTick(tick, fee), "unavailablePriceTick ");
 
         uint256 tosAmount = evaluateTOS(tokenId, token0, token1);
-
         require(tosAmount > 0, "tosAmount is zero");
 
-        uint256 rTokenId = rewardLPTokenManager.mint(sender, address(pool), tokenId, tosAmount, liquidity);
+        uint256 dtosPrincipal = tosAmount * dTosBaseRates;
+
+        uint256 rTokenId = rewardLPTokenManager.mint(sender, address(pool), tokenId, tosAmount, dtosPrincipal, liquidity);
 
         addTokenInPool(tokenId);
         addUserToken(sender, tokenId);

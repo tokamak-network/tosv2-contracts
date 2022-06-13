@@ -39,7 +39,14 @@ contract DTOSStorage
     // mapping(uint256 => LibDTOS.Rebase) public rebases;
 
     mapping (address => LibDTOS.Balance) public balances;
+    mapping (address => LibDTOS.Balance) public nonBalances;
+
     LibDTOS.Balance public _totalSupply;
+
+    // usedAmount
+    mapping (address => uint256) public usedAmount;
+
+    //
 
 
     modifier nonZero(uint256 tokenId) {

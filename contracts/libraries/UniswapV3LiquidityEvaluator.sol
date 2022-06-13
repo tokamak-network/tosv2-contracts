@@ -151,6 +151,28 @@ library UniswapV3LiquidityEvaluator {
             );
         }
     }
+    /// @inheritdoc IInitialLiquidityVaultAction
+    function getMinTick(int24 tickSpacings) public view override returns (int24){
+           return (TickMath.MIN_TICK / tickSpacings) * tickSpacings ;
+    }
 
+    /// @inheritdoc IInitialLiquidityVaultAction
+    function getMaxTick(int24 tickSpacings) public view override  returns (int24){
+           return (TickMath.MAX_TICK / tickSpacings) * tickSpacings ;
+    }
 
+    function availablePriceTick(int24 tick, uint24 fee) public view returns (bool) {
+
+        int24 tickSpacings = 0;
+        if(fee == 500) tickSpacings = 10;
+        else if(fee == 3000) tickSpacings = 60;
+        else if(fee == 10000) tickSpacings = 200;
+
+        if(tickSpacings > 0){
+            int24 tickLower = getMinTick(tickSpacings);
+            int24 tickUpper = getMaxTick(tickSpacings);
+            if(tickLower < tick && tick < tickUpper) return true;
+        }
+        return false;
+    }
 }

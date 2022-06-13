@@ -15,15 +15,19 @@ import "../interfaces/IRewardLPTokenManagerAction.sol";
 import "../interfaces/IRewardPoolAction.sol";
 import "../interfaces/IDTOS.sol";
 
+import {DSMath} from "../libraries/DSMath.sol";
 import "../libraries/LibRewardLPToken.sol";
 
+interface IIDTOS {
+    function getFactor() external view returns (uint256);
+}
 
 contract RewardLPTokenManager is
     Context,
     AccessibleCommon,
     ERC721Enumerable,
     ERC721Pausable,
-   //ERC721Holder,
+    DSMath,
     IRewardLPTokenManagerEvent,
     IRewardLPTokenManagerAction
 {
@@ -89,21 +93,25 @@ contract RewardLPTokenManager is
         address pool,
         uint256 poolTokenId,
         uint256 tosAmount,
+        uint256 dtosPrincipal,
         uint128 liquidity
     ) external override whenNotPaused zeroAddress(dtos) returns (uint256) {
 
         require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
 
         uint256 tokenId = _tokenIdTracker.current();
+        uint256 factor = IIDTOS(dtos).getFactor();
 
         deposits[tokenId] = LibRewardLPToken.RewardTokenInfo({
             rewardPool: msg.sender,
-            // pool: pool,
             owner: to,
+            pool: pool,
             poolTokenId: poolTokenId,
             tosAmount: tosAmount,
+            dtosPrincipal: dtosPrincipal,
             usedAmount: 0,
             stakedTime: block.timestamp,
+            dtosFactor: factor,
             liquidity: liquidity
         });
 
@@ -111,10 +119,23 @@ contract RewardLPTokenManager is
         _tokenIdTracker.increment();
 
         addUserToken(to, tokenId);
-        IDTOS(dtos).mint(to, tosAmount);
+        if(dtosPrincipal > 0) IDTOS(dtos).mint(to, dtosPrincipal);
 
-        emit MintedRewardToken(tokenId, to, pool, poolTokenId);
+        emit MintedRewardToken(tokenId, to, pool, poolTokenId, tosAmount, dtosPrincipal);
         return tokenId;
+    }
+
+    function mintableAmount(uint256 tokenId) public view returns (uint256 amount) {
+        LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
+        uint256 factor = IIDTOS(dtos).getFactor();
+
+        if(info.dtosPrincipal > 0 && info.dtosFactor > 0 && factor > 0) {
+            uint256 oldBalance = wdiv2(info.dtosPrincipal, info.dtosFactor);
+            uint256 balance =  wmul2(oldBalance, factor);
+            amount = balance;
+            if(amount >= info.usedAmount) amount -= info.usedAmount;
+            else amount = 0;
+        }
     }
 
     // 소각은 리워드 풀에 의해서만 가능하다. 리워드 풀에서 언스테이크 할때만 가능
@@ -126,7 +147,11 @@ contract RewardLPTokenManager is
 
         LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
 
-        IDTOS(dtos).burn(info.owner, info.tosAmount);
+        uint256 amount = mintableAmount(tokenId);
+        uint256 balance = IDTOS(dtos).balanceOf(info.owner);
+
+        if(amount <= balance) IDTOS(dtos).burn(info.owner, amount);
+        else IDTOS(dtos).burn(info.owner, balance);
 
         _burn(tokenId);
         deleteUserToken(info.owner, tokenId);

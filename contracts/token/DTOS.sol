@@ -137,7 +137,15 @@ contract DTOS is
         else _burn(to, amount);
     }
 
+
+
     /// Can Anybody
+
+    function getFactor() external view returns (uint256)
+    {
+        return _factor;
+    }
+
     function transfer(address recipient, uint256 amount) public virtual returns (bool) {
         return false;
     }
@@ -289,7 +297,7 @@ contract DTOS is
                 principal);
     }
 
-    function _applyFactor(uint256 v, uint256 refactoredCount) internal view returns (uint256) {
+    function _applyFactor(uint256 v, uint256 refactoredCount) public view returns (uint256) {
         if (v == 0) {
         return 0;
         }
@@ -305,7 +313,6 @@ contract DTOS is
 
     function balanceOf(address account) public view override returns (uint256)
     {
-
         LibDTOS.Balance storage b = balances[account];
         return (_applyFactor(b.balance, b.refactoredCount)+(b.remain));
     }
