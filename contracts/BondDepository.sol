@@ -12,6 +12,8 @@ import "./interfaces/IBondDepository.sol";
 
 import "./common/ProxyAccessCommon.sol";
 
+import "hardhat/console.sol"; 
+
 contract BondDepository is IBondDepository, ProxyAccessCommon {
     using SafeERC20 for IERC20;
 
@@ -147,6 +149,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
      * @return index_      the user index of the Note (used to redeem or query information)
      */
     //사전에 Token을 bondDepositoryContract에 approve해줘야함
+    //ETH-TOS ,TOS-ABC -> uniswapRouter
     function deposit(
         uint256 _id,
         uint256 _amount,
@@ -228,6 +231,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         require(meta.ethMarket, "Depository : not ETHMarket");
 
         payout_ = calculPayoutAmount(meta.tokenPrice,meta.tosPrice,_amount);
+        console.log("payoutAmount : %s", payout_);
 
         require(0 <= (market.capacity - payout_), "Depository : sold out");
 
@@ -246,8 +250,8 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
             })
         );
 
-        //tos를 산 후 MR을 곱해서 treasury에서 mint함
-        uint256 mrAmount = payout_ * mintRate;
+        //mintingRate는 1ETH당 TOS가 얼만큼 발행되는지 이다.
+        uint256 mrAmount = _amount * mintRate;
         treasury.mint(address(this), mrAmount);       
 
         treasuryContract.transfer(msg.value);

@@ -95,6 +95,8 @@ contract StakingV2 is ProxyAccessCommon {
     uint256 public totaldeposit;
     uint256 public totalLTOS;
 
+    uint256 public rebasePerEpoch;
+
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
@@ -138,6 +140,29 @@ contract StakingV2 is ProxyAccessCommon {
         epoch.length_ = (86400 / rebasePerday);
     } 
 
+    //epochRebase 
+    //If input the 0.9 -> 900000000000000000
+    function setRebasePerepoch(uint256 _rebasePerEpoch) external onlyOwner {
+        rebasePerEpoch = _rebasePerEpoch;
+    }
+
+
+    //index는 ether단위이다. 
+    /**
+     * @notice returns the sOHM index, which tracks rebase growth
+     * @return uint
+     */
+    function index() internal returns (uint256) {
+        index_ = (index_*(1 ether+rebasePerEpoch) / 1e18);
+        return index_;
+    }
+
+    function nextIndex() public view returns (uint256) {
+        uint256 newindex = (index_*(1 ether+rebasePerEpoch) / 1e18);
+        return newindex;
+    }
+
+    //모지랄때 owner가 정해서 늘리는게 맞는가? index는 ether단위이다.
     function setindex(uint256 _index) external onlyOwner {
         index_ = _index;
     }
@@ -158,6 +183,7 @@ contract StakingV2 is ProxyAccessCommon {
      * @param _rebasing bool
      * @return uint
      */
+    //그냥 staking을 할때는 lockup 기간이 없는 걸로
     function stake(
         address _to,
         uint256 _amount,
@@ -186,7 +212,6 @@ contract StakingV2 is ProxyAccessCommon {
 
         totalLTOS = totalLTOS + info.LTOS;
         totaldeposit = totaldeposit + info.deposit;
-        gonsInWarmup = gonsInWarmup.add(gonsForBalance(_amount));
 
         return _amount;
     }
@@ -211,7 +236,8 @@ contract StakingV2 is ProxyAccessCommon {
         require(info.claim == false, "already get claim");
 
         // epoNumber = epoch.number - info.epoNum;
-        amount_ = (info.deposit*index());
+        require(info.LTOS > _amount, "lack the LTOS amount");
+        amount_ = ((info.LTOS*index_)/1e18);
         treasury.mint(address(this),amount_-info.deposit);
         info.getReward = amount_-info.deposit;
         info.claim = true;
@@ -222,8 +248,17 @@ contract StakingV2 is ProxyAccessCommon {
 
     function rebaseIndex() public {
         if(epoch.end <= block.timestamp) {
-            epoch.end = epoch.end.add(epoch.length_);
-            epoch.number++;
+            uint256 epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
+            epoch.end = epoch.end + (epoch.length_ * (epochNumber + 1));
+            epoch.number = epoch.number + epochNumber;
+
+            //index를 epochNumber만큼 시킴
+            //만약 treasury에 있는 TOS물량이 다음 index를 지원하면 index를 증가 시킨다.
+            for(uint256 i = 0; i < epochNumber; i++) {
+                if(treasury.enableStaking() > nextLTOSinterest()) {
+                    index();
+                }
+            }
         }
     }
 
@@ -314,15 +349,15 @@ contract StakingV2 is ProxyAccessCommon {
 
     /* ========== VIEW FUNCTIONS ========== */
 
-    /**
-     * @notice returns the sOHM index, which tracks rebase growth
-     * @return uint
-     */
-    function index() public returns (uint256) {
-        uint256 alpha = ((APY+1)**(1/rebasePerday/365))-1;
-        index_ = index_*(1+alpha);
-        return index_;
-    }
+    // /**
+    //  * @notice returns the sOHM index, which tracks rebase growth
+    //  * @return uint
+    //  */
+    // function index() public returns (uint256) {
+    //     uint256 alpha = ((APY+1)**(1/rebasePerday/365))-1;
+    //     index_ = index_*(1+alpha);
+    //     return index_;
+    // }
 
     /**
      * @notice total supply in warmup
@@ -345,13 +380,19 @@ contract StakingV2 is ProxyAccessCommon {
     // LTOS를 TOS로 보상해주고 남은 TOS 물량
     function circulatingSupply() public view returns (uint256) {
         //treasury가지고 있는 TOS  - staking 이자 빼기
-        uint256 amount = treasury.enableStaking() - ((totalLTOS * index_) - totaldeposit);
+        // uint256 amount = treasury.enableStaking() - ((totalLTOS * index_) - totaldeposit);
+        uint256 amount = treasury.enableStaking() - LTOSinterest();
         return amount;
     }
 
     // LTOS에 대한 이자 (LTOS -> TOS로 환산 후 staking된 TOS를 뺴줌)
     function LTOSinterest() public view returns (uint256) {
         return (totalLTOS * index_) - totaldeposit;
+    }
+
+    // 다음 TOS이자 (다음 index를 구한뒤 -> LTOS -> TOS로 변경 여기서 staking 된 TOS를 뺴줌)
+    function nextLTOSinterest() public view returns (uint256) {
+        return (totalLTOS * nextIndex()) - totaldeposit;
     }
 
     /* ========== MANAGERIAL FUNCTIONS ========== */

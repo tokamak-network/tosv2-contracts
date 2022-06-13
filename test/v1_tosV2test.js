@@ -76,12 +76,14 @@ describe("price test", function () {
 
   let firstEpochNumber = 0;
   let firstEndEpochTime
-  let epochLength = 60;
+  let epochLength = 10;
 
   let sellingTime = 120;
 
   let sellTosAmount = ethers.utils.parseUnits("10000", 18); //1ETH = 1000TOS 라서 10ETH받으면 끝임
-  let mintRate = 100;
+  let depositAmount = ethers.utils.parseUnits("5", 18);
+  let depositAmount2 = ethers.utils.parseUnits("3", 18);
+  let mintRate = 10;
 
   let ETHPrice = 1000000
   let TOSPrice = 1000
@@ -198,25 +200,46 @@ describe("price test", function () {
     expect(code).to.not.eq("0x");
   })
 
+//   it("setting the staking", async () => {
+//     let epochtestbefore = await stakingContract.epoch();
+//     console.log(epochtestbefore);
+
+//     expect(epochtestbefore.length_).to.be.equal(60);
+
+
+//     let apy = 10
+//     await stakingContract.setAPY(apy);
+//     expect((await stakingContract.APY())).to.be.equal(apy)
+    
+//     let rebasePerday = 2160 //epoch.length = 40 나오길 기대
+//     await stakingContract.setRebasePerday(rebasePerday);
+//     expect((await stakingContract.rebasePerday())).to.be.equal(rebasePerday)
+    
+//     let epochtestafter = await stakingContract.epoch();
+//     console.log(epochtestafter.length_);
+
+//     expect(epochtestafter.length_).to.be.equal(40);
+//   })
+
   it("setting the staking", async () => {
     let epochtestbefore = await stakingContract.epoch();
     console.log(epochtestbefore);
 
-    expect(epochtestbefore.length_).to.be.equal(60);
+    expect(epochtestbefore.length_).to.be.equal(10);
 
 
-    let apy = 10
-    await stakingContract.setAPY(apy);
-    expect((await stakingContract.APY())).to.be.equal(apy)
+    let index = ethers.utils.parseUnits("10", 18)
+    await stakingContract.setindex(index);
+    expect((await stakingContract.index_())).to.be.equal(index)
     
-    let rebasePerday = 2160 //epoch.length = 40 나오길 기대
-    await stakingContract.setRebasePerday(rebasePerday);
-    expect((await stakingContract.rebasePerday())).to.be.equal(rebasePerday)
-    
-    let epochtestafter = await stakingContract.epoch();
-    console.log(epochtestafter.length_);
+    let rebasePerEpoch = ethers.utils.parseUnits("9", 17) //index가 0.9크기만큼 증가
+    await stakingContract.setRebasePerepoch(rebasePerEpoch);
+    expect((await stakingContract.rebasePerEpoch())).to.be.equal(rebasePerEpoch)
+  })
 
-    expect(epochtestafter.length_).to.be.equal(40);
+  it("nextIndex test", async () => {
+    let nextIndex = await stakingContract.nextIndex();
+    console.log(nextIndex);
   })
 
   it("deploy bondDepository", async () => {
@@ -262,5 +285,41 @@ describe("price test", function () {
     let marketafter = await bondDepositoryContract.marketsLength();
     console.log(marketafter)
   })
+
+  it("deposit ETHmarket", async() => {
+    let beforeindex = await stakingContract.index_()
+
+    await bondDepositoryContract.connect(admin1).ETHDeposit(
+        0,
+        depositAmount,
+        10,
+        false,
+        {value: depositAmount}
+    );
+
+    let afterindex = await stakingContract.index_()
+
+    expect(afterindex).to.be.equal(beforeindex)
+  })
+
+  it("deposit ETHmarket2", async() => {
+    await ethers.provider.send('evm_setNextBlockTimestamp', [depositStartTime]);
+    await ethers.provider.send('evm_mine');
+    
+    let beforeindex = await stakingContract.index_()
+
+    await bondDepositoryContract.connect(admin1).ETHDeposit(
+        0,
+        depositAmount,
+        10,
+        false,
+        {value: depositAmount}
+    );
+
+    let afterindex = await stakingContract.index_()
+
+    expect(afterindex).to.not.equal(beforeindex)
+  })
+  
 
 });
