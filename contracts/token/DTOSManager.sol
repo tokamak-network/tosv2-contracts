@@ -119,4 +119,13 @@ contract DTOSManager is
         }
     }
 
+    function balanceOf(address pool, address account) public view override returns (uint256 amount)
+    {
+        return IIRewardPool(pool).dtosBalanceOf(account);
+    }
+
+    function totalSupply(address pool) public view override returns (uint256 amount) {
+        return IIRewardPool(pool).dtosTotalSupply();
+    }
+
 }
