@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "./VaultFactory.sol";
-import "../reward/RewardPoolProxy.sol";
+import "../reward/RewardPoolSnapshotProxy.sol";
 
 import "../interfaces/IRewardPoolFactory.sol";
 import "../interfaces/IUniswapV3Pool.sol";
@@ -69,11 +69,11 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
             "pool's token is zero"
         );
 
-        RewardPoolProxy _proxy = new RewardPoolProxy();
+        RewardPoolSnapshotProxy _proxy = new RewardPoolSnapshotProxy();
 
         require(
             address(_proxy) != address(0),
-            "RewardPoolProxy zero"
+            "RewardPoolSnapshotProxy zero"
         );
 
         _proxy.addAdmin(upgradeAdmin);

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./RewardPoolStorage.sol";
+import "./RewardPoolSnapshotStorage.sol";
 import "../proxy/BaseProxy.sol";
 
 
-contract RewardPoolProxy is
-    RewardPoolStorage,
+contract RewardPoolSnapshotProxy is
+    RewardPoolSnapshotStorage,
     BaseProxy
 {
 
@@ -27,7 +27,7 @@ contract RewardPoolProxy is
         require(address(pool) == address(0), "already initialized pool");
         require(
             poolAddress != address(0) && projectAdmin != address(0),
-            "RewardPoolProxy: poolAddress or projectAdmin zero"
+            "RewardPoolSnapshotProxy: poolAddress or projectAdmin zero"
         );
 
         // require(
@@ -45,7 +45,7 @@ contract RewardPoolProxy is
         nonfungiblePositionManager = INonfungiblePositionManager(npm);
         rewardLPTokenManager = IRewardLPTokenManagerAction(rlpm);
         tosAddress = tos;
-        factor = DEFAULT_FACTOR;
+
     }
 
 

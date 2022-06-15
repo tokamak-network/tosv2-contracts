@@ -6,7 +6,7 @@ const {
   keccak256,
 } = require("web3-utils");
 
-describe("RewardPool", function () {
+describe("RewardPoolSnapshot", function () {
 
     let rewardPoolFactory,  rewardPool, tosEvaluator;
     let dTosManager, dTosManagerProxy, dTosManagerImp;
@@ -126,8 +126,8 @@ describe("RewardPool", function () {
 
     });
 
-    it("Create RewardPool", async function () {
-        const RewardPool = await ethers.getContractFactory("RewardPool", {
+    it("Create RewardPoolSnapshot", async function () {
+        const RewardPool = await ethers.getContractFactory("RewardPoolSnapshot", {
             libraries: {
                 TOSEvaluator: tosEvaluator.address,
             }});

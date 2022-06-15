@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../libraries/LibDTOS.sol";
 
 contract DTOSManagerStorage
 {
+    struct Snapshot {
+        address poolAddress;
+        uint256 snapshotId;
+    }
+
     string public name;
     string public symbol;
     uint8 public decimals = 18;
@@ -18,6 +22,11 @@ contract DTOSManagerStorage
     mapping (address => uint256) public poolIndex;
     mapping (address => uint256) public poolDtosBaseRate;
     address[] public pools;
+
+    // pool snapshot
+    uint256 curSnapshotId;
+    mapping (uint256 => Snapshot[]) public poolSnapshots;
+
     uint256 public initialDtosBaseRate;
     uint256 public initialRebasePeriod;
 

@@ -2,19 +2,19 @@
 pragma solidity ^0.8.0;
 
 
-import "./RewardPoolStorage.sol";
+import "./RewardPoolSnapshotStorage.sol";
 
 import "../common/AccessibleCommon.sol";
 
 import "../interfaces/IERC20Minimal.sol";
 
-import "../interfaces/IRewardPoolEvent.sol";
-import "../interfaces/IRewardPoolAction.sol";
+import "../interfaces/IRewardPoolSnapshotEvent.sol";
+import "../interfaces/IRewardPoolSnapshotAction.sol";
 
 import {DSMath} from "../libraries/DSMath.sol";
 import "../libraries/TOSEvaluator.sol";
 import "../libraries/LibRewardLPToken.sol";
-import "../libraries/LibSnapshot.sol";
+import "../libraries/LibFactorSnapshot.sol";
 import "../libraries/SArrays.sol";
 import "../libraries/ABDKMath64x64.sol";
 
@@ -22,7 +22,7 @@ interface IIERC721{
     function ownerOf(uint256 tokenId) external view returns (address owner);
 }
 
-contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolEvent, IRewardPoolAction {
+contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMath, IRewardPoolSnapshotEvent, IRewardPoolSnapshotAction {
 
     using SArrays for uint256[];
 
@@ -42,7 +42,7 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
         nonfungiblePositionManager.transferFrom(address(this), msg.sender, tokenId);
     }
 
-    function transferFrom(address from, address to, uint256 tokenId, uint256 amount) external override {
+    function transferFrom(address from, address to, uint256 tokenId, uint256 amount, uint256 factoredAmount) external override {
 
         require(msg.sender == address(rewardLPTokenManager), "sender is not rewardLPTokenManager.");
 
@@ -53,11 +53,9 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
         addUserToken(to, tokenId);
 
         rebase();
+        _transfer(from, to, amount, factoredAmount);
 
-        _burn(from, amount);
-        _mint(to, amount);
-
-        emit TransferFrom(from, to, tokenId, amount);
+        emit TransferFrom(from, to, tokenId, amount, factoredAmount);
     }
 
     function evaluateTOS(uint256 tokenId, address token0, address token1) public view returns (uint256 tosAmount) {
@@ -67,7 +65,7 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
         (uint256 amount0, uint256 amount1) = TOSEvaluator.getAmounts(
             address(nonfungiblePositionManager), address(pool), tokenId
         );
-/*
+
         if(token0 == tosAddress){
             tosAmount += amount0;
             uint256 price = TOSEvaluator.getPriceToken1(address(pool));
@@ -78,7 +76,7 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
             uint256 price = TOSEvaluator.getPriceToken0(address(pool));
             if(price > 0) tosAmount += price * amount0;
         }
-        */
+
     }
 
     function _stake(address sender, uint256 tokenId) internal {
@@ -97,6 +95,9 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
         require(tosAmount > 0, "tosAmount is zero");
         uint256 dtosAmount = tosToDtosAmount(tosAmount);
         uint256 factoredAmount = 0;
+
+        uint256 factor = getFactor();
+
         if(dtosAmount > 0) factoredAmount = wdiv2(dtosAmount, factor);
 
         uint256 rTokenId = rewardLPTokenManager.mint(sender, address(pool), tokenId, tosAmount, liquidity, factoredAmount);
@@ -105,15 +106,10 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
         addTokenInPool(tokenId);
         addUserToken(sender, tokenId);
 
-        _mint(sender, tosAmount);
+        _mint(sender, tosAmount, factoredAmount);
         totalLiquidity += liquidity;
 
-        if (factoredAmount > 0) {
-            factoredAmounts[sender] += factoredAmount;
-             totalFactoredAmount += factoredAmount;
-        }
-
-        emit Staked(sender, tokenId, tosAmount, liquidity);
+        emit Staked(sender, tokenId, tosAmount, dtosAmount, factoredAmount, liquidity);
     }
 
     function tosToDtosAmount(uint256 _amount) public view virtual  returns (uint256) {
@@ -136,64 +132,97 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
 
         rebase();
 
-        _burn(sender, info.tosAmount);
+        _burn(sender, info.tosAmount, info.factoredAmount);
         totalLiquidity -= info.liquidity;
         rewardLPs[tokenId] = 0;
 
-        if (info.factoredAmount > 0) {
-            factoredAmounts[sender] -= info.factoredAmount;
-            totalFactoredAmount -= info.factoredAmount;
-        }
-
-        emit Unstaked(sender, tokenId, info.tosAmount, info.liquidity, rTokenId);
+        emit Unstaked(sender, tokenId, info.tosAmount, info.factoredAmount, info.liquidity, rTokenId);
     }
 
     function _burn(
         address account,
-        uint256 amount
+        uint256 amount,
+        uint256 factoredAmount
     ) internal {
 
-        uint256 currentBalance = balanceOf(account);
-        uint256 currentTotal = totalSupply();
+        require(account != address(0), "RewardPool: burn to the zero address");
+        require(amount > 0 && factoredAmount > 0, "RewardPool: zero amount");
 
-        if (currentBalance < amount) amount = currentBalance;
+        (, uint256 _value, uint256 _factoredAmount) = _valueAt(getCurrentSnapshotId(), accountBalanceSnapshots[account]);
+        (, uint256 value_, uint256 factoredAmount_) = _valueAt(getCurrentSnapshotId(), totalSupplySnapshots);
 
-        if(currentTotal < currentBalance) amount = currentTotal;
+        uint256 amount0 = amount;
+        if (_value < amount)  amount0 = _value;
+        if (value_ < amount0) amount0 = value_;
 
-        updateAccount(account, currentBalance - amount);
-        updateTotalSupply(currentTotal - amount);
+        uint256 amount1 = factoredAmount;
+        if (_factoredAmount < factoredAmount)  amount1 = _factoredAmount;
+        if (factoredAmount_ < amount1) amount1 = factoredAmount_;
+
+        updateAccount(account, _value - amount0, _factoredAmount - amount1);
+        updateTotalSupply(value_ - amount0, factoredAmount_ - amount1);
     }
 
-    function _mint(address account, uint256 amount) internal virtual {
+    function _mint(address account, uint256 amount, uint256 factoredAmount) internal virtual {
         require(account != address(0), "RewardPool: mint to the zero address");
-        require(amount > 0, "RewardPool: zero amount");
+        require(amount > 0 && factoredAmount > 0, "RewardPool: zero amount");
 
-        updateAccount(account, balanceOf(account) + amount);
-        updateTotalSupply(totalSupply() + amount);
+        (, uint256 _value, uint256 _factoredAmount) = _valueAt(getCurrentSnapshotId(), accountBalanceSnapshots[account]);
+        (, uint256 value_, uint256 factoredAmount_) = _valueAt(getCurrentSnapshotId(), totalSupplySnapshots);
+
+        updateAccount(account, _value + amount, _factoredAmount + factoredAmount);
+        updateTotalSupply(value_ + amount, factoredAmount_ + factoredAmount);
     }
 
-    function updateAccount(address account, uint256 amount) internal {
+    function _transfer(
+        address from,
+        address to,
+        uint256 amount,
+        uint256 factoredAmount
+    ) internal {
+
+        require(from != address(0) && to != address(0), "RewardPool: zero address");
+        require(amount > 0 && factoredAmount > 0, "RewardPool: zero amount");
+
+        (, uint256 _valueFrom, uint256 _factoredAmountFrom) = _valueAt(getCurrentSnapshotId(), accountBalanceSnapshots[from]);
+        (, uint256 _valueTo, uint256 _factoredAmountTo) = _valueAt(getCurrentSnapshotId(), accountBalanceSnapshots[to]);
+
+        uint256 amount0 = amount;
+        if (_valueFrom < amount)  amount0 = _valueFrom;
+
+        uint256 amount1 = factoredAmount;
+        if (_factoredAmountFrom < factoredAmount)  amount1 = _factoredAmountFrom;
+
+        updateAccount(from, _valueFrom - amount0, _factoredAmountFrom - amount1);
+        updateAccount(to, _valueTo + amount0, _factoredAmountTo + amount1);
+    }
+
+
+    function updateAccount(address account, uint256 amount, uint256 factoredAmount) internal {
 
         _updateBalanceSnapshots(
             accountBalanceSnapshots[account],
             account,
-            amount
+            amount,
+            factoredAmount
             );
     }
 
-    function updateTotalSupply(uint256 amount) internal {
+    function updateTotalSupply(uint256 amount, uint256 factoredAmount) internal {
 
         _updateBalanceSnapshots(
             totalSupplySnapshots,
             address(0),
-            amount
+            amount,
+            factoredAmount
             );
     }
 
     function _updateBalanceSnapshots(
-            LibSnapshot.Snapshots storage snapshots,
+            LibFactorSnapshot.Snapshots storage snapshots,
             address account,
-            uint256 balances
+            uint256 balances,
+            uint256 factoredAmount
     ) internal  {
 
         uint256 currentId = currentSnapshotId;
@@ -203,9 +232,13 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
         if (index < currentId) {
             snapshots.ids.push(currentId);
             snapshots.values.push(balances);
+            snapshots.factoredAmounts.push(factoredAmount);
         } else {
             snapshots.values[snapshots.ids.length-1] = balances;
+            snapshots.factoredAmounts[snapshots.ids.length-1] = factoredAmount;
         }
+
+        emit UpdatedBalanceSnapshots(account, balances, factoredAmount);
     }
 
     function addTokenInPool(uint256 tokenId) internal {
@@ -259,41 +292,74 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
         return _snapshot();
     }
 
-    function balanceOf(address account) public view virtual  returns (uint256) {
+    function balanceOf(address account) public view virtual  override returns (uint256) {
         return balanceOfAt(account, getCurrentSnapshotId());
     }
 
-    function totalSupply() public view virtual returns (uint256) {
+    function totalSupply() public view virtual override returns (uint256) {
         return totalSupplyAt(getCurrentSnapshotId());
     }
 
-    function balanceOfAt(address account, uint256 snapshotId) public view virtual returns (uint256) {
-        (bool snapshotted, uint256 value) = _valueAt(snapshotId, accountBalanceSnapshots[account]);
-
-        return snapshotted ? value : balanceOf(account);
+    function depositAmount(address account) public view virtual override returns (uint256) {
+        return depositAmountOfAt(account, getCurrentSnapshotId());
     }
 
-    function totalSupplyAt(uint256 snapshotId) public view virtual returns (uint256) {
-        (bool snapshotted, uint256 value) = _valueAt(snapshotId, totalSupplySnapshots);
-
-        return snapshotted ? value : totalSupply();
+    function totalDepositAmount() public view virtual override returns (uint256) {
+        return totalDepositAmountOfAt(getCurrentSnapshotId());
     }
 
-    function getCurrentSnapshotId() public view  returns (uint256) {
+    function balanceOfAt(address account, uint256 snapshotId) public view virtual override returns (uint256) {
+        (bool snapshotted, ,uint256 factoredAmount) = _valueAt(snapshotId, accountBalanceSnapshots[account]);
+
+        if (snapshotted) {
+            if (factoredAmount > 0) {
+                (bool factorSnapshotted, uint256 factor) = _factorAt(snapshotId);
+
+                if (factorSnapshotted) return wmul2(factoredAmount, factor);
+                else return wmul2(factoredAmount, DEFAULT_FACTOR);
+
+            } else {
+                return 0;
+            }
+        } else {
+            return balanceOf(account);
+        }
+    }
+
+    function totalSupplyAt(uint256 snapshotId) public view virtual override returns (uint256) {
+        (bool snapshotted, , uint256 factoredAmount) = _valueAt(snapshotId, totalSupplySnapshots);
+
+        if (snapshotted) {
+            if (factoredAmount > 0) {
+                (bool factorSnapshotted, uint256 factor) = _factorAt(snapshotId);
+
+                if (factorSnapshotted) return wmul2(factoredAmount, factor);
+                else return wmul2(factoredAmount, DEFAULT_FACTOR);
+
+            } else {
+                return 0;
+            }
+        } else {
+            return totalSupply();
+        }
+    }
+
+
+    function depositAmountOfAt(address account, uint256 snapshotId) public view virtual override returns (uint256) {
+        (bool snapshotted, uint256 value, ) = _valueAt(snapshotId, accountBalanceSnapshots[account]);
+
+        return snapshotted ? value : depositAmount(account);
+    }
+
+    function totalDepositAmountOfAt(uint256 snapshotId) public view virtual override returns (uint256) {
+        (bool snapshotted, uint256 value, ) = _valueAt(snapshotId, totalSupplySnapshots);
+
+        return snapshotted ? value : totalDepositAmount();
+    }
+
+
+    function getCurrentSnapshotId() public view  override returns (uint256) {
         return currentSnapshotId;
-    }
-
-    function dtosBalanceOf(address account) public view virtual  returns (uint256 amount) {
-        uint256 factoredAmount = factoredAmounts[account];
-        if (factoredAmount > 0) {
-            amount = wmul2(factoredAmount, factor);
-        }
-    }
-
-    function dtosTotalSupply() public view virtual  returns (uint256 amount) {
-        if (totalFactoredAmount > 0) {
-            amount = wmul2(totalFactoredAmount, factor);
-        }
     }
 
     /// Internal Functions
@@ -305,32 +371,38 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
         return currentId;
     }
 
-    function _valueAt(uint256 snapshotId, LibSnapshot.Snapshots storage snapshots) internal view returns (bool, uint256) {
+    function _valueAt(uint256 snapshotId, LibFactorSnapshot.Snapshots storage snapshots) internal view returns (bool, uint256, uint256) {
         require(snapshotId > 0, "RewardPool: id is 0");
         require(snapshotId <= getCurrentSnapshotId(), "RewardPool: nonexistent id");
 
         uint256 index = snapshots.ids.findUpperBound(snapshotId);
 
         if (index == snapshots.ids.length) {
-            return (false, 0);
+            return (false, 0, 0);
         } else {
-            return (true, snapshots.values[index]);
+            return (true, snapshots.values[index], snapshots.factoredAmounts[index]);
         }
     }
 
-    function _updateAccountSnapshot(address account) internal {
-        _updateSnapshot(accountBalanceSnapshots[account], balanceOf(account));
-    }
+    function _factorAt(uint256 snapshotId) internal view virtual returns (bool, uint256) {
 
-    function _updateTotalSupplySnapshot() internal {
-        _updateSnapshot(totalSupplySnapshots, totalSupply());
-    }
+        LibFactorSnapshot.FactorSnapshots storage snapshots = factorSnapshots;
+        // console.log("_factorAt snapshotId %s", snapshotId);
 
-    function _updateSnapshot(LibSnapshot.Snapshots storage snapshots, uint256 currentValue) internal {
-        uint256 currentId = getCurrentSnapshotId();
-        if (_lastSnapshotId(snapshots.ids) < currentId) {
-            snapshots.ids.push(currentId);
-            snapshots.values.push(currentValue);
+        if (snapshotId > 0 && snapshotId <= currentSnapshotId) {
+            uint256 index = snapshots.ids.findIndex(snapshotId);
+
+            // console.log("_factorAt index %s", index);
+            // console.log("_factorAt snapshots.ids.length %s", snapshots.ids.length);
+
+            if (index == snapshots.ids.length) {
+                return (false, DEFAULT_FACTOR);
+            } else {
+                // console.log("_factorAt snapshots.factors[index] %s", snapshots.factors[index]);
+                return (true, snapshots.factors[index]);
+            }
+        } else {
+            return (false, DEFAULT_FACTOR);
         }
     }
 
@@ -396,7 +468,7 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
     {
         if (rebaseIntervalSecond > 0 && compoundInteresRatePerRebase > 0) {
             uint256 curTime = block.timestamp;
-            uint256 total = dtosTotalSupply();
+            uint256 total = totalSupply();
             uint256 period = 0;
 
             if ( (lastRebaseTime == 0 && total > 0) || total == 0) {
@@ -406,24 +478,32 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
                 period = (curTime - lastRebaseTime) / rebaseIntervalSecond;
 
                 if(period > 0){
-                    uint256 prevFactor = factor;
+                    uint256 prevFactor = getFactor();
                     uint256 addAmount = compound(total, compoundInteresRatePerRebase, period);
 
-                    uint256 newFactor = _calcNewFactor(total, addAmount, factor);
+                    uint256 newFactor = _calcNewFactor(total, addAmount, prevFactor);
 
                     _setFactor(newFactor);
 
                     lastRebaseTime = curTime;
-                    emit Rebased(prevFactor, factor, lastRebaseTime, addAmount, addAmount-total);
+                    emit Rebased(prevFactor, getFactor(), lastRebaseTime, addAmount, addAmount-total);
                 }
             }
         }
     }
 
-    function _setFactor(uint256 _factor)
-        internal
+    function _setFactor(uint256 _factor) internal
     {
-        factor = _factor;
+        uint256 currentId = currentSnapshotId;
+        LibFactorSnapshot.FactorSnapshots storage snapshots = factorSnapshots;
+
+        uint256 index = _lastSnapshotId(snapshots.ids);
+        if (index < currentId) {
+            snapshots.ids.push(currentId);
+            snapshots.factors.push(_factor);
+        } else {
+            snapshots.factors[snapshots.ids.length-1] = _factor;
+        }
     }
 
     function _calcNewFactor(uint256 source, uint256 target, uint256 oldFactor) internal pure returns (uint256) {
@@ -453,6 +533,11 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
                     10**18)),
                 n),
                 principal);
+    }
+
+    function getFactor() public view override returns (uint256 f) {
+        (, uint256 factor_) = _factorAt(currentSnapshotId);
+        return factor_;
     }
 
 }

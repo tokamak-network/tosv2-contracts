@@ -13,8 +13,9 @@ import "hardhat/console.sol";
 
 interface IIRewardPool {
     function tosAddress() external view returns (address);
-    function dtosBalanceOf(address account) external view  returns (uint256 amount);
-    function dtosTotalSupply() external view  returns (uint256 amount);
+    function balanceOf(address account) external view  returns (uint256 amount);
+    function totalSupply() external view  returns (uint256 amount);
+    function currentSnapshotId() external view returns (uint256);
 }
 
 contract DTOSManager is
@@ -123,30 +124,65 @@ contract DTOSManager is
         }
     }
 
+    function savePoolSnapshots() public
+    {
+        curSnapshotId++;
+
+        uint256 len = pools.length;
+        for (uint256 i = 1; i < len; i++) {
+            address pool = pools[i];
+            if (pool != address(0)) {
+                uint256 id = IIRewardPool(pool).currentSnapshotId();
+                poolSnapshots[curSnapshotId].push(Snapshot(pool, id));
+            }
+        }
+    }
+
+
     /// Can Anybody
 
     function balanceOf(address account) public view override returns (uint256 amount)
     {
         uint256 len = pools.length;
         for (uint256 i = 1; i < len; i++) {
-            if (pools[i] != address(0)) amount += IIRewardPool(pools[i]).dtosBalanceOf(account);
+            if (pools[i] != address(0)) amount += IIRewardPool(pools[i]).balanceOf(account);
         }
     }
 
     function totalSupply() public view override returns (uint256 amount) {
         uint256 len = pools.length;
         for (uint256 i = 1; i < len; i++) {
-            if (pools[i] != address(0)) amount += IIRewardPool(pools[i]).dtosTotalSupply();
+            if (pools[i] != address(0)) amount += IIRewardPool(pools[i]).totalSupply();
         }
     }
 
     function balanceOf(address pool, address account) public view override returns (uint256 amount)
     {
-        return IIRewardPool(pool).dtosBalanceOf(account);
+        return IIRewardPool(pool).balanceOf(account);
     }
 
     function totalSupply(address pool) public view override returns (uint256 amount) {
-        return IIRewardPool(pool).dtosTotalSupply();
+        return IIRewardPool(pool).totalSupply();
+    }
+
+    function balanceOfAt(address account, uint256 snapshotId) public view override returns (uint256 amount)
+    {
+        Snapshot[] memory snaps = poolSnapshots[snapshotId];
+        uint256 len = snaps.length;
+
+        for (uint256 i = 0; i < len; i++) {
+            if (snaps[i].poolAddress != address(0)) amount += balanceOf(snaps[i].poolAddress, account);
+        }
+    }
+
+    function totalSupplyAt(uint256 snapshotId) public view override returns (uint256 amount)
+    {
+        Snapshot[] memory snaps = poolSnapshots[snapshotId];
+        uint256 len = snaps.length;
+
+        for (uint256 i = 0; i < len; i++) {
+            if (snaps[i].poolAddress != address(0)) amount += totalSupply(snaps[i].poolAddress);
+        }
     }
 
 }

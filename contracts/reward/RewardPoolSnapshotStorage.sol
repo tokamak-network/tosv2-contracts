@@ -7,24 +7,33 @@ import "../interfaces/INonfungiblePositionManager.sol";
 import "../interfaces/IRewardLPTokenManagerAction.sol";
 
 import "../libraries/SArrays.sol";
-import "../libraries/LibSnapshot.sol";
+import "../libraries/LibFactorSnapshot.sol";
 
-contract RewardPoolStorage {
+contract RewardPoolSnapshotStorage {
     using SArrays for uint256[];
-
-    // struct Snapshots {
-    //     uint256[] ids;
-    //     uint256[] values;
-    // }
 
     string public name;
     string public symbol;
     uint8 public decimals = 18;
 
-    mapping(address => LibSnapshot.Snapshots) internal accountBalanceSnapshots;
-    LibSnapshot.Snapshots internal totalSupplySnapshots;
+    // mapping(address => LibFactorSnapshot.Snapshots) internal accountBalanceSnapshots;
+    // LibFactorSnapshot.Snapshots internal totalSupplySnapshots;
     uint256 public currentSnapshotId;
 
+
+    // account - balance
+    mapping(address =>  LibFactorSnapshot.Snapshots) internal accountBalanceSnapshots;
+
+    // totalSupply
+    LibFactorSnapshot.Snapshots internal totalSupplySnapshots;
+
+    //factor
+    LibFactorSnapshot.FactorSnapshots internal factorSnapshots;
+    // uint256 public factor;
+    // mapping(address => uint256) public factoredAmounts;
+    // uint256 public totalFactoredAmount;
+
+    //----
     uint256 public totalLiquidity;
 
     //----
@@ -55,9 +64,7 @@ contract RewardPoolStorage {
     uint256 public lastRebaseTime;
 
     uint256 public DEFAULT_FACTOR = 10**18;
-    uint256 public factor;
-    mapping(address => uint256) public factoredAmounts;
-    uint256 public totalFactoredAmount;
+
 
     event Snapshot(uint256 id);
 

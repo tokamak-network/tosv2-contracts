@@ -25,5 +25,11 @@ interface IDTOSManager {
     /// @param account a account address
     /// @return amount account's balance amount
     function balanceOf(address pool, address account) external view returns (uint256);
+
+
+    function balanceOfAt(address account, uint256 snapshotId) external view returns (uint256 amount);
+
+    function totalSupplyAt(uint256 snapshotId) external view returns (uint256 amount);
+
 }
 
