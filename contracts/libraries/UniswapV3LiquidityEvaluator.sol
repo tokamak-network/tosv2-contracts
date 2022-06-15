@@ -151,16 +151,16 @@ library UniswapV3LiquidityEvaluator {
             );
         }
     }
-
-    function getMinTick(int24 tickSpacings) public pure returns (int24){
+    /*
+    function getMinTick(int24 tickSpacings) public view returns (int24){
            return (TickMath.MIN_TICK / tickSpacings) * tickSpacings ;
     }
 
-    function getMaxTick(int24 tickSpacings) public pure returns (int24){
+    function getMaxTick(int24 tickSpacings) public view returns (int24){
            return (TickMath.MAX_TICK / tickSpacings) * tickSpacings ;
     }
 
-    function availablePriceTick(int24 tick, uint24 fee) public pure returns (bool) {
+    function availablePriceTick(int24 tick, uint24 fee) public view returns (bool) {
 
         int24 tickSpacings = 0;
         if(fee == 500) tickSpacings = 10;
@@ -174,4 +174,5 @@ library UniswapV3LiquidityEvaluator {
         }
         return false;
     }
+    */
 }

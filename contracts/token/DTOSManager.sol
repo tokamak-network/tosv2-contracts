@@ -61,10 +61,23 @@ contract DTOSManager is
         rewardPoolFactory = _addr;
     }
 
-    function setInitialDtosBaseRate(uint256 _rate)
+    function setBondDepository(address _addr)
+        external
+        nonZeroAddress(_addr) onlyOwner
+    {
+        require(bondDepository != _addr, "same address");
+        bondDepository = _addr;
+    }
+
+
+    function setInitialReabseInfo(uint256 _period, uint256 _rate)
         external onlyOwner
     {
-        require(initialDtosBaseRate != _rate, "same value");
+        require(
+            initialRebasePeriod != _period || initialDtosBaseRate != _rate
+            , "same value");
+
+        initialRebasePeriod = _period;
         initialDtosBaseRate = _rate;
     }
 
@@ -75,6 +88,7 @@ contract DTOSManager is
 
         if (_rate > 0) {
             poolDtosBaseRate[_pool] = _rate;
+            // IIRewardPool(_rewardPool).setDtosBaseRates(_baseRate);
         } else {
             deletePool(_pool);
         }

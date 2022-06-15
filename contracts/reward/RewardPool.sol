@@ -12,7 +12,7 @@ import "../interfaces/IRewardPoolEvent.sol";
 import "../interfaces/IRewardPoolAction.sol";
 
 import {DSMath} from "../libraries/DSMath.sol";
-import "../libraries/UniswapV3LiquidityEvaluator.sol";
+//import "../libraries/UniswapV3LiquidityEvaluator.sol";
 import "../libraries/LibRewardLPToken.sol";
 import "../libraries/LibSnapshot.sol";
 import "../libraries/SArrays.sol";
@@ -25,6 +25,9 @@ interface IIERC721{
 contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolEvent, IRewardPoolAction {
 
     using SArrays for uint256[];
+
+    constructor () {
+    }
 
     function stake(uint256 tokenId) external override {
 
@@ -60,8 +63,9 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
     function evaluateTOS(uint256 tokenId, address token0, address token1) public view returns (uint256 tosAmount) {
 
         tosAmount = 0;
+        /*
         (uint256 amount0, uint256 amount1) = UniswapV3LiquidityEvaluator.getAmounts(
-            address(nonfungiblePositionManager), address(pool),tokenId
+            address(nonfungiblePositionManager), address(pool), tokenId
         );
 
         if(token0 == tosAddress){
@@ -74,6 +78,7 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
             uint256 price = UniswapV3LiquidityEvaluator.getPriceToken0(address(pool));
             if(price > 0) tosAmount += price * amount0;
         }
+        */
     }
 
     function _stake(address sender, uint256 tokenId) internal {
@@ -85,7 +90,6 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
 
         (,int24 tick,,,,,) = pool.slot0();
         require(tickLower < tick && tick < tickUpper, "out of range");
-        // require(UniswapV3LiquidityEvaluator.availablePriceTick(tick, fee), "unavailablePriceTick ");
 
         rebase();
 
@@ -344,15 +348,13 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
         address factory,
         address npm,
         address rlpm,
-        address tos,
-        address poolManager
+        address tos
     )
         external
         nonZeroAddress(factory)
         nonZeroAddress(npm)
         nonZeroAddress(rlpm)
         nonZeroAddress(tos)
-        nonZeroAddress(poolManager)
         onlyOwner
     {
         require(
@@ -360,14 +362,12 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
             || npm != address(nonfungiblePositionManager)
             || rlpm != address(rewardLPTokenManager)
             || tos != tosAddress
-            || poolManager != rewardPoolManager
             , "same all address");
 
         uniswapV3Factory = IUniswapV3Factory(factory);
         nonfungiblePositionManager = INonfungiblePositionManager(npm);
         rewardLPTokenManager = IRewardLPTokenManagerAction(rlpm);
         tosAddress = tos;
-        rewardPoolManager = poolManager;
     }
 
     function setDtosBaseRates(
@@ -375,7 +375,6 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
     )
         external onlyOwner
     {
-        // require(msg.sender == rewardPoolManager, "sender is not rewardPoolManager");
 
         require(dTosBaseRates != _baseRates, "same value");
 

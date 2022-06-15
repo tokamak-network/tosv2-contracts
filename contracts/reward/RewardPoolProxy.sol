@@ -16,14 +16,12 @@ contract RewardPoolProxy is
         address factory,
         address npm,
         address rlpm,
-        address tos,
-        address poolManager
+        address tos
     )   external
         nonZeroAddress(factory)
         nonZeroAddress(npm)
         nonZeroAddress(rlpm)
         nonZeroAddress(tos)
-        nonZeroAddress(poolManager)
         onlyOwner
     {
         require(address(pool) == address(0), "already initialized pool");
@@ -47,52 +45,9 @@ contract RewardPoolProxy is
         nonfungiblePositionManager = INonfungiblePositionManager(npm);
         rewardLPTokenManager = IRewardLPTokenManagerAction(rlpm);
         tosAddress = tos;
-        rewardPoolManager = poolManager;
         factor = DEFAULT_FACTOR;
     }
 
-    /*
-    function changeInitializeAddress(
-        address factory,
-        address npm,
-        address rlpm,
-        address tos,
-        address poolManager
-    )
-        external
-        nonZeroAddress(factory)
-        nonZeroAddress(npm)
-        nonZeroAddress(rlpm)
-        nonZeroAddress(tos)
-        nonZeroAddress(poolManager)
-        onlyOwner
-    {
-        require(
-            factory != address(uniswapV3Factory)
-            || npm != address(nonfungiblePositionManager)
-            || rlpm != address(rewardLPTokenManager)
-            || tos != tosAddress
-            || poolManager != rewardPoolManager
-            , "same all address");
 
-        uniswapV3Factory = IUniswapV3Factory(factory);
-        nonfungiblePositionManager = INonfungiblePositionManager(npm);
-        rewardLPTokenManager = IRewardLPTokenManagerAction(rlpm);
-        tosAddress = tos;
-        rewardPoolManager = poolManager;
-    }
-
-    function setDtosBaseRates(
-        uint256 _baseRates
-    )
-        external
-    {
-        require(msg.sender == rewardPoolManager, "sender is not rewardPoolManager");
-
-        require(dTosBaseRates != _baseRates, "same value");
-
-        dTosBaseRates = _baseRates;
-    }
-    */
 
 }

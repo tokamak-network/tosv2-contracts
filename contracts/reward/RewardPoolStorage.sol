@@ -32,7 +32,6 @@ contract RewardPoolStorage {
     address public token0;
     address public token1;
     address public tosAddress;
-    address public rewardPoolManager;
 
     IUniswapV3Factory public uniswapV3Factory;
     INonfungiblePositionManager public nonfungiblePositionManager;

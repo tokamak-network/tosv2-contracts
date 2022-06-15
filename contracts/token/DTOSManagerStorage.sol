@@ -19,6 +19,7 @@ contract DTOSManagerStorage
     mapping (address => uint256) public poolDtosBaseRate;
     address[] public pools;
     uint256 public initialDtosBaseRate;
+    uint256 public initialRebasePeriod;
 
     modifier nonZero(uint256 tokenId) {
         require(tokenId != 0, "DTOS:zero address");

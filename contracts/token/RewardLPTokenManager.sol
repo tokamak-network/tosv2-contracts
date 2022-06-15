@@ -69,9 +69,15 @@ contract RewardLPTokenManager is
         return _baseTokenURI;
     }
 
+    function setBaseTokenURI(string memory baseTokenURI) external onlyOwner {
+        require(keccak256(bytes(_baseTokenURI)) != keccak256(bytes(baseTokenURI)),"same value");
+        _baseTokenURI = baseTokenURI;
+    }
+
     function setDtos(address _dtos) external onlyOwner {
-        require(dtos != address(0),"already set");
         require(_dtos != address(0),"zero address");
+        require(dtos != _dtos,"same");
+
         dtos = _dtos;
     }
 

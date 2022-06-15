@@ -19,7 +19,6 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
     address public rewardLPTokenManager;
     address public tosAddress;
     address public dtos;
-    address public rewardPoolManager;
 
     constructor() {}
 
@@ -29,8 +28,7 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
         address _npm,
         address _rLPM,
         address _tos,
-        address _dtos,
-        address _rewardPoolManager
+        address _dtos
         )
         external onlyOwner
         nonZeroAddress(_factory)
@@ -38,14 +36,12 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
         nonZeroAddress(_rLPM)
         nonZeroAddress(_tos)
         nonZeroAddress(_dtos)
-        nonZeroAddress(_rewardPoolManager)
     {
         uniswapV3Factory = _factory;
         nonfungiblePositionManager =_npm;
         rewardLPTokenManager = _rLPM;
         tosAddress = _tos;
         dtos = _dtos;
-        rewardPoolManager = _rewardPoolManager;
     }
 
 
@@ -89,8 +85,7 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
             uniswapV3Factory,
             nonfungiblePositionManager,
             rewardLPTokenManager,
-            tosAddress,
-            rewardPoolManager
+            tosAddress
         );
 
         _proxy.removeAdmin(address(this));
