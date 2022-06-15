@@ -101,7 +101,7 @@ contract RewardLPTokenManager is
         _tokenIdTracker++;
 
         uint256 tokenId = _tokenIdTracker;
-        uint256 factor = IIDTOS(dtos).getFactor();
+        // uint256 factor = IIDTOS(dtos).getFactor();
 
         deposits[tokenId] = LibRewardLPToken.RewardTokenInfo({
             rewardPool: msg.sender,

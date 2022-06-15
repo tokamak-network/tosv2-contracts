@@ -12,6 +12,7 @@ contract DTOSManagerStorage
     address public rewardLPTokenManager;
     address public bondDepository;
     address public rewardPoolFactory;
+    address public tosAddress;
 
     // pool
     mapping (address => uint256) public poolIndex;

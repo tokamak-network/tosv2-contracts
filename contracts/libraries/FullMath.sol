@@ -126,7 +126,7 @@ library FullMath {
         uint256 a,
         uint256 b,
         uint256 denominator
-    ) internal view returns (uint256 result) {
+    ) internal pure returns (uint256 result) {
         result = mulDiv(a, b, denominator);
         if (mulmod(a, b, denominator) > 0) {
             require(result < type(uint256).max);

@@ -12,7 +12,11 @@ contract DTOSManagerProxy is
     BaseProxy
 {
 
-    function initialize(string memory _name, string memory _symbol)
+    function initialize(
+            string memory _name,
+            string memory _symbol,
+            address _tos
+        )
         external onlyOwner
     {
         require(bytes(_name).length > 0 && bytes(_symbol).length > 0, "name or symbol is empty.");
@@ -20,7 +24,7 @@ contract DTOSManagerProxy is
 
         name = _name;
         symbol = _symbol;
+        tosAddress = _tos;
     }
-
 
 }

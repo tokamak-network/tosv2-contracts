@@ -12,6 +12,7 @@ import "../libraries/ABDKMath64x64.sol";
 import "hardhat/console.sol";
 
 interface IIRewardPool {
+    function tosAddress() external view returns (address);
     function dtosBalanceOf(address account) external view  returns (uint256 amount);
     function dtosTotalSupply() external view  returns (uint256 amount);
 }
@@ -35,9 +36,14 @@ contract DTOSManager is
     constructor() {
 
     }
-
-
     /// Only Admin
+    function setTosAddress(address _addr)
+        external
+        nonZeroAddress(_addr) onlyOwner
+    {
+        require(tosAddress != _addr, "same address");
+        tosAddress = _addr;
+    }
 
     function setRewardLPTokenManager(address _addr)
         external
@@ -77,14 +83,15 @@ contract DTOSManager is
 
     function addPool(address _pool) public nonZeroAddress(_pool)
     {
+        require(IIRewardPool(_pool).tosAddress() == tosAddress, "different tos");
+
         require(
             msg.sender == rewardPoolFactory
             || isAdmin(msg.sender)
             , "sender is not RewardPoolFactory or Admin");
 
-        if(pools.length == 0) pools.push(address(0));
-
         if (poolIndex[_pool] == 0) {
+            if(pools.length == 0) pools.push(address(0));
             poolIndex[_pool] = pools.length;
             poolDtosBaseRate[_pool] = initialDtosBaseRate;
             pools.push(_pool);

@@ -7,7 +7,7 @@ import "./RewardPoolManagerStorage.sol";
 import "../common/AccessibleCommon.sol";
 
 interface IIRewardPool{
-    function setDtosBaseRates(uint256 tokenId) external view returns (address owner);
+    function setDtosBaseRates(uint256 baseRates) external;
 }
 
 

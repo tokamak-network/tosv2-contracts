@@ -78,7 +78,7 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
 
     function _stake(address sender, uint256 tokenId) internal {
 
-        (,, address token0, address token1, uint24 fee, int24 tickLower, int24 tickUpper, uint128 liquidity,,,,)
+        (,, address token0, address token1, , int24 tickLower, int24 tickUpper, uint128 liquidity,,,,)
             = nonfungiblePositionManager.positions(tokenId);
 
         require(liquidity > 0, "zero liquidity");
@@ -123,7 +123,7 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
 
         require(info.rewardPool == address(this), "not pool's token");
         require(info.owner == sender, "not owner");
-        require(info.poolTokenId == rTokenId, "not same token");
+        require(info.poolTokenId == tokenId, "not same token");
 
         rewardLPTokenManager.burn(rTokenId);
 
@@ -254,23 +254,7 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
     function snapshot() public override returns (uint256) {
         return _snapshot();
     }
-    /*
-    function transfer(address recipient, uint256 amount) public virtual returns (bool) {
-        return false;
-    }
 
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) public virtual  returns (bool) {
-        return false;
-    }
-
-    function approve(address spender, uint256 amount) public virtual returns (bool) {
-        return false;
-    }
-    */
     function balanceOf(address account) public view virtual  returns (uint256) {
         return balanceOfAt(account, getCurrentSnapshotId());
     }
