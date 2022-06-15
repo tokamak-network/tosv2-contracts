@@ -189,7 +189,8 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         );
 
         //tos를 산 후 MR을 곱해서 treasury에서 mint함
-        uint256 mrAmount = payout_ * mintRate;
+        // TOKEN * ETH/TOKEN(TOS/TOKEN * ETH/TOS) * TOS/ETH
+        uint256 mrAmount = _amount * mintRate;
         treasury.mint(address(this), mrAmount);        
 
         emit Bond(_id, _amount, payout_);
@@ -250,7 +251,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
             })
         );
 
-        //mintingRate는 1ETH당 TOS가 얼만큼 발행되는지 이다.
+        //mintingRate는 1ETH당 TOS가 얼만큼 발행되는지 이다. (mintingRate = TOS/ETH)
         uint256 mrAmount = _amount * mintRate;
         treasury.mint(address(this), mrAmount);       
 

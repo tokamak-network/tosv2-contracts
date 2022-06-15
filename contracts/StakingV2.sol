@@ -195,7 +195,7 @@ contract StakingV2 is ProxyAccessCommon {
         
         Users memory info = userInfo[_to];
 
-        uint256 LTOSamount = _amount/index_;
+        uint256 LTOSamount = (_amount*1e18)/index_;
 
         userInfo[_to] = Users({
             deposit: info.deposit.add(_amount),
@@ -237,9 +237,13 @@ contract StakingV2 is ProxyAccessCommon {
 
         // epoNumber = epoch.number - info.epoNum;
         require(info.LTOS > _amount, "lack the LTOS amount");
-        amount_ = ((info.LTOS*index_)/1e18);
-        treasury.mint(address(this),amount_-info.deposit);
-        info.getReward = amount_-info.deposit;
+
+        amount_ = ((_amount*index_)/1e18);
+        // 내가 스테이킹 한양보다 많이 받으면 그만큼 TOS를 mint하고 보상을 준다.
+        if(amount_ > info.deposit) {
+            treasury.mint(address(this),amount_-info.deposit);
+        } 
+        info.getReward = info.getReward + amount_;
         info.claim = true;
 
         require(amount_ <= TOS.balanceOf(address(this)), "Insufficient TOS balance in contract");
@@ -254,7 +258,7 @@ contract StakingV2 is ProxyAccessCommon {
 
             //index를 epochNumber만큼 시킴
             //만약 treasury에 있는 TOS물량이 다음 index를 지원하면 index를 증가 시킨다.
-            for(uint256 i = 0; i < epochNumber; i++) {
+            for(uint256 i = 0; i < (epochNumber + 1); i++) {
                 if(treasury.enableStaking() > nextLTOSinterest()) {
                     index();
                 }
@@ -387,12 +391,12 @@ contract StakingV2 is ProxyAccessCommon {
 
     // LTOS에 대한 이자 (LTOS -> TOS로 환산 후 staking된 TOS를 뺴줌)
     function LTOSinterest() public view returns (uint256) {
-        return (totalLTOS * index_) - totaldeposit;
+        return ((totalLTOS * index_)/1e18) - totaldeposit;
     }
 
     // 다음 TOS이자 (다음 index를 구한뒤 -> LTOS -> TOS로 변경 여기서 staking 된 TOS를 뺴줌)
     function nextLTOSinterest() public view returns (uint256) {
-        return (totalLTOS * nextIndex()) - totaldeposit;
+        return ((totalLTOS * nextIndex())/1e18) - totaldeposit;
     }
 
     /* ========== MANAGERIAL FUNCTIONS ========== */
