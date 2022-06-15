@@ -1,5 +1,8 @@
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-gas-reporter");
+require("dotenv/config");
+
+require("dotenv").config();
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -22,6 +25,21 @@ module.exports = {
   networks: {
     hardhat: {
       chainId: 31337,
+    },
+    local: {
+      chainId: 31337,
+      url: `http://127.0.0.1:8545/`,
+      accounts: [`${process.env.PRIVATE_KEY}`,`${process.env.PRIVATE_KEY_2}`],
+    },
+    rinkeby: {
+      url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts: [`${process.env.PRIVATE_KEY}`,`${process.env.PRIVATE_KEY_2}`,`${process.env.PRIVATE_KEY_3}`],
+    },
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts: [`${process.env.PRIVATE_KEY}`],
+      gasMultiplier: 1.25,
+      gasPrice: 25000000000,
     },
   },
   localhost: {

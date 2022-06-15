@@ -12,7 +12,7 @@ import "../interfaces/IRewardPoolEvent.sol";
 import "../interfaces/IRewardPoolAction.sol";
 
 import {DSMath} from "../libraries/DSMath.sol";
-//import "../libraries/UniswapV3LiquidityEvaluator.sol";
+import "../libraries/TOSEvaluator.sol";
 import "../libraries/LibRewardLPToken.sol";
 import "../libraries/LibSnapshot.sol";
 import "../libraries/SArrays.sol";
@@ -63,19 +63,19 @@ contract RewardPool is RewardPoolStorage, AccessibleCommon, DSMath, IRewardPoolE
     function evaluateTOS(uint256 tokenId, address token0, address token1) public view returns (uint256 tosAmount) {
 
         tosAmount = 0;
-        /*
-        (uint256 amount0, uint256 amount1) = UniswapV3LiquidityEvaluator.getAmounts(
+
+        (uint256 amount0, uint256 amount1) = TOSEvaluator.getAmounts(
             address(nonfungiblePositionManager), address(pool), tokenId
         );
-
+/*
         if(token0 == tosAddress){
             tosAmount += amount0;
-            uint256 price = UniswapV3LiquidityEvaluator.getPriceToken1(address(pool));
+            uint256 price = TOSEvaluator.getPriceToken1(address(pool));
             if(price > 0) tosAmount += price * amount1;
         }
         if(token1 == tosAddress) {
             tosAmount += amount1;
-            uint256 price = UniswapV3LiquidityEvaluator.getPriceToken0(address(pool));
+            uint256 price = TOSEvaluator.getPriceToken0(address(pool));
             if(price > 0) tosAmount += price * amount0;
         }
         */

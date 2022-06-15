@@ -8,9 +8,12 @@ const {
 
 describe("RewardPool", function () {
 
-    let rewardPoolFactory,  rewardPool;
+    let rewardPoolFactory,  rewardPool, tosEvaluator;
     let dTosManager, dTosManagerProxy, dTosManagerImp;
     let rewardLPTokenManager;
+
+    // rinkeby
+    let tosAddress = "0x409c4D8cd5d2924b9bc5509230d16a61289c8153";
 
     let TOS;
     let tosInfo = {
@@ -53,13 +56,17 @@ describe("RewardPool", function () {
 
     it("Create TestTOS", async function () {
         const TestERC20 = await ethers.getContractFactory("TestERC20");
+        /*
         TOS = await TestERC20.connect(admin).deploy(
             tosInfo.name,
             tosInfo.symbol,
             tosInfo.initialSupply
         );
         await TOS.deployed();
-        info.tosAddress = TOS.address;
+        */
+        // TOS = await ethers.getContractAt("TestERC20", tosAddress);
+
+        info.tosAddress = tosAddress;
 
     });
 
@@ -79,7 +86,7 @@ describe("RewardPool", function () {
         await dTosManagerProxy.connect(admin).initialize(
             dTosManagerInfo.name,
             dTosManagerInfo.symbol,
-            TOS.address
+            tosAddress
         );
 
         info.dTosManager = dTosManagerProxy.address;
@@ -111,8 +118,20 @@ describe("RewardPool", function () {
     });
 
 
+    it("deploying library TOSEvaluator", async function () {
+        const TOSEvaluator = await ethers.getContractFactory("TOSEvaluator");
+        tosEvaluator = await TOSEvaluator.connect(admin).deploy();
+
+        console.log('tosEvaluator',tosEvaluator.address);
+
+    });
+
     it("Create RewardPool", async function () {
-        const RewardPool = await ethers.getContractFactory("RewardPool");
+        const RewardPool = await ethers.getContractFactory("RewardPool", {
+            libraries: {
+                TOSEvaluator: tosEvaluator.address,
+            }});
+
         rewardPool = await RewardPool.connect(admin).deploy();
         await rewardPool.deployed();
         console.log('rewardPool',rewardPool.address);

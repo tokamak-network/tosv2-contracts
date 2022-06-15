@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import "../libraries/FullMath.sol";
-import "../libraries/TickMath.sol";
-import "../libraries/LiquidityAmounts.sol";
-import "../libraries/OracleLibrary.sol";
-import "../libraries/FixedPoint128.sol";
-import "../libraries/FixedPoint96.sol";
-import "../libraries/PositionKey.sol";
-import "../libraries/SafeMath512.sol";
+//import "./FullMath.sol";
+import "./TickMath.sol";
+import "./LiquidityAmounts.sol";
+import "./OracleLibrary.sol";
+//import "./FixedPoint128.sol";
+//import "./FixedPoint96.sol";
+//import "./PositionKey.sol";
+//import "./SafeMath512.sol";
 
 //import "hardhat/console.sol";
 
@@ -75,7 +75,7 @@ interface IINonfungiblePositionManager {
         );
 }
 
-library UniswapV3LiquidityEvaluator {
+library TOSEvaluator {
 
     function getAmounts(address npm, address poolAddress, uint256 tokenId)
         public view returns (uint256 amount0, uint256 amount1) {
