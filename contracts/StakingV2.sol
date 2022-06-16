@@ -5,10 +5,12 @@ import "./libraries/SafeMath.sol";
 import "./libraries/SafeERC20.sol";
 
 import "./interfaces/IERC20.sol";
+import "./interfaces/ILockTOS.sol";
 import "./interfaces/ITreasury.sol";
 
 import "./common/ProxyAccessCommon.sol";
 
+import "hardhat/console.sol"; 
 
 contract StakingV2 is ProxyAccessCommon {
     /* ========== DEPENDENCIES ========== */
@@ -45,6 +47,14 @@ contract StakingV2 is ProxyAccessCommon {
         bool claim;         // claim 유무          
     }
 
+    struct UserBalance {
+        uint256 deposit;    //tos staking 양
+        uint256 LTOS;       //변환된 LTOS 양
+        uint256 startTime;  //시작 startTime
+        uint256 endTime;    //끝나는 endTime
+        uint256 getLTOS;    //이미 받아간 LTOS양
+    }
+
     struct Rebase {
         uint256 epoch;
         uint256 rebase; // 18 decimals
@@ -58,6 +68,7 @@ contract StakingV2 is ProxyAccessCommon {
     /* ========== STATE VARIABLES ========== */
 
     IERC20 public immutable TOS;
+    ILockTOS public lockTOS;
     ITreasury public treasury;
 
     Epoch public epoch;
@@ -78,6 +89,8 @@ contract StakingV2 is ProxyAccessCommon {
     mapping(address => Claim) public warmupInfo;
     mapping(address => Users) public userInfo;
 
+    uint256 public epochUnit;
+
     uint256 public rebasePerday;
     uint256 public APY;
 
@@ -90,6 +103,8 @@ contract StakingV2 is ProxyAccessCommon {
 
     uint256 public index_;
 
+    uint256 internal free = 1;
+
     uint8 public rebaseRate;
 
     uint256 public totaldeposit;
@@ -97,48 +112,67 @@ contract StakingV2 is ProxyAccessCommon {
 
     uint256 public rebasePerEpoch;
 
+    uint256 public stakingIdCounter;
+
+    mapping(address => uint256[]) public userStakings;
+    mapping(uint256 => UserBalance) public allStakings;
+    mapping(address => mapping(uint256 => UserBalance)) public stakingBalances;
+
     /* ========== CONSTRUCTOR ========== */
 
+    //addr[0] = tos, addr[1] = lockTOS
+    //_epoch[0] = _epochLength, _epoch[1] = _firstEpochNumber, _epoch[2] =  _firstEpochTime, _epoch[3] = _epochUnit
     constructor(
         address _tos,
-        uint256 _epochLength,
-        uint256 _firstEpochNumber,
-        uint256 _firstEpochTime,
+        uint256[4] memory _epoch,
+        address _lockTOS,
         ITreasury _treasury
     ) {
         require(_tos != address(0), "Zero address : TOS");
+        require(_lockTOS != address(0), "Zero address : lockTOS");
 
         _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
         _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         
         TOS = IERC20(_tos);
-        epoch = Epoch({length_: _epochLength, number: _firstEpochNumber, end: _firstEpochTime, distribute: 0});
+        lockTOS = ILockTOS(_lockTOS);
+        treasury = _treasury;
 
+        epoch = Epoch({length_: _epoch[0], number: _epoch[1], end: _epoch[2], distribute: 0});
+        epochUnit = _epoch[3];
+
+        ///
         LTOSSupply = INITIAL_FRAGMENTS_SUPPLY;
         _gonsPerFragment = TOTAL_GONS.div(LTOSSupply);
+    }
 
-        treasury = _treasury;
+    /// @dev Check if a function is used or not
+    modifier ifFree {
+        require(free == 1, "LockId is already in use");
+        free = 0;
+        _;
+        free = 1;
     }
 
     /* ========== SET VALUE ========== */
 
-    /**
-     * @notice set the APY
-     * @param _apy uint
-     */
-    function setAPY(uint256 _apy) external onlyOwner {
-        APY = _apy;
-    }
+    // /**
+    //  * @notice set the APY
+    //  * @param _apy uint
+    //  */
+    // function setAPY(uint256 _apy) external onlyOwner {
+    //     APY = _apy;
+    // }
 
-    /**
-     * @notice set rebase per day
-     * @param _perday uint
-     */
-    function setRebasePerday(uint256 _perday) external onlyOwner {
-        rebasePerday = _perday;
-        epoch.length_ = (86400 / rebasePerday);
-    } 
+    // /**
+    //  * @notice set rebase per day
+    //  * @param _perday uint
+    //  */
+    // function setRebasePerday(uint256 _perday) external onlyOwner {
+    //     rebasePerday = _perday;
+    //     epoch.length_ = (86400 / rebasePerday);
+    // } 
 
     //epochRebase 
     //If input the 0.9 -> 900000000000000000
@@ -167,9 +201,9 @@ contract StakingV2 is ProxyAccessCommon {
         index_ = _index;
     }
 
-    function rebaseInterestRate(uint8 _rate) external onlyOwner {
-        rebaseRate = _rate;
-    }
+    // function rebaseInterestRate(uint8 _rate) external onlyOwner {
+    //     rebaseRate = _rate;
+    // }
 
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -177,43 +211,76 @@ contract StakingV2 is ProxyAccessCommon {
     /**
      * @notice stake OHM to enter warmup
      * @param _to address
-     * @param _amount uint
-     * @param _period uint
-     * @param _claim bool
+     * @param _amount uint tosAmount
+     * @param _periodWeeks uint lockup하는 기간
+     * @param _lockTOS bool
      * @param _rebasing bool
-     * @return uint
+     * @return stakeId uint256
      */
     //그냥 staking을 할때는 lockup 기간이 없는 걸로
     function stake(
         address _to,
         uint256 _amount,
-        uint256 _period,
+        uint256 _periodWeeks,
         bool _rebasing,
-        bool _claim
-    ) external returns (uint256) {
+        bool _lockTOS
+    ) 
+        external 
+        returns (uint256 stakeId) 
+    {
+        require(_amount > 0, "amount should be non-zero");
         TOS.safeTransferFrom(msg.sender, address(this), _amount);
-        
-        Users memory info = userInfo[_to];
 
-        uint256 LTOSamount = (_amount*1e18)/index_;
+        uint256 unlockTime = block.timestamp.add(_periodWeeks.mul(epochUnit));
+    
+        stakingIdCounter = stakingIdCounter + 1;
+        stakeId = stakingIdCounter;
+        userStakings[msg.sender].push(stakeId);
 
-        userInfo[_to] = Users({
-            deposit: info.deposit.add(_amount),
-            LTOS: info.LTOS + LTOSamount,
-            startTime: block.timestamp,
-            epoEnd: block.timestamp + _period,
-            getReward: info.getReward,
-            claim: false
-        });
+        _stake(_to,stakeId,_amount,unlockTime);
 
         if(_rebasing == true) {
             rebaseIndex();
         }
 
-        totalLTOS = totalLTOS + info.LTOS;
-        totaldeposit = totaldeposit + info.deposit;
+        if(_lockTOS == true) {
+            lockTOS.createLock(_amount,_periodWeeks);
+        }
+    }
 
-        return _amount;
+    function _stake(
+        address _addr,
+        uint256 _stakeId,
+        uint256 _amount,
+        uint256 _period
+    ) internal ifFree {
+        UserBalance memory userOld = stakingBalances[_addr][_stakeId];
+        
+        //그냥 스테이킹할때
+        uint256 getEndTime = _period;
+        //이전에 스테이킹한적이 있으면
+        if(userOld.deposit > 0) {
+            //기간을 늘릴때 -> 현재기준으로 늘릴지 아니면 최종 타임 기준으로 늘릴지 결정해야함
+            if(_period > 0) {
+                getEndTime = userOld.endTime + _period;
+            } else {
+                //기간을 늘리지않고 수량만 늘릴때
+                getEndTime = userOld.endTime;
+            }
+        }
+
+        uint256 LTOSamount = (_amount*1e18)/index_;
+
+        stakingBalances[_addr][_stakeId] = UserBalance({
+            deposit: userOld.deposit + _amount,
+            LTOS: userOld.LTOS + LTOSamount,
+            startTime: block.timestamp,
+            endTime: getEndTime,
+            getLTOS: userOld.getLTOS
+        });
+
+        totalLTOS = totalLTOS + userOld.LTOS;
+        totaldeposit = totaldeposit + userOld.deposit;
     }
 
     /**
@@ -266,28 +333,28 @@ contract StakingV2 is ProxyAccessCommon {
         }
     }
 
-    /**
-     * @notice trigger rebase if epoch over
-     * @return uint256
-     */
-    function rebase2() public returns (uint256) {
-        uint256 bounty;
-        if (epoch.end <= block.timestamp) {
-            rebasebyStaker(epoch.distribute, epoch.number);
+    // /**
+    //  * @notice trigger rebase if epoch over
+    //  * @return uint256
+    //  */
+    // function rebase2() public returns (uint256) {
+    //     uint256 bounty;
+    //     if (epoch.end <= block.timestamp) {
+    //         rebasebyStaker(epoch.distribute, epoch.number);
 
-            epoch.end = epoch.end.add(epoch.length_);
-            epoch.number++;
+    //         epoch.end = epoch.end.add(epoch.length_);
+    //         epoch.number++;
 
-            uint256 balance = TOS.balanceOf(address(this));         //staking되어있는 물량
-            uint256 staked = circulatingSupply();                   //staking에 대한 보상
-            if (balance <= staked.add(bounty)) {
-                epoch.distribute = 0;
-            } else {
-                epoch.distribute = balance.sub(staked).sub(bounty);
-            }
-        }
-        return bounty;
-    }
+    //         uint256 balance = TOS.balanceOf(address(this));         //staking되어있는 물량
+    //         uint256 staked = circulatingSupply();                   //staking에 대한 보상
+    //         if (balance <= staked.add(bounty)) {
+    //             epoch.distribute = 0;
+    //         } else {
+    //             epoch.distribute = balance.sub(staked).sub(bounty);
+    //         }
+    //     }
+    //     return bounty;
+    // }
 
 
     /**
