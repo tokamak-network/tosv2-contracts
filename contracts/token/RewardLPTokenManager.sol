@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "../interfaces/IRewardLPTokenManagerEvent.sol";
 import "../interfaces/IRewardLPTokenManagerAction.sol";
 import "../interfaces/IRewardPoolAction.sol";
-import "../interfaces/IDTOS.sol";
+// import "../interfaces/IDTOSSnapshot.sol";
 
 import {DSMath} from "../libraries/DSMath.sol";
 import "../libraries/LibRewardLPToken.sol";
@@ -187,26 +187,32 @@ contract RewardLPTokenManager is
         // dtos 가 토스 총계로 한번에 계산가능한지
         // 또는 각 아이디별 이자율이 별도로 계산되어야 하는지 확인이 필요함.
     }
-    */
 
 
-    function avaiableAmount(
-        uint256[] tokenIds
-    ) external view override  returns (uint256[]) {
+   */
+
+    function avaiableAmounts(
+        uint256[] memory tokenIds
+    ) external view override returns (uint256[] memory) {
+        if(tokenIds.length == 0) return new uint256[](0);
+        else {
+            uint256[] memory amounts = new uint256[](tokenIds.length);
+            return amounts;
+        }
 
     }
 
     function avaiableAmount(
         uint256 tokenId
-    ) external view  override returns (uint256) {
-
+    ) external view override returns (uint256 token) {
+        return 0;
     }
 
 
-    function use(
-        uint256[] tokenIds,
-        uint256[] amount
-    ) external  override whenNotPaused {
+    function multiUse(
+        uint256[] memory tokenIds,
+        uint256[] memory amounts
+    ) external override whenNotPaused {
         // update
     }
 
@@ -231,7 +237,7 @@ contract RewardLPTokenManager is
         //     //info.usedAmount
         // }
 
-        emit UsedRewardToken(account, amount);
+        // emit UsedRewardToken(account, amount);
     }
 
 
