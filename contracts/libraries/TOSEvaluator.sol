@@ -151,6 +151,11 @@ library TOSEvaluator {
             );
         }
     }
+
+    function getPriceX96FromSqrtPriceX96(uint160 sqrtPriceX96) public pure returns(uint256 priceX96) {
+        return FullMath.mulDiv(sqrtPriceX96, sqrtPriceX96, FixedPoint96.Q96);
+    }
+
     /*
     function getMinTick(int24 tickSpacings) public view returns (int24){
            return (TickMath.MIN_TICK / tickSpacings) * tickSpacings ;

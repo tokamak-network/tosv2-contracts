@@ -12,7 +12,6 @@ contract RewardPoolSnapshotProxy is
 
     function initializeProxy(
         address poolAddress,
-        address projectAdmin,
         address factory,
         address npm,
         address rlpm,
@@ -26,19 +25,9 @@ contract RewardPoolSnapshotProxy is
     {
         require(address(pool) == address(0), "already initialized pool");
         require(
-            poolAddress != address(0) && projectAdmin != address(0),
-            "RewardPoolSnapshotProxy: poolAddress or projectAdmin zero"
+            poolAddress != address(0) ,
+            "RewardPoolSnapshotProxy: poolAddress zero"
         );
-
-        // require(
-        //     IUniswapV3Pool(poolAddress).token0() != address(0) &&
-        //     IUniswapV3Pool(poolAddress).token1() != address(0),
-        //     "pool's token is zero"
-        // );
-
-        if(!isAdmin(projectAdmin)){
-            _setupRole(PROJECT_ADMIN_ROLE, projectAdmin);
-        }
 
         pool = IUniswapV3Pool(poolAddress);
         uniswapV3Factory = IUniswapV3Factory(factory);

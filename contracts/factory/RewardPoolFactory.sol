@@ -48,8 +48,7 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
     /// @inheritdoc IRewardPoolFactory
     function create(
         string calldata _name,
-        address poolAddress,
-        address projectAdmin
+        address poolAddress
     )
         external override onlyOwner
         nonZeroAddress(vaultLogic)
@@ -81,21 +80,20 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
 
         _proxy.initializeProxy(
             poolAddress,
-            projectAdmin,
             uniswapV3Factory,
             nonfungiblePositionManager,
             rewardLPTokenManager,
             tosAddress
         );
 
-        _proxy.removeAdmin(address(this));
+        // _proxy.removeAdmin(address(this));
 
         createdContracts[totalCreatedContracts] = ContractInfo(address(_proxy), _name);
         totalCreatedContracts++;
 
         IIDTOS_RPF(dtos).addPool(address(_proxy));
 
-        emit CreatedRewardPool(address(_proxy), _name);
+        emit CreatedRewardPool(address(_proxy), _name, poolAddress);
 
         return address(_proxy);
     }
