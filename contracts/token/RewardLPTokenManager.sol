@@ -189,8 +189,29 @@ contract RewardLPTokenManager is
     }
     */
 
+
+    function avaiableAmount(
+        uint256[] tokenIds
+    ) external view override  returns (uint256[]) {
+
+    }
+
+    function avaiableAmount(
+        uint256 tokenId
+    ) external view  override returns (uint256) {
+
+    }
+
+
     function use(
-        address account,
+        uint256[] tokenIds,
+        uint256[] amount
+    ) external  override whenNotPaused {
+        // update
+    }
+
+    function use(
+        uint256 tokenId,
         uint256 amount
     ) external override whenNotPaused {
 

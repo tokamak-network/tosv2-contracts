@@ -16,8 +16,6 @@ contract RewardPoolSnapshotStorage {
     string public symbol;
     uint8 public decimals = 18;
 
-    // mapping(address => LibFactorSnapshot.Snapshots) internal accountBalanceSnapshots;
-    // LibFactorSnapshot.Snapshots internal totalSupplySnapshots;
     uint256 public currentSnapshotId;
 
 
@@ -29,9 +27,6 @@ contract RewardPoolSnapshotStorage {
 
     //factor
     LibFactorSnapshot.FactorSnapshots internal factorSnapshots;
-    // uint256 public factor;
-    // mapping(address => uint256) public factoredAmounts;
-    // uint256 public totalFactoredAmount;
 
     //----
     uint256 public totalLiquidity;
@@ -56,6 +51,7 @@ contract RewardPoolSnapshotStorage {
 
     // tokenIds - rewardLP
     mapping(uint256 => uint256) public rewardLPs;
+
     uint256 public dTosBaseRates;
 
     //
