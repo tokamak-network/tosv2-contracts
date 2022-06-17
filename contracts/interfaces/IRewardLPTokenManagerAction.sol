@@ -20,12 +20,23 @@ interface IRewardLPTokenManagerAction {
     ) external;
 
     function use(
-        address account,
+        uint256 tokenId,
         uint256 amount
     ) external;
+
+
+    function multiUse(
+        uint256[] memory tokenIds,
+        uint256[] memory amounts
+    ) external ;
 
     function deposit(uint256 tokenId) external view returns (LibRewardLPToken.RewardTokenInfo memory);
 
     function tokensOfOwner(address account) external view returns (uint256[] memory);
+
+    function avaiableAmounts(uint256[] memory tokenIds) external view  returns (uint256[] memory);
+
+    function avaiableAmount(uint256 tokenId) external view returns (uint256) ;
+
 }
 

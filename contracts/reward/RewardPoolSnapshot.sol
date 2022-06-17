@@ -309,23 +309,26 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
     }
 
     function balanceOfAt(address account, uint256 snapshotId) public view virtual override returns (uint256) {
+
+        if (dTosBaseRates == 0) return 0;
+
         (bool snapshotted, uint256 values, uint256 factoredAmount) = _valueAt(snapshotId, accountBalanceSnapshots[account]);
 
-        // if (snapshotted) {
-        //     if (factoredAmount > 0) {
-        //         (bool factorSnapshotted, uint256 factor) = _factorAt(snapshotId);
+        if (snapshotted) {
+            if (factoredAmount > 0) {
+                (bool factorSnapshotted, uint256 factor) = _factorAt(snapshotId);
 
-        //         if (factorSnapshotted) return wmul2(factoredAmount, factor);
-        //         else return wmul2(factoredAmount, DEFAULT_FACTOR);
+                if (factorSnapshotted) return wmul2(factoredAmount, factor);
+                else return wmul2(factoredAmount, DEFAULT_FACTOR);
 
-        //     } else {
-        //         return 0;
-        //     }
-        // } else {
-        //     return balanceOf(account);
-        // }
+            } else {
+                return 0;
+            }
+        } else {
+            return balanceOf(account);
+        }
 
-
+        /*
         if (snapshotted) {
             if (factoredAmount > 0) {
                 (bool factorSnapshotted, uint256 factor) = _factorAt(snapshotId);
@@ -343,7 +346,7 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         } else {
             return balanceOf(account);
         }
-
+        */
 
 
     }
