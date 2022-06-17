@@ -20,7 +20,7 @@ library OracleLibrary {
         uint128 baseAmount,
         address baseToken,
         address quoteToken
-    ) internal view returns (uint256 quoteAmount) {
+    ) internal pure returns (uint256 quoteAmount) {
         uint160 sqrtRatioX96 = TickMath.getSqrtRatioAtTick(tick);
 
         // Calculate quoteAmount with better precision if it doesn't overflow when multiplied by itself
