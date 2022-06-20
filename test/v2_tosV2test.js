@@ -138,6 +138,12 @@ describe("price test", function () {
     provider = ethers.provider;
     // poolInfo.admin = admin1;
     // tokenInfo.admin = admin1;
+
+    await hre.ethers.provider.send("hardhat_setBalance", [
+      admin1.address,
+      "0x56BC75E2D63100000",
+    ]);
+
   });
 
   it("deploy TOSValueCalculator", async function () {

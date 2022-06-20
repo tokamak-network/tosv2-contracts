@@ -155,6 +155,7 @@ contract StakingV2 is ProxyAccessCommon {
      * @return stakeId uint256
      */
     //그냥 staking을 할때는 lockup 기간이 없는 걸로
+    //마이그레이션 할때 index가 설정되야함 rebaseIndex를 0으로 해줘야함
     function stake(
         address _to,
         uint256 _amount,
@@ -185,8 +186,9 @@ contract StakingV2 is ProxyAccessCommon {
         rebaseIndex();
 
         //sTOS와 id같이 쓸려면 id별 mapping 따로 만들어서 관리해야함 (이 경우는 sTOS스테이킹하면서 동시에 LTOS를 구매할때)
+        uint256 sTOSid;
         if(_lockTOS == true) {
-            lockTOS.createLock(_amount,_periodWeeks);
+            sTOSid = lockTOS.createLock(_amount,_periodWeeks);
         }
 
     }

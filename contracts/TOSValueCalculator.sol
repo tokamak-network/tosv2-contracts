@@ -121,6 +121,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
+    //1TOS = ? ERC20 -> ?ERC20/1TOS
     function getTOSERC20PoolTOSPrice(address _erc20address, address _tosERC20Pool, uint24 fee) public override view returns (uint256 price) {
         uint tosOrder = getTOStoken0(_erc20address,fee);
         uint decimalCalcul;
@@ -143,6 +144,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
+    // 1ERC20 = ?TOS -> ?TOS/1ERC20
     function getTOSERC20PoolERC20Price(address _erc20address, address _tosERC20Pool, uint24 fee) public override view returns (uint256 price) {
         uint tosOrder = getTOStoken0(_erc20address,fee);
         uint decimalCalcul;

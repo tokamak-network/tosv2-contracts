@@ -9,6 +9,7 @@ import "./interfaces/IdTOS.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/ITreasury.sol";
 import "./interfaces/IBondDepository.sol";
+import "./interfaces/ITOSValueCalculator.sol";
 
 import "./common/ProxyAccessCommon.sol";
 
@@ -37,6 +38,8 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
     IdTOS public dTOS;
     IStaking public staking;
     ITreasury public treasury;
+    address public calculator;
+
     address payable treasuryContract;
 
     uint256 public mintRate;
@@ -45,7 +48,8 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         IERC20 _tos,
         IdTOS _dtos,
         IStaking _staking,
-        ITreasury _treasury
+        ITreasury _treasury,
+        address _calculator
     ) {
         _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
         _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
@@ -55,6 +59,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         dTOS = _dtos;
         staking = _staking;
         treasury = _treasury;
+        calculator = _calculator;
         tos.approve(address(_staking), 1e45);
     }
 
@@ -70,6 +75,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
     function create(
         bool _check,
         IERC20 _token,
+        address _poolAddress,
         uint256 _tokenId,
         uint256[5] calldata _market
     ) 
@@ -97,6 +103,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
             if(markets[id_].method) {
                 metadata.push(
                     Metadata({
+                        poolAddress: _poolAddress,
                         tokenPrice: _market[2],
                         tosPrice: _market[3],
                         endTime: _market[1],
@@ -107,6 +114,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
             } else {
                 metadata.push(
                     Metadata({
+                        poolAddress: _poolAddress,
                         tokenPrice: _market[2],
                         tosPrice: _market[3],
                         endTime: _market[1],
@@ -118,6 +126,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         } else {
             metadata.push(
                 Metadata({
+                    poolAddress: _poolAddress,
                     tokenPrice: 0,
                     tosPrice: 0,
                     endTime: _market[1],
@@ -193,8 +202,9 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         );
 
         //tos를 산 후 MR을 곱해서 treasury에서 mint함
-        // TOKEN * ETH/TOKEN(TOS/TOKEN * ETH/TOS) * TOS/ETH
-        uint256 mrAmount = _amount * mintRate;
+        // TOKEN * ETH/TOKEN(TOS/TOKEN * ETH/TOS) * TOS/ETH -> TOKEN * TOS/TOKEN
+        uint256 tokenAmount = _amount * ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
+        uint256 mrAmount = tokenAmount * mintRate;
         treasury.mint(address(this), mrAmount);        
 
         emit Bond(_id, _amount, payout_);
@@ -214,6 +224,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
     }
 
     //eth deposit
+    //weth도 같이 받음 ex) 10ETH -> 5ETH, 5WETH
     function ETHDeposit(
         uint256 _id,
         uint256 _amount,
@@ -235,6 +246,9 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         require(currentTime < meta.endTime, "Depository : market end");
         require(msg.value == _amount, "Depository : ETH value not same");
         require(meta.ethMarket, "Depository : not ETHMarket");
+        
+        uint256 _maxpayout = marketMaxPayout(_id);
+        require(_amount <= _maxpayout, "Depository : over maxPay");
 
         payout_ = calculPayoutAmount(meta.tokenPrice,meta.tosPrice,_amount);
         console.log("payoutAmount : %s", payout_);
@@ -296,7 +310,6 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
     //dTOS로직 
     //총 가지고 있는 ETH기반으로 minting할 수 있는지 없는지 정한다. -> ETH가 아니라 token이 들어왔을떄
     //본딩할때 트레저리에서 TOS를 발행할 수 있는지 물어봐야함
-    
     function calculPayoutAmount(
         uint256 _tokenPrice,
         uint256 _tosPrice, 
@@ -311,10 +324,14 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         return payout = ((((_tokenPrice * 1e10)/_tosPrice) * _amount) / 1e10);
     }
 
-    function marketMaxPayout(uint256 _id) external view returns (uint256) {
-        
+    //해당 마켓의 maxpayout양을 return한다.
+    function marketMaxPayout(uint256 _id) public view returns (uint256 maxpayout_) {
+        Market memory market = markets[_id];
+        maxpayout_ = (market.maxPayout*1e10)/tokenPrice(_id);
+        return maxpayout_;
     }
 
+    // ?TOS/1ETH -> 나온값에 /1e10 해줘야함
     function tokenPrice(uint256 _id) internal view returns (uint256 price) {
         Metadata memory meta = metadata[_id];
         return ((meta.tokenPrice * 1e10)/meta.tosPrice);
