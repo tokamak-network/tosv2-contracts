@@ -13,6 +13,7 @@ interface IBondDepository {
         uint256 endSaleTime;    //saleEndTime
         uint256 sold;       // base tokens out
         uint256 purchased; // quote tokens in
+        uint256 maxPayout;  // 한 tx에 살수 있는 물량
     }
 
     // Additional info about market.
@@ -29,6 +30,7 @@ interface IBondDepository {
         uint256 tosAmount;
         uint256 marketID;
         uint256 endTime;
+        uint256 dTOSuse;
     }
 
     // Control variable adjustment data
@@ -43,7 +45,7 @@ interface IBondDepository {
         bool _check,
         IERC20 _token,
         uint256 _tokenId,
-        uint256[4] calldata _market
+        uint256[5] calldata _market
     ) external returns (uint256 id_);
 
     function close(uint256 _id) external;
@@ -52,6 +54,7 @@ interface IBondDepository {
         uint256 _id,
         uint256 _amount,
         uint256 _time,
+        uint256 _dTOSamount,
         bool _claim
     )
         external

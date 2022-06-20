@@ -28,7 +28,6 @@ contract StakingV2 is ProxyAccessCommon {
         uint256 length_; // in seconds
         uint256 number; // since inception
         uint256 end; // timestamp
-        uint256 distribute; // amount
     }
 
     struct Claim {
@@ -55,16 +54,6 @@ contract StakingV2 is ProxyAccessCommon {
         uint256 getLTOS;    //이미 받아간 LTOS양
     }
 
-    struct Rebase {
-        uint256 epoch;
-        uint256 rebase; // 18 decimals
-        uint256 totalStakedBefore;
-        uint256 totalStakedAfter;
-        uint256 amountRebased;
-        uint256 index;
-        uint256 blockNumberOccured;
-    }
-
     /* ========== STATE VARIABLES ========== */
 
     IERC20 public immutable TOS;
@@ -73,39 +62,14 @@ contract StakingV2 is ProxyAccessCommon {
 
     Epoch public epoch;
 
-    Rebase[] public rebases; // past rebase data
-
-
-    uint256 private constant MAX_UINT256 = type(uint256).max;
-    uint256 private constant INITIAL_FRAGMENTS_SUPPLY = 5_000_000 * 10**9;
-
-    // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that _gonsPerFragment is an integer.
-    // Use the highest value that fits in a uint256 for max granularity.
-    uint256 private constant TOTAL_GONS = MAX_UINT256 - (MAX_UINT256 % INITIAL_FRAGMENTS_SUPPLY);
-
-    // MAX_SUPPLY = maximum integer < (sqrt(4*TOTAL_GONS + 1) - 1) / 2
-    uint256 private constant MAX_SUPPLY = ~uint128(0); // (2^128) - 1
-
     mapping(address => Claim) public warmupInfo;
     mapping(address => Users) public userInfo;
 
     uint256 public epochUnit;
 
-    uint256 public rebasePerday;
-    uint256 public APY;
-
-    uint256 public warmupPeriod;
-    uint256 private gonsInWarmup;
-
-    uint256 private _gonsPerFragment;
-
-    uint256 public LTOSSupply;
-
     uint256 public index_;
 
     uint256 internal free = 1;
-
-    uint8 public rebaseRate;
 
     uint256 public totaldeposit;
     uint256 public totalLTOS;
@@ -139,12 +103,8 @@ contract StakingV2 is ProxyAccessCommon {
         lockTOS = ILockTOS(_lockTOS);
         treasury = _treasury;
 
-        epoch = Epoch({length_: _epoch[0], number: _epoch[1], end: _epoch[2], distribute: 0});
+        epoch = Epoch({length_: _epoch[0], number: _epoch[1], end: _epoch[2]});
         epochUnit = _epoch[3];
-
-        ///
-        LTOSSupply = INITIAL_FRAGMENTS_SUPPLY;
-        _gonsPerFragment = TOTAL_GONS.div(LTOSSupply);
     }
 
     /// @dev Check if a function is used or not
@@ -157,29 +117,11 @@ contract StakingV2 is ProxyAccessCommon {
 
     /* ========== SET VALUE ========== */
 
-    // /**
-    //  * @notice set the APY
-    //  * @param _apy uint
-    //  */
-    // function setAPY(uint256 _apy) external onlyOwner {
-    //     APY = _apy;
-    // }
-
-    // /**
-    //  * @notice set rebase per day
-    //  * @param _perday uint
-    //  */
-    // function setRebasePerday(uint256 _perday) external onlyOwner {
-    //     rebasePerday = _perday;
-    //     epoch.length_ = (86400 / rebasePerday);
-    // } 
-
     //epochRebase 
     //If input the 0.9 -> 900000000000000000
     function setRebasePerepoch(uint256 _rebasePerEpoch) external onlyOwner {
         rebasePerEpoch = _rebasePerEpoch;
     }
-
 
     //index는 ether단위이다. 
     /**
@@ -201,11 +143,6 @@ contract StakingV2 is ProxyAccessCommon {
         index_ = _index;
     }
 
-    // function rebaseInterestRate(uint8 _rate) external onlyOwner {
-    //     rebaseRate = _rate;
-    // }
-
-
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     /**
@@ -213,8 +150,8 @@ contract StakingV2 is ProxyAccessCommon {
      * @param _to address
      * @param _amount uint tosAmount
      * @param _periodWeeks uint lockup하는 기간
+     * @param _exist uint256 sTOS 아이디
      * @param _lockTOS bool
-     * @param _rebasing bool
      * @return stakeId uint256
      */
     //그냥 staking을 할때는 lockup 기간이 없는 걸로
@@ -222,7 +159,7 @@ contract StakingV2 is ProxyAccessCommon {
         address _to,
         uint256 _amount,
         uint256 _periodWeeks,
-        bool _rebasing,
+        uint256 _exist,
         bool _lockTOS
     ) 
         external 
@@ -233,19 +170,25 @@ contract StakingV2 is ProxyAccessCommon {
 
         uint256 unlockTime = block.timestamp.add(_periodWeeks.mul(epochUnit));
     
+        //만약 스테이킹은 처음이고 sTOS물량은 같이 늘리고 싶을때 (기간은 그대로고 물량만 늘림) (sTOS기간과 같이 LTOS기간도 스테이킹됨)
+        if(_exist > 0) {
+            lockTOS.depositFor(msg.sender,_exist,_amount);
+            (, unlockTime, ) = lockTOS.locksInfo(_exist);
+        }
+
         stakingIdCounter = stakingIdCounter + 1;
         stakeId = stakingIdCounter;
         userStakings[msg.sender].push(stakeId);
 
         _stake(_to,stakeId,_amount,unlockTime);
 
-        if(_rebasing == true) {
-            rebaseIndex();
-        }
+        rebaseIndex();
 
+        //sTOS와 id같이 쓸려면 id별 mapping 따로 만들어서 관리해야함 (이 경우는 sTOS스테이킹하면서 동시에 LTOS를 구매할때)
         if(_lockTOS == true) {
             lockTOS.createLock(_amount,_periodWeeks);
         }
+
     }
 
     function _stake(
@@ -333,91 +276,6 @@ contract StakingV2 is ProxyAccessCommon {
         }
     }
 
-    // /**
-    //  * @notice trigger rebase if epoch over
-    //  * @return uint256
-    //  */
-    // function rebase2() public returns (uint256) {
-    //     uint256 bounty;
-    //     if (epoch.end <= block.timestamp) {
-    //         rebasebyStaker(epoch.distribute, epoch.number);
-
-    //         epoch.end = epoch.end.add(epoch.length_);
-    //         epoch.number++;
-
-    //         uint256 balance = TOS.balanceOf(address(this));         //staking되어있는 물량
-    //         uint256 staked = circulatingSupply();                   //staking에 대한 보상
-    //         if (balance <= staked.add(bounty)) {
-    //             epoch.distribute = 0;
-    //         } else {
-    //             epoch.distribute = balance.sub(staked).sub(bounty);
-    //         }
-    //     }
-    //     return bounty;
-    // }
-
-
-    /**
-        @notice increases rOHM supply to increase staking balances relative to profit_
-        @param profit_ uint256 (기본 rebase Amount) -> 우리는 APY를 이용해서 profit을 역산해야함
-        @return uint256
-     */
-    function rebasebyStaker(uint256 profit_, uint256 epoch_) public returns (uint256) {
-        uint256 rebaseAmount;
-        uint256 circulatingSupply_ = circulatingSupply();
-        if (profit_ == 0) {
-            // emit LogSupply(epoch_, _totalSupply);
-            // emit LogRebase(epoch_, 0, index());
-            // return LTOSSupply;
-        } else if (circulatingSupply_ > 0) {
-            rebaseAmount = profit_.mul(LTOSSupply).div(circulatingSupply_);
-        } else {
-            rebaseAmount = profit_;
-        }
-
-        LTOSSupply = LTOSSupply.add(rebaseAmount);
-
-        if (LTOSSupply > MAX_SUPPLY) {
-            LTOSSupply = MAX_SUPPLY;
-        }
-
-        _gonsPerFragment = TOTAL_GONS.div(LTOSSupply);
-
-        _storeRebase(circulatingSupply_, profit_, epoch_);
-
-        return LTOSSupply;
-    }
-
-    /* ========== INTERNAL FUNCTIONS ========== */
-
-     /**
-        @notice emits event with data about rebase
-        @param previousCirculating_ uint
-        @param profit_ uint
-        @param epoch_ uint
-     */
-    function _storeRebase(
-        uint256 previousCirculating_,
-        uint256 profit_,
-        uint256 epoch_
-    ) internal {
-        uint256 rebasePercent = profit_.mul(1e18).div(previousCirculating_);
-        rebases.push(
-            Rebase({
-                epoch: epoch_,
-                rebase: rebasePercent, // 18 decimals
-                totalStakedBefore: previousCirculating_,
-                totalStakedAfter: circulatingSupply(),
-                amountRebased: profit_,
-                index: index(),
-                blockNumberOccured: block.number
-            })
-        );
-
-        // emit LogSupply(epoch_, _totalSupply);
-        // emit LogRebase(epoch_, rebasePercent, index());
-    }
-
     /* ========== VIEW FUNCTIONS ========== */
 
     // /**
@@ -431,22 +289,12 @@ contract StakingV2 is ProxyAccessCommon {
     // }
 
     /**
-     * @notice total supply in warmup
-     */
-    // function supplyInWarmup() public view returns (uint256) {
-    //     return sOHM.balanceForGons(gonsInWarmup);
-    // }
-
-    /**
      * @notice seconds until the next epoch begins
      */
     function secondsToNextEpoch() external view returns (uint256) {
         return epoch.end.sub(block.timestamp);
     }
 
-    function gonsForBalance(uint256 amount) public view returns (uint256) {
-        return amount.mul(_gonsPerFragment);
-    }
 
     // LTOS를 TOS로 보상해주고 남은 TOS 물량
     function circulatingSupply() public view returns (uint256) {
@@ -466,14 +314,4 @@ contract StakingV2 is ProxyAccessCommon {
         return ((totalLTOS * nextIndex())/1e18) - totaldeposit;
     }
 
-    /* ========== MANAGERIAL FUNCTIONS ========== */
-
-    /**
-     * @notice set warmup period for new stakers
-     * @param _warmupPeriod uint
-     */
-    function setWarmupLength(uint256 _warmupPeriod) external onlyPolicyOwner {
-        warmupPeriod = _warmupPeriod;
-        emit WarmupSet(_warmupPeriod);
-    }
 }

@@ -64,14 +64,14 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
      * @param _check       ETH를 받을려면(true), token을 받으면(false)
      * @param _token       토큰 주소 
      * @param _tokenId     V3 LP 아이디 (Market의 tokenId = 0 이면 ETH나 erc20토큰 판매이다.)
-     * @param _market      [팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격]
+     * @param _market      [팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격, 한번에 구매 가능한 TOS물량]
      * @return id_         ID of new bond market
      */
     function create(
         bool _check,
         IERC20 _token,
         uint256 _tokenId,
-        uint256[4] calldata _market
+        uint256[5] calldata _market
     ) 
         external
         override 
@@ -88,7 +88,8 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
                 capacity: _market[0],
                 endSaleTime: _market[1],
                 purchased: 0,
-                sold: 0
+                sold: 0,
+                maxPayout: _market[4]
             })
         );
 
@@ -144,6 +145,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
      * @param _id          the ID of the market
      * @param _amount      the amount of quote token to spend
      * @param _time        staking time
+     * @param _dTOSamount  dTOSAmount
      * @param _claim       Whether or not to claim
      * @return payout_     the amount of TOS due
      * @return index_      the user index of the Note (used to redeem or query information)
@@ -154,6 +156,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         uint256 _id,
         uint256 _amount,
         uint256 _time,
+        uint256 _dTOSamount,
         bool _claim
     )
         external
@@ -184,7 +187,8 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
                 tokenAmount: _amount,
                 tosAmount: payout_,
                 marketID: _id,
-                endTime: meta.endTime
+                endTime: meta.endTime,
+                dTOSuse: 0
             })
         );
 
@@ -214,6 +218,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         uint256 _id,
         uint256 _amount,
         uint256 _time,
+        uint256 _dTOSamount,
         bool _claim
     ) 
         public
@@ -247,7 +252,8 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
                 tokenAmount: _amount,
                 tosAmount: payout_,
                 marketID: _id,
-                endTime: meta.endTime
+                endTime: meta.endTime,
+                dTOSuse: 0
             })
         );
 
@@ -305,6 +311,9 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         return payout = ((((_tokenPrice * 1e10)/_tosPrice) * _amount) / 1e10);
     }
 
+    function marketMaxPayout(uint256 _id) external view returns (uint256) {
+        
+    }
 
     function tokenPrice(uint256 _id) internal view returns (uint256 price) {
         Metadata memory meta = metadata[_id];
