@@ -8,11 +8,9 @@ interface IBondDepository {
     struct Market {
         bool method;        //selling token kinds
         IERC20 quoteToken;  //token to accept as payment
-        uint256 tokenId;    //uniswapV3 tokenId    
         uint256 capacity;   //remain sale volume
         uint256 endSaleTime;    //saleEndTime
         uint256 sold;       // base tokens out
-        uint256 purchased; // quote tokens in
         uint256 maxPayout;  // 한 tx에 살수 있는 물량
     }
 
@@ -21,7 +19,6 @@ interface IBondDepository {
         address poolAddress;
         uint256 tokenPrice;
         uint256 tosPrice;
-        uint256 endTime;        //saleEndTime
         uint256 totalSaleAmount; //tos sales volume
         bool ethMarket;
     }
@@ -52,7 +49,7 @@ interface IBondDepository {
 
     function close(uint256 _id) external;
 
-    function deposit(
+    function ERC20deposit(
         uint256 _id,
         uint256 _amount,
         uint256 _time,

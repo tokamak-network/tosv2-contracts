@@ -198,6 +198,18 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
+    function getETHtoken(address _poolAddress) public view returns (uint) {
+        address token0Address = IIUniswapV3Pool(_poolAddress).token0();
+        address token1Address = IIUniswapV3Pool(_poolAddress).token1();
+        if(token0Address == address(weth)) {
+           return 0;
+        } else if(token1Address == address(weth)) {
+            return 1;
+        } else {
+            return 3;
+        }
+    }
+
     function getAmounts(address npm, address poolAddress, uint256 tokenId)
         public view returns (uint256 amount0, uint256 amount1) {
 

@@ -86,50 +86,34 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
     {
         id_ = markets.length;
 
+        //tokenPrice, tosPrice, capacity, totalSaleAmount는 관리자가 변경할 수 있게해야함 (capacity, totalSaleAmount는 한 변수 입력에 변경가능하게)
         markets.push(
             Market({
                 method: _check,
                 quoteToken: _token,
-                tokenId: _tokenId,
                 capacity: _market[0],
                 endSaleTime: _market[1],
-                purchased: 0,
                 sold: 0,
                 maxPayout: _market[4]
             })
         );
 
-        if(_tokenId == 0) {
-            if(markets[id_].method) {
-                metadata.push(
-                    Metadata({
-                        poolAddress: _poolAddress,
-                        tokenPrice: _market[2],
-                        tosPrice: _market[3],
-                        endTime: _market[1],
-                        totalSaleAmount: _market[0],
-                        ethMarket: true
-                    })
-                );
-            } else {
-                metadata.push(
-                    Metadata({
-                        poolAddress: _poolAddress,
-                        tokenPrice: _market[2],
-                        tosPrice: _market[3],
-                        endTime: _market[1],
-                        totalSaleAmount: _market[0],
-                        ethMarket: false
-                    })
-                );
-            }
+        if(markets[id_].method) {
+            metadata.push(
+                Metadata({
+                    poolAddress: _poolAddress,
+                    tokenPrice: _market[2],
+                    tosPrice: _market[3],
+                    totalSaleAmount: _market[0],
+                    ethMarket: true
+                })
+            );
         } else {
             metadata.push(
                 Metadata({
                     poolAddress: _poolAddress,
-                    tokenPrice: 0,
-                    tosPrice: 0,
-                    endTime: _market[1],
+                    tokenPrice: _market[2],
+                    tosPrice: _market[3],
                     totalSaleAmount: _market[0],
                     ethMarket: false
                 })
@@ -161,7 +145,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
      */
     //사전에 Token을 bondDepositoryContract에 approve해줘야함
     //ETH-TOS ,TOS-ABC -> uniswapRouter
-    function deposit(
+    function ERC20deposit(
         uint256 _id,
         uint256 _amount,
         uint256 _time,
@@ -179,14 +163,14 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         Metadata memory meta = metadata[_id];
         uint256 currentTime = uint256(block.timestamp);
 
-        require(currentTime < meta.endTime, "Depository : market end");
+        require(currentTime < market.endSaleTime, "Depository : market end");
+        //pool있는지 없는지 확인하는 require확인
         
         payout_ = calculPayoutAmount(meta.tokenPrice,meta.tosPrice,_amount);
 
         require(0 <= (market.capacity - payout_), "Depository : sold out");
 
         market.capacity -= payout_;
-        market.purchased += _amount;
         market.sold += payout_;
 
         index_ = users[msg.sender].length;
@@ -196,13 +180,15 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
                 tokenAmount: _amount,
                 tosAmount: payout_,
                 marketID: _id,
-                endTime: meta.endTime,
+                endTime: market.endSaleTime,
                 dTOSuse: 0
             })
         );
 
         //tos를 산 후 MR을 곱해서 treasury에서 mint함
-        // TOKEN * ETH/TOKEN(TOS/TOKEN * ETH/TOS) * TOS/ETH -> TOKEN * TOS/TOKEN
+        //bonding에서 팔 token은 무조건 LP(TOS-TOKEN Pool)이 있어야한다.
+        // TOKEN * ETH/TOKEN(TOS/TOKEN * ETH/TOS) * TOS/ETH(mintingRate) -> X
+        // TOKEN * ETH/TOKEN(무조건 토큰 주소 있는걸로) * TOS/ETH(mintingRate) -> O
         uint256 tokenAmount = _amount * ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
         uint256 mrAmount = tokenAmount * mintRate;
         treasury.mint(address(this), mrAmount);        
@@ -243,7 +229,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         Metadata memory meta = metadata[_id];
         uint256 currentTime = uint256(block.timestamp);
 
-        require(currentTime < meta.endTime, "Depository : market end");
+        require(currentTime < market.endSaleTime, "Depository : market end");
         require(msg.value == _amount, "Depository : ETH value not same");
         require(meta.ethMarket, "Depository : not ETHMarket");
         
@@ -256,7 +242,6 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         require(0 <= (market.capacity - payout_), "Depository : sold out");
 
         market.capacity -= payout_;
-        market.purchased += _amount;
         market.sold += payout_;
 
         index_ = users[msg.sender].length;
@@ -266,7 +251,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
                 tokenAmount: _amount,
                 tosAmount: payout_,
                 marketID: _id,
-                endTime: meta.endTime,
+                endTime: market.endSaleTime,
                 dTOSuse: 0
             })
         );
