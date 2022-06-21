@@ -15,12 +15,16 @@ contract RewardPoolSnapshotProxy is
         address factory,
         address npm,
         address rlpm,
-        address tos
+        address tos,
+        address dtos,
+        address policy
     )   external
         nonZeroAddress(factory)
         nonZeroAddress(npm)
         nonZeroAddress(rlpm)
         nonZeroAddress(tos)
+        nonZeroAddress(dtos)
+        nonZeroAddress(policy)
         onlyOwner
     {
         require(address(pool) == address(0), "already initialized pool");
@@ -34,7 +38,8 @@ contract RewardPoolSnapshotProxy is
         nonfungiblePositionManager = INonfungiblePositionManager(npm);
         rewardLPTokenManager = IRewardLPTokenManagerAction(rlpm);
         tosAddress = tos;
-
+        dtosManagerAddress = dtos;
+        dtosPolicy = policy;
     }
 
 

@@ -31,5 +31,20 @@ interface IDTOSManager {
 
     function totalSupplyAt(uint256 snapshotId) external view returns (uint256 amount);
 
+    function minDtosBaseRate() external view returns (uint256 amount);
+    function maxDtosBaseRate() external view returns (uint256 amount);
+    function initialDtosBaseRate() external view returns (uint256 amount);
+    function initialRebaseIntervalSecond() external view returns (uint256 amount);
+    function initialInterestRatePerRebase() external view returns (uint256 amount);
+
+    /// only onlyOwner
+    function setReabseInfo(address _pool, uint256 _period, uint256 _interest) external;
+    function setDtosBaseRate(address _pool, uint256 _baserate)  external;
+    function addPoolAndInitialize(address _pool) external ;
+    function addPool(address _pool) external;
+    function deletePool(address _pool) external;
+    function savePoolSnapshots() external;
+
+
 }
 

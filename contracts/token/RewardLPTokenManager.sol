@@ -95,6 +95,7 @@ contract RewardLPTokenManager is
     // 발행은 리워드 풀에 의해서만 가능하다. 리워드 풀에서 스테이킹할때만 가능
     function mint(
         address to,
+        address rewardPool,
         address pool,
         uint256 poolTokenId,
         uint256 tosAmount,
@@ -102,7 +103,8 @@ contract RewardLPTokenManager is
         uint256 factoredAmount
     ) external override whenNotPaused zeroAddress(dtos) returns (uint256) {
 
-        require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
+        //require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
+        require(_msgSender() == dtos, "RewardLPTokenManager: sender is not dtosManager");
 
         _tokenIdTracker++;
 
@@ -110,7 +112,7 @@ contract RewardLPTokenManager is
         // uint256 factor = IIDTOS(dtos).getFactor();
 
         deposits[tokenId] = LibRewardLPToken.RewardTokenInfo({
-            rewardPool: msg.sender,
+            rewardPool: rewardPool,
             owner: to,
             pool: pool,
             poolTokenId: poolTokenId,
@@ -126,7 +128,7 @@ contract RewardLPTokenManager is
         addUserToken(to, tokenId);
         // if(dtosPrincipal > 0) IDTOS(dtos).mint(to, pool, dtosPrincipal);
 
-        emit MintedRewardToken(tokenId, to, pool, poolTokenId, tosAmount);
+        emit MintedRewardToken(tokenId, to, rewardPool, pool, poolTokenId, tosAmount);
         return tokenId;
     }
     /*
@@ -149,7 +151,8 @@ contract RewardLPTokenManager is
         uint256 tokenId
     ) external override whenNotPaused zeroAddress(dtos) {
 
-        require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have role to burn");
+        //require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have role to burn");
+        require(_msgSender() == dtos, "RewardLPTokenManager: sender is not dtosManager");
 
         LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
 

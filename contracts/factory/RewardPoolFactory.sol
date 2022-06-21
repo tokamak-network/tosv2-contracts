@@ -8,7 +8,7 @@ import "../interfaces/IRewardPoolFactory.sol";
 import "../interfaces/IUniswapV3Pool.sol";
 
 interface IIDTOS_RPF {
-    function addPool(address pool) external ;
+    function addPoolAndInitialize(address pool) external ;
 
 }
 
@@ -19,6 +19,7 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
     address public rewardLPTokenManager;
     address public tosAddress;
     address public dtos;
+    address public dtosPolicy;
 
     constructor() {}
 
@@ -28,7 +29,8 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
         address _npm,
         address _rLPM,
         address _tos,
-        address _dtos
+        address _dtos,
+        address _dtosPolicy
         )
         external onlyOwner
         nonZeroAddress(_factory)
@@ -36,12 +38,14 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
         nonZeroAddress(_rLPM)
         nonZeroAddress(_tos)
         nonZeroAddress(_dtos)
+        nonZeroAddress(_dtosPolicy)
     {
         uniswapV3Factory = _factory;
         nonfungiblePositionManager =_npm;
         rewardLPTokenManager = _rLPM;
         tosAddress = _tos;
         dtos = _dtos;
+        dtosPolicy = _dtosPolicy;
     }
 
 
@@ -58,6 +62,7 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
         nonZeroAddress(rewardLPTokenManager)
         nonZeroAddress(tosAddress)
         nonZeroAddress(dtos)
+        nonZeroAddress(dtosPolicy)
         returns (address)
     {
         require(bytes(_name).length > 0,"name is empty");
@@ -83,7 +88,9 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
             uniswapV3Factory,
             nonfungiblePositionManager,
             rewardLPTokenManager,
-            tosAddress
+            tosAddress,
+            dtos,
+            dtosPolicy
         );
 
         // _proxy.removeAdmin(address(this));
@@ -91,7 +98,7 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
         createdContracts[totalCreatedContracts] = ContractInfo(address(_proxy), _name);
         totalCreatedContracts++;
 
-        IIDTOS_RPF(dtos).addPool(address(_proxy));
+        IIDTOS_RPF(dtos).addPoolAndInitialize(address(_proxy));
 
         emit CreatedRewardPool(address(_proxy), _name, poolAddress);
 

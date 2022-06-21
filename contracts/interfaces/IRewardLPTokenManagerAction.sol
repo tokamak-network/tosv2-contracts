@@ -8,6 +8,7 @@ interface IRewardLPTokenManagerAction {
 
     function mint(
         address to,
+        address rewardPool,
         address pool,
         uint256 poolTokenId,
         uint256 tosAmount,

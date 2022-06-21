@@ -44,5 +44,16 @@ interface IRewardPoolSnapshotAction {
     function getCurrentSnapshotId() external view  returns (uint256);
 
     function getFactor() external view returns (uint256 f);
+
+    function evaluateTOS(uint256 tokenId, address token0, address token1) external view returns (uint256 tosAmount) ;
+    function tosToDtosAmount(uint256 _amount) external view returns (uint256);
+
+    /// onlyDTOSManager
+    function setDtosBaseRate(uint256 _baseRates) external;
+    function setRebaseInfo(uint256 _period, uint256 _interest) external;
+
+    /// onlyPolicy
+    function execPause(bool flag) external;
+
 }
 

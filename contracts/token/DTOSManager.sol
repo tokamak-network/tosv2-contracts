@@ -3,11 +3,13 @@ pragma solidity ^0.8.0;
 
 import "./DTOSManagerStorage.sol";
 import "../common/AccessibleCommon.sol";
-import {IDTOSManager} from "../interfaces/IDTOSManager.sol";
-
 import {DSMath} from "../libraries/DSMath.sol";
 import "../libraries/SArrays.sol";
 import "../libraries/ABDKMath64x64.sol";
+
+import {IDTOSManager} from "../interfaces/IDTOSManager.sol";
+import "../interfaces/IPolicy.sol";
+import "../interfaces/IRewardLPTokenManagerAction.sol";
 
 import "hardhat/console.sol";
 
@@ -16,6 +18,13 @@ interface IIRewardPool {
     function balanceOf(address account) external view  returns (uint256 amount);
     function totalSupply() external view  returns (uint256 amount);
     function currentSnapshotId() external view returns (uint256);
+
+    function dTosBaseRate() external view returns (uint256);
+    function rebaseIntervalSecond() external view returns (uint256);
+    function interestRatePerRebase() external view returns (uint256);
+
+    function setDtosBaseRate(uint256 _baseRates) external;
+    function setRebaseInfo(uint256 _period, uint256 _interest) external;
 }
 
 contract DTOSManager is
@@ -26,32 +35,24 @@ contract DTOSManager is
 {
     using SArrays for uint256[];
 
-    modifier onlyRewardLPTokenManager() {
-        require(
-            rewardLPTokenManager == msg.sender,
-            "DTOS:sender is not rewardLPTokenManager"
-        );
-        _;
-    }
-
     constructor() {
-
     }
+
     /// Only Admin
+    function setPolicyAddress(address _addr)
+        external
+        nonZeroAddress(_addr) onlyOwner
+    {
+        require(policyAddress != _addr, "same address");
+        policyAddress = _addr;
+    }
+
     function setTosAddress(address _addr)
         external
         nonZeroAddress(_addr) onlyOwner
     {
         require(tosAddress != _addr, "same address");
         tosAddress = _addr;
-    }
-
-    function setRewardLPTokenManager(address _addr)
-        external
-        nonZeroAddress(_addr) onlyOwner
-    {
-        require(rewardLPTokenManager != _addr, "same address");
-        rewardLPTokenManager = _addr;
     }
 
     function setRewardPoolFactory(address _addr)
@@ -62,41 +63,56 @@ contract DTOSManager is
         rewardPoolFactory = _addr;
     }
 
-    function setBondDepository(address _addr)
+    function setRewardLPTokenManager(address _addr)
         external
         nonZeroAddress(_addr) onlyOwner
     {
-        require(bondDepository != _addr, "same address");
-        bondDepository = _addr;
+        require(address(rewardLPTokenManager) != _addr, "same address");
+        rewardLPTokenManager = IRewardLPTokenManagerAction(_addr);
     }
 
-
-    function setInitialReabseInfo(uint256 _period, uint256 _rate)
-        external onlyOwner
+    function setReabseInfo(address _pool, uint256 _period, uint256 _interest)
+        external override onlyOwner
     {
-        require(
-            initialRebasePeriod != _period || initialDtosBaseRate != _rate
-            , "same value");
-
-        initialRebasePeriod = _period;
-        initialDtosBaseRate = _rate;
+        _setReabseInfo(_pool, _period, _interest);
     }
 
-    function setDtosBaseRate(address _pool, uint256 _rate)
-        external nonZeroAddress(_pool) onlyOwner
+    function _setReabseInfo(address _pool, uint256 _period, uint256 _interest)
+        internal
     {
         require(poolIndex[_pool] > 0, "zero pool index");
 
-        if (_rate > 0) {
-            poolDtosBaseRate[_pool] = _rate;
-            // IIRewardPool(_rewardPool).setDtosBaseRates(_baseRate);
-        } else {
-            deletePool(_pool);
+        if (IIRewardPool(_pool).rebaseIntervalSecond() != _period
+            || IIRewardPool(_pool).interestRatePerRebase() != _interest ) {
+            IIRewardPool(_pool).setRebaseInfo(_period, _interest);
+        }
+    }
+
+    function setDtosBaseRate(address _pool, uint256 _baserate)
+        external override nonZeroAddress(_pool) onlyOwner
+    {
+        _setDtosBaseRate(_pool, _baserate);
+    }
+
+    function _setDtosBaseRate(address _pool, uint256 _baserate)
+        internal
+    {
+        require(poolIndex[_pool] > 0, "zero pool index");
+
+        if(IIRewardPool(_pool).dTosBaseRate() != _baserate) {
+            IIRewardPool(_pool).setDtosBaseRate(_baserate);
         }
     }
 
 
-    function addPool(address _pool) public nonZeroAddress(_pool)
+    function addPoolAndInitialize(address _pool) public override nonZeroAddress(_pool)
+    {
+        addPool(_pool);
+        _setDtosBaseRate(_pool, initialDtosBaseRate());
+        _setReabseInfo(_pool, initialRebaseIntervalSecond(), initialInterestRatePerRebase());
+    }
+
+    function addPool(address _pool) public override nonZeroAddress(_pool)
     {
         require(IIRewardPool(_pool).tosAddress() == tosAddress, "different tos");
 
@@ -108,23 +124,21 @@ contract DTOSManager is
         if (poolIndex[_pool] == 0) {
             if(pools.length == 0) pools.push(address(0));
             poolIndex[_pool] = pools.length;
-            poolDtosBaseRate[_pool] = initialDtosBaseRate;
             pools.push(_pool);
         }
     }
 
-    function deletePool(address _pool) public nonZeroAddress(_pool) onlyOwner
+    function deletePool(address _pool) public override nonZeroAddress(_pool) onlyOwner
     {
         uint256 _index = poolIndex[_pool];
         if (_index > 0 && _index < pools.length) {
             if (_index < pools.length-1) pools[_index] = pools[pools.length-1];
             pools.pop();
             poolIndex[_pool] = 0;
-            poolDtosBaseRate[_pool] = 0;
         }
     }
 
-    function savePoolSnapshots() public
+    function savePoolSnapshots() public override
     {
         curSnapshotId++;
 
@@ -136,6 +150,23 @@ contract DTOSManager is
                 poolSnapshots[curSnapshotId].push(Snapshot(pool, id));
             }
         }
+    }
+
+    /// Only RewardPool
+    function mintNFT(
+        address staker,
+        address pool,
+        uint256 tokenId,
+        uint256 tosAmount,
+        uint128 liquidity,
+        uint256 factoredAmount
+
+    ) external onlyRewardPool returns (uint256 rewardLP)
+    {
+        console.log('rewardNFTmint %s %s %s', staker, pool, tokenId);
+
+        rewardLP = rewardLPTokenManager.mint(staker, msg.sender, pool, tokenId, tosAmount, liquidity, factoredAmount);
+        console.log('rewardNFTmint %s', rewardLP);
     }
 
 
@@ -185,4 +216,28 @@ contract DTOSManager is
         }
     }
 
+    function minDtosBaseRate() public view override returns (uint256 amount) {
+        return IPolicy(policyAddress).minDtosBaseRate();
+    }
+
+    function maxDtosBaseRate() public view override returns (uint256 amount) {
+        return IPolicy(policyAddress).maxDtosBaseRate();
+    }
+
+    function initialDtosBaseRate() public view override returns (uint256 amount) {
+        return IPolicy(policyAddress).initialDtosBaseRate();
+    }
+
+    function initialRebaseIntervalSecond() public view override returns (uint256 amount) {
+        return IPolicy(policyAddress).initialRebaseIntervalSecond();
+    }
+
+    function initialInterestRatePerRebase() public view override returns (uint256 amount) {
+        return IPolicy(policyAddress).initialInterestRatePerRebase();
+    }
+
+    function dtosBaseRate(address pool) external view returns (uint256 amount)
+    {
+        return IIRewardPool(pool).dTosBaseRate();
+    }
 }

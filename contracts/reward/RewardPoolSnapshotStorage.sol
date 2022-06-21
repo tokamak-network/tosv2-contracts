@@ -18,7 +18,6 @@ contract RewardPoolSnapshotStorage {
 
     uint256 public currentSnapshotId;
 
-
     // account - balance
     mapping(address =>  LibFactorSnapshot.Snapshots) internal accountBalanceSnapshots;
 
@@ -36,6 +35,9 @@ contract RewardPoolSnapshotStorage {
     address public token0;
     address public token1;
     address public tosAddress;
+    address public dtosManagerAddress;
+    address public dtosPolicy;
+
 
     IUniswapV3Factory public uniswapV3Factory;
     INonfungiblePositionManager public nonfungiblePositionManager;
@@ -52,15 +54,13 @@ contract RewardPoolSnapshotStorage {
     // tokenIds - rewardLP
     mapping(uint256 => uint256) public rewardLPs;
 
-    uint256 public dTosBaseRates;
-
-    //
-    uint256 public compoundInteresRatePerRebase; // 리베이스당 이자율
+    uint256 public dTosBaseRate;
+    uint256 public interestRatePerRebase; // 리베이스당 이자율
     uint256 public rebaseIntervalSecond; // 리베이스 (해당 초마다 리베이스)
     uint256 public lastRebaseTime;
 
     uint256 public DEFAULT_FACTOR = 10**18;
-
+    bool public execPauseFlag;
 
     event Snapshot(uint256 id);
 
@@ -77,4 +77,24 @@ contract RewardPoolSnapshotStorage {
         _;
     }
 
+    modifier onlyDTOSManager() {
+        require(
+            msg.sender == dtosManagerAddress,
+            "caller is not dtosManager"
+        );
+        _;
+    }
+
+    modifier onlyPolicy() {
+        require(
+            msg.sender == dtosPolicy,
+            "caller is not dtosPolicy"
+        );
+        _;
+    }
+
+    modifier onlyNoExecPause() {
+        require(!execPauseFlag, "exec pause");
+        _;
+    }
 }

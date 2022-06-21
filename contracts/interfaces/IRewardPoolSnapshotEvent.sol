@@ -4,7 +4,15 @@ pragma solidity ^0.8.0;
 /// @title IRewardPoolSnapshotEvent
 interface IRewardPoolSnapshotEvent {
 
-    event Staked(address sender, uint256 tokenId, uint256 tosAmount, uint256 dtosAmount, uint256 factoredAmount, uint256 liquidity);
+    event Staked(
+        address sender,
+        uint256 rNFT,
+        uint256 tokenId,
+        uint256 tosAmount,
+        uint256 dtosAmount,
+        uint256 factoredAmount,
+        uint256 liquidity
+    );
 
     event Unstaked(address sender, uint256 tokenId, uint256 tosAmount, uint256 factoredAmount, uint256 liquidity, uint256 rewardTokenId);
 

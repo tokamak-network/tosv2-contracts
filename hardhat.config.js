@@ -29,7 +29,7 @@ module.exports = {
     local: {
       chainId: 31337,
       url: `http://127.0.0.1:8545/`,
-      accounts: [`${process.env.PRIVATE_KEY}`,`${process.env.PRIVATE_KEY_2}`],
+      accounts: [`${process.env.PRIVATE_KEY}`,`${process.env.PRIVATE_KEY_2}`,`${process.env.PRIVATE_KEY_3}`,`${process.env.PRIVATE_KEY_4}`,`${process.env.PRIVATE_KEY_5}`],
     },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
