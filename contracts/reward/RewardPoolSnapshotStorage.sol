@@ -28,7 +28,7 @@ contract RewardPoolSnapshotStorage {
     LibFactorSnapshot.FactorSnapshots internal factorSnapshots;
 
     //----
-    uint256 public totalLiquidity;
+    //uint256 public totalLiquidity;
 
     //----
     IUniswapV3Pool public pool;
@@ -37,7 +37,6 @@ contract RewardPoolSnapshotStorage {
     address public tosAddress;
     address public dtosManagerAddress;
     address public dtosPolicy;
-
 
     IUniswapV3Factory public uniswapV3Factory;
     INonfungiblePositionManager public nonfungiblePositionManager;

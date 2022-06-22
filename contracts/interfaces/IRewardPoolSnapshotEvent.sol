@@ -14,7 +14,13 @@ interface IRewardPoolSnapshotEvent {
         uint256 liquidity
     );
 
-    event Unstaked(address sender, uint256 tokenId, uint256 tosAmount, uint256 factoredAmount, uint256 liquidity, uint256 rewardTokenId);
+    event Unstaked(
+        address sender,
+        uint256 tokenId,
+        uint256 tosAmount,
+        uint256 factoredAmount,
+        uint256 rewardTokenId
+        );
 
     event TransferFrom(address from, address to, uint256 tokenId, uint256 amount, uint256 factoredAmount);
 

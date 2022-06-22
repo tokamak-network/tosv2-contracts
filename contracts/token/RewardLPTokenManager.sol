@@ -2,21 +2,21 @@
 pragma solidity ^0.8.0;
 
 import "../common/AccessibleCommon.sol";
-//import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+//import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
-//import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
 import "@openzeppelin/contracts/utils/Context.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+//import "@openzeppelin/contracts/utils/Counters.sol";
 
 import "../interfaces/IRewardLPTokenManagerEvent.sol";
 import "../interfaces/IRewardLPTokenManagerAction.sol";
 import "../interfaces/IRewardPoolAction.sol";
-// import "../interfaces/IDTOSSnapshot.sol";
 
 import {DSMath} from "../libraries/DSMath.sol";
 import "../libraries/LibRewardLPToken.sol";
+
+import "hardhat/console.sol";
 
 interface IIDTOS {
     function getFactor() external view returns (uint256);
@@ -25,7 +25,7 @@ interface IIDTOS {
 contract RewardLPTokenManager is
     Context,
     AccessibleCommon,
-    ERC721Enumerable,
+    ERC721,
     ERC721Pausable,
     DSMath,
     IRewardLPTokenManagerEvent,
@@ -96,39 +96,31 @@ contract RewardLPTokenManager is
     function mint(
         address to,
         address rewardPool,
-        address pool,
         uint256 poolTokenId,
         uint256 tosAmount,
-        uint128 liquidity,
         uint256 factoredAmount
     ) external override whenNotPaused zeroAddress(dtos) returns (uint256) {
-
-        //require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
         require(_msgSender() == dtos, "RewardLPTokenManager: sender is not dtosManager");
 
         _tokenIdTracker++;
 
         uint256 tokenId = _tokenIdTracker;
-        // uint256 factor = IIDTOS(dtos).getFactor();
 
         deposits[tokenId] = LibRewardLPToken.RewardTokenInfo({
             rewardPool: rewardPool,
             owner: to,
-            pool: pool,
             poolTokenId: poolTokenId,
             tosAmount: tosAmount,
             usedAmount: 0,
             stakedTime: block.timestamp,
-            factoredAmount: factoredAmount,
-            liquidity: liquidity
+            factoredAmount: factoredAmount
         });
 
         _mint(to, tokenId);
 
         addUserToken(to, tokenId);
-        // if(dtosPrincipal > 0) IDTOS(dtos).mint(to, pool, dtosPrincipal);
 
-        emit MintedRewardToken(tokenId, to, rewardPool, pool, poolTokenId, tosAmount);
+        emit MintedRewardToken(tokenId, to, rewardPool, poolTokenId, tosAmount);
         return tokenId;
     }
     /*
@@ -167,7 +159,7 @@ contract RewardLPTokenManager is
 
         delete deposits[tokenId];
 
-        emit BurnedRewardToken(tokenId, info.owner, info.pool, info.poolTokenId);
+        emit BurnedRewardToken(tokenId, info.owner, info.rewardPool, info.poolTokenId);
     }
 
     /*
@@ -211,7 +203,6 @@ contract RewardLPTokenManager is
         return 0;
     }
 
-
     function multiUse(
         uint256[] memory tokenIds,
         uint256[] memory amounts
@@ -243,7 +234,6 @@ contract RewardLPTokenManager is
         // emit UsedRewardToken(account, amount);
     }
 
-
     function tokensOfOwner(address account) external view override returns (uint256[] memory)
     {
         return userTokens[account];
@@ -258,7 +248,7 @@ contract RewardLPTokenManager is
         address from,
         address to,
         uint256 tokenId
-    ) internal virtual override(ERC721Enumerable, ERC721Pausable) whenNotPaused {
+    ) internal virtual override(ERC721, ERC721Pausable) whenNotPaused {
         // super._beforeTokenTransfer(from, to, tokenId);
 
         if(from != address(0) && to != address(0)){
@@ -271,7 +261,7 @@ contract RewardLPTokenManager is
         public
         view
         virtual
-        override(AccessControl, ERC721, ERC721Enumerable)
+        override(AccessControl, ERC721)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

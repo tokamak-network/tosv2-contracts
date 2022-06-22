@@ -30,10 +30,8 @@ interface IIERC20{
 interface IIDTOSManager{
     function mintNFT(
         address to,
-        address pool,
         uint256 poolTokenId,
         uint256 tosAmount,
-        uint128 liquidity,
         uint256 factoredAmount
     ) external returns (uint256);
 
@@ -125,8 +123,9 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         uint256 factor = getFactor();
 
         if(dtosAmount > 0) factoredAmount = wdiv2(dtosAmount, factor);
+        console.log("factoredAmount %s", factoredAmount);
 
-        uint256 rTokenId = IIDTOSManager(dtosManagerAddress).mintNFT(sender, address(pool), tokenId, tosAmount, liquidity, factoredAmount);
+        uint256 rTokenId = IIDTOSManager(dtosManagerAddress).mintNFT(sender, tokenId, tosAmount, factoredAmount);
         /*
         rewardLPs[tokenId] = rTokenId;
 
@@ -164,10 +163,10 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         rebase();
 
         _burn(sender, info.tosAmount, info.factoredAmount);
-        totalLiquidity -= info.liquidity;
+        // totalLiquidity -= info.liquidity;
         rewardLPs[tokenId] = 0;
 
-        emit Unstaked(sender, tokenId, info.tosAmount, info.factoredAmount, info.liquidity, rTokenId);
+        emit Unstaked(sender, tokenId, info.tosAmount, info.factoredAmount, rTokenId);
     }
 
     function _burn(

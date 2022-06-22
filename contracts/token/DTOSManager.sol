@@ -155,18 +155,13 @@ contract DTOSManager is
     /// Only RewardPool
     function mintNFT(
         address staker,
-        address pool,
         uint256 tokenId,
         uint256 tosAmount,
-        uint128 liquidity,
         uint256 factoredAmount
 
     ) external onlyRewardPool returns (uint256 rewardLP)
     {
-        console.log('rewardNFTmint %s %s %s', staker, pool, tokenId);
-
-        rewardLP = rewardLPTokenManager.mint(staker, msg.sender, pool, tokenId, tosAmount, liquidity, factoredAmount);
-        console.log('rewardNFTmint %s', rewardLP);
+        rewardLP = rewardLPTokenManager.mint(staker, msg.sender, tokenId, tosAmount, factoredAmount);
     }
 
 
