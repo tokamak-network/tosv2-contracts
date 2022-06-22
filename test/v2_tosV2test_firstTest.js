@@ -97,8 +97,10 @@ describe("price test", function () {
   let sellingTime = 120;
 
   let sellTosAmount = ethers.utils.parseUnits("10000", 18); //1ETH = 1000TOS 라서 10ETH받으면 끝임
-  let depositAmount = ethers.utils.parseUnits("5", 18);         //5ETH를 deposit하면 500LTOS를받음 (index가 10일때) -> 50000TOS가 생기고 5000TOS가 스테이킹됨 -> 45000TOS가 treasury에 있음// 5000TOS는 stakingContract에 있음
+  let overdepositAmount = ethers.utils.parseUnits("5", 18);     //over deposit상황
+  let depositAmount = ethers.utils.parseUnits("2", 18);         //2ETH를 deposit하면 200LTOS를받음 (index가 10일때) -> 20000TOS가 생기고 2000TOS가 스테이킹됨 -> 18000TOS가 treasury에 있음// 2000TOS는 stakingContract에 있음
   let depositAmount2 = ethers.utils.parseUnits("3", 18);        //3ETH를 deposit하면 300LTOS를 받음 (index가 10일때) index가 19면? -> 157.89~를 받음
+  let onePayout = ethers.utils.parseUnits("3000", 18);    //한번에 3000TOS 이상 살수 없음
 
   let beforetosAmount;
   let aftertosAmount;
@@ -340,7 +342,16 @@ describe("price test", function () {
     })
   })
 
-  describe("#3 create Market and deposit test", async () => {
+  describe("#3. lockTOS setting", async () => {
+    it("set the stakingContarct", async () => {
+      await lockTosContract.connect(admin1).setStaker(stakingContract.address);
+  
+      let staker = await lockTosContract.staker();
+      expect(staker).to.be.equal(stakingContract.address);
+    })
+  })
+
+  describe("#4. create Market and deposit test", async () => {
     it("create the ETH market", async () => {
       const block = await ethers.provider.getBlock('latest')
       let finishTime = block.timestamp + sellingTime  //2분
@@ -349,11 +360,35 @@ describe("price test", function () {
       await bondDepositoryContract.connect(admin1).create(
           true,
           admin1.address,
-          0,
-          [sellTosAmount,finishTime,ETHPrice,TOSPrice]
+          uniswapInfo.tosethPool,
+          [sellTosAmount,finishTime,ETHPrice,TOSPrice,onePayout]
       )
       let marketafter = await bondDepositoryContract.marketsLength();
       console.log(marketafter)
+    })
+
+    it("overdeposit situration", async() => {
+      const block = await ethers.provider.getBlock('latest')
+      depositTime = block.timestamp
+
+      let beforetosTreasuryAmount = await tosContract.balanceOf(treasuryContract.address)
+      expect(beforetosTreasuryAmount).to.be.equal(0)
+      
+      await expect(
+        bondDepositoryContract.connect(admin1).ETHDeposit(
+          0,
+          overdepositAmount,
+          1,
+          0,
+          false,
+          {value: overdepositAmount}
+        )
+      ).to.be.revertedWith("Depository : over maxPay");
+
+
+      let aftertosTreasuryAmount = await tosContract.balanceOf(treasuryContract.address)
+
+      expect(aftertosTreasuryAmount).to.be.equal(0)
     })
 
     it("deposit ETHmarket", async() => {
@@ -367,13 +402,14 @@ describe("price test", function () {
       console.log("1deposit blocktimeStamp : ", block.timestamp)
 
       let beforetosTreasuryAmount = await tosContract.balanceOf(treasuryContract.address)
-      console.log(beforetosTreasuryAmount)
+      // console.log(beforetosTreasuryAmount)
       expect(beforetosTreasuryAmount).to.be.equal(0)
 
       await bondDepositoryContract.connect(admin1).ETHDeposit(
           0,
           depositAmount,
-          10,
+          1,
+          0,
           false,
           {value: depositAmount}
       );
@@ -382,94 +418,100 @@ describe("price test", function () {
 
       expect(afterindex).to.be.equal(beforeindex)
 
-      //45000TOS가 treasury에 있음
+      //18000TOS가 treasury에 있음
       let aftertosTreasuryAmount = await tosContract.balanceOf(treasuryContract.address)
-      console.log(aftertosTreasuryAmount)
+      console.log("aftertosTreasuryAmount : ", aftertosTreasuryAmount)
 
       expect(aftertosTreasuryAmount).to.above(0)
     })
 
+    it("check userStakings", async () => {
+      let stakinguser = await stakingContract.connect(admin1).stakinOf(admin1.address);
+      console.log(stakinguser);
+    })
+
     it("unstaking before endTime", async() => {
-      let amount =  await stakingContract.connect(admin1).userInfo(admin1.address);
-      console.log(amount.LTOS);
+      let amount =  await stakingContract.connect(admin1).stakingBalances(admin1.address,0);
+      console.log("LTOS : ", amount.LTOS);
 
       beforetosAmount = await tosContract.connect(admin1).balanceOf(admin1.address);
 
       await expect(
           stakingContract.connect(admin1).unstake(
               admin1.address,
+              0,
               amount.LTOS,
-              false,
-              false
           )
       ).to.be.revertedWith("need the endPeriod");
     })
 
-    it("deposit2 ETHmarket", async() => {
-      depositTime2 = depositTime + 25;
-      await ethers.provider.send('evm_setNextBlockTimestamp', [depositTime2]);
-      await ethers.provider.send('evm_mine');
+    // it("deposit2 ETHmarket", async() => {
+    //   depositTime2 = depositTime + 25;
+    //   await ethers.provider.send('evm_setNextBlockTimestamp', [depositTime2]);
+    //   await ethers.provider.send('evm_mine');
       
-      let beforeindex = await stakingContract.index_()
-      console.log(beforeindex)
+    //   let beforeindex = await stakingContract.index_()
+    //   console.log(beforeindex)
         
-      const block = await ethers.provider.getBlock('latest')
-      let epoch = await stakingContract.epoch();
-      console.log("epoch.end : ", epoch.end);
-      console.log("blocktimeStamp : ", block.timestamp)
+    //   const block = await ethers.provider.getBlock('latest')
+    //   let epoch = await stakingContract.epoch();
+    //   console.log("epoch.end : ", epoch.end);
+    //   console.log("blocktimeStamp : ", block.timestamp)
 
-      let nextindex = await stakingContract.nextIndex()
-      console.log("nextindex : ", nextindex);
+    //   let nextindex = await stakingContract.nextIndex()
+    //   console.log("nextindex : ", nextindex);
 
-      let enableStaking = await treasuryContract.enableStaking();
-      let nextLTOSinterrest = await stakingContract.nextLTOSinterest()
+    //   let enableStaking = await treasuryContract.enableStaking();
+    //   let nextLTOSinterrest = await stakingContract.nextLTOSinterest()
 
-      console.log("enableStaking : ", enableStaking);
-      console.log("nextLTOSinterrest : ", nextLTOSinterrest)
+    //   console.log("enableStaking : ", enableStaking);
+    //   console.log("nextLTOSinterrest : ", nextLTOSinterrest)
 
-      await bondDepositoryContract.connect(admin1).ETHDeposit(
-          0,
-          depositAmount,
-          10,
-          false,
-          {value: depositAmount}
-      );
+    //   await bondDepositoryContract.connect(admin1).ETHDeposit(
+    //       0,
+    //       depositAmount2,
+    //       10,
+    //       false,
+    //       {value: depositAmount2}
+    //   );
 
-      let afterindex = await stakingContract.index_()
-      console.log(afterindex)
+    //   let afterindex = await stakingContract.index_()
+    //   console.log(afterindex)
 
-      expect(afterindex).to.not.equal(beforeindex)
-      expect(afterindex).to.above(beforeindex)
-    })
+    //   expect(afterindex).to.not.equal(beforeindex)
+    //   expect(afterindex).to.above(beforeindex)
+    // })
 
-    it("unstaking after endTime", async() => {
-      unstakingTime = depositTime2 + 15;
-      await ethers.provider.send('evm_setNextBlockTimestamp', [unstakingTime]);
-      await ethers.provider.send('evm_mine');
+    // it("unstaking after endTime", async() => {
+    //   unstakingTime = depositTime2 + 15;
+    //   await ethers.provider.send('evm_setNextBlockTimestamp', [unstakingTime]);
+    //   await ethers.provider.send('evm_mine');
 
-      beforetosAmount = await tosContract.connect(admin1).balanceOf(admin1.address);
-      console.log(beforetosAmount)
+    //   beforetosAmount = await tosContract.connect(admin1).balanceOf(admin1.address);
+    //   console.log(beforetosAmount)
 
-      let index = await stakingContract.index_()
-      console.log("index :" , index)
+    //   let index = await stakingContract.index_()
+    //   console.log("index :" , index)
 
-      //500LTOS unstaking함 -> 5500TOS 받아야함
-      await stakingContract.connect(admin1).unstake(
-          admin1.address,
-          unstakingAmount,
-          false,
-          false
-      )    
+    //   //500LTOS unstaking함 -> 5500TOS 받아야함
+    //   await stakingContract.connect(admin1).unstake(
+    //       admin1.address,
+    //       unstakingAmount,
+    //       false,
+    //       false
+    //   )    
       
-      let getTOSAmount = (unstakingAmount * index) / etherUint;
+    //   let getTOSAmount = (unstakingAmount * index) / etherUint;
 
-      aftertosAmount = await tosContract.connect(admin1).balanceOf(admin1.address);
-      console.log(aftertosAmount)
-      let tosdiffAmount = aftertosAmount - beforetosAmount;
-      console.log("tosdiffAmount", tosdiffAmount)
-      console.log("getTOSAmount :", getTOSAmount)
-      // expect(aftertosAmount).to.be.equal(getTOSAmount)
-    })
+    //   aftertosAmount = await tosContract.connect(admin1).balanceOf(admin1.address);
+    //   console.log(aftertosAmount)
+    //   let tosdiffAmount = aftertosAmount - beforetosAmount;
+    //   console.log("tosdiffAmount", tosdiffAmount)
+    //   console.log("getTOSAmount :", getTOSAmount)
+    //   // expect(aftertosAmount).to.be.equal(getTOSAmount)
+    // })
+
+
   })
 
 

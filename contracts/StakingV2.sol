@@ -5,8 +5,10 @@ import "./libraries/SafeMath.sol";
 import "./libraries/SafeERC20.sol";
 
 import "./interfaces/IERC20.sol";
-import "./interfaces/ILockTOS.sol";
+import "./interfaces/ILockTOSv2Action0.sol";
 import "./interfaces/ITreasury.sol";
+
+import "./interfaces/IStaking.sol";
 
 import "./common/ProxyAccessCommon.sol";
 
@@ -30,21 +32,21 @@ contract StakingV2 is ProxyAccessCommon {
         uint256 end; // timestamp
     }
 
-    struct Claim {
-        uint256 deposit; // if forfeiting
-        uint256 gons; // staked balance
-        uint256 expiry; // end of warmup period
-        bool lock; // prevents malicious delays for claim
-    }
+    // struct Claim {
+    //     uint256 deposit; // if forfeiting
+    //     uint256 gons; // staked balance
+    //     uint256 expiry; // end of warmup period
+    //     bool lock; // prevents malicious delays for claim
+    // }
 
-    struct Users {
-        uint256 deposit;    // tos staking한 양
-        uint256 LTOS;       // LTOS 양
-        uint256 startTime;  // 시작 startTime
-        uint256 epoEnd;     // lock기간
-        uint256 getReward;  // 이미 받아간 claim 양
-        bool claim;         // claim 유무          
-    }
+    // struct Users {
+    //     uint256 deposit;    // tos staking한 양
+    //     uint256 LTOS;       // LTOS 양
+    //     uint256 startTime;  // 시작 startTime
+    //     uint256 epoEnd;     // lock기간
+    //     uint256 getReward;  // 이미 받아간 claim 양
+    //     bool claim;         // claim 유무          
+    // }
 
     struct UserBalance {
         uint256 deposit;    //tos staking 양
@@ -52,18 +54,19 @@ contract StakingV2 is ProxyAccessCommon {
         uint256 startTime;  //시작 startTime
         uint256 endTime;    //끝나는 endTime
         uint256 getLTOS;    //이미 받아간 LTOS양
+        uint256 rewardTOS;  //받아간 TOS양
     }
 
     /* ========== STATE VARIABLES ========== */
 
     IERC20 public immutable TOS;
-    ILockTOS public lockTOS;
+    ILockTOSv2Action0 public lockTOS;
     ITreasury public treasury;
 
     Epoch public epoch;
 
-    mapping(address => Claim) public warmupInfo;
-    mapping(address => Users) public userInfo;
+    // mapping(address => Claim) public warmupInfo;
+    // mapping(address => Users) public userInfo;
 
     uint256 public epochUnit;
 
@@ -100,7 +103,7 @@ contract StakingV2 is ProxyAccessCommon {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         
         TOS = IERC20(_tos);
-        lockTOS = ILockTOS(_lockTOS);
+        lockTOS = ILockTOSv2Action0(_lockTOS);
         treasury = _treasury;
 
         epoch = Epoch({length_: _epoch[0], number: _epoch[1], end: _epoch[2]});
@@ -170,8 +173,8 @@ contract StakingV2 is ProxyAccessCommon {
         TOS.safeTransferFrom(msg.sender, address(this), _amount);
 
         uint256 unlockTime = block.timestamp.add(_periodWeeks.mul(epochUnit));
-    
-        //만약 스테이킹은 처음이고 sTOS물량은 같이 늘리고 싶을때 (기간은 그대로고 물량만 늘림) (sTOS기간과 같이 LTOS기간도 스테이킹됨)
+        
+        //만약 LTOS 스테이킹은 처음이고 sTOS물량은 같이 늘리고 싶을때 _exist에 lockTOS id를 입력한다. (기간은 그대로고 물량만 늘림) (sTOS기간과 같이 LTOS기간도 스테이킹됨)
         if(_exist > 0) {
             lockTOS.depositFor(msg.sender,_exist,_amount);
             (, unlockTime, ) = lockTOS.locksInfo(_exist);
@@ -188,9 +191,9 @@ contract StakingV2 is ProxyAccessCommon {
         //sTOS와 id같이 쓸려면 id별 mapping 따로 만들어서 관리해야함 (이 경우는 sTOS스테이킹하면서 동시에 LTOS를 구매할때)
         uint256 sTOSid;
         if(_lockTOS == true) {
-            sTOSid = lockTOS.createLock(_amount,_periodWeeks);
+            sTOSid = lockTOS.createLockByStaker(_to,_amount,_periodWeeks);
+            // sTOSid = lockTOS.createLock(_amount,_periodWeeks);
         }
-
     }
 
     function _stake(
@@ -221,42 +224,52 @@ contract StakingV2 is ProxyAccessCommon {
             LTOS: userOld.LTOS + LTOSamount,
             startTime: block.timestamp,
             endTime: getEndTime,
-            getLTOS: userOld.getLTOS
+            getLTOS: userOld.getLTOS,
+            rewardTOS: userOld.rewardTOS
         });
+
+        allStakings[_stakeId] = UserBalance({
+            deposit: userOld.deposit + _amount,
+            LTOS: userOld.LTOS + LTOSamount,
+            startTime: block.timestamp,
+            endTime: getEndTime,
+            getLTOS: userOld.getLTOS,
+            rewardTOS: userOld.rewardTOS
+        }); 
 
         totalLTOS = totalLTOS + userOld.LTOS;
         totaldeposit = totaldeposit + userOld.deposit;
     }
 
     /**
-     * @notice redeem sOHM for OHMs
+     * @notice redeem LTOS -> TOS
      * @param _to address
-     * @param _amount uint
-     * @param _trigger bool
-     * @param _rebasing bool
+     * @param _stakeId uint unstake할 LTOS ID를 받음
+     * @param _amount uint LTOS양을 받음
      * @return amount_ uint
      */
     function unstake(
         address _to,
-        uint256 _amount,
-        bool _trigger,
-        bool _rebasing
+        uint256 _stakeId,
+        uint256 _amount
     ) external returns (uint256 amount_) {
-        Users storage info = userInfo[_to];
+        UserBalance storage userInfo = stakingBalances[_to][_stakeId];
 
-        require(block.timestamp > info.epoEnd, "need the endPeriod");
-        require(info.claim == false, "already get claim");
+        require(block.timestamp > userInfo.endTime, "need the endPeriod");
 
         // epoNumber = epoch.number - info.epoNum;
-        require(info.LTOS > _amount, "lack the LTOS amount");
+        uint256 remainLTOS = userInfo.LTOS - userInfo.getLTOS;
+        require(remainLTOS >= _amount, "lack the LTOS amount");
 
         amount_ = ((_amount*index_)/1e18);
-        // 내가 스테이킹 한양보다 많이 받으면 그만큼 TOS를 mint하고 보상을 준다.
-        if(amount_ > info.deposit) {
-            treasury.mint(address(this),amount_-info.deposit);
+
+        // 내가 스테이킹 한양보다 많이 받으면 그만큼 TOS를 treasury contract에서 가져와서 준다.
+        if(amount_ > userInfo.deposit) {
+            TOS.safeTransferFrom(address(ITreasury(treasury)),address(this),(amount_-userInfo.deposit));
         } 
-        info.getReward = info.getReward + amount_;
-        info.claim = true;
+
+        userInfo.getLTOS = userInfo.getLTOS + _amount;          //쓴 LTOS 기록
+        userInfo.rewardTOS = userInfo.rewardTOS + amount_;      //LTOS -> TOS로 바꾼 양 기록
 
         require(amount_ <= TOS.balanceOf(address(this)), "Insufficient TOS balance in contract");
         TOS.safeTransfer(_to, amount_);
@@ -279,16 +292,37 @@ contract StakingV2 is ProxyAccessCommon {
     }
 
     /* ========== VIEW FUNCTIONS ========== */
+    //유저가 스테이킹한 id 리턴
+    function stakinOf(address _addr)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        return userStakings[_addr];
+    }
 
-    // /**
-    //  * @notice returns the sOHM index, which tracks rebase growth
-    //  * @return uint
-    //  */
-    // function index() public returns (uint256) {
-    //     uint256 alpha = ((APY+1)**(1/rebasePerday/365))-1;
-    //     index_ = index_*(1+alpha);
-    //     return index_;
-    // }
+    //stakeId가 가지고 있는 남은 LTOS를 리턴
+    function balanceOfId(uint256 _stakeId)
+        public
+        view
+        returns (uint256)
+    {
+        UserBalance memory stakeInfo = allStakings[_stakeId];
+        return stakeInfo.LTOS - stakeInfo.getLTOS;
+    }
+
+    //유저가 가진 총 LTOS 리턴
+    function balanceOf(address _addr)
+        public
+        view
+        returns (uint256 balance)
+    {
+        uint256[] memory stakings = userStakings[_addr];
+        if (stakings.length == 0) return 0;
+        for (uint256 i = 0; i < stakings.length; ++i) {
+            balance = balance + balanceOfId(stakings[i]);
+        }
+    }
 
     /**
      * @notice seconds until the next epoch begins

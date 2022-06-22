@@ -43,7 +43,6 @@ interface IBondDepository {
         bool _check,
         IERC20 _token,
         address _poolAddress,
-        uint256 _tokenId,
         uint256[5] calldata _market
     ) external returns (uint256 id_);
 

@@ -8,8 +8,9 @@ import "./interfaces/IERC20Metadata.sol";
 import "./interfaces/IdTOS.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/ITreasury.sol";
-import "./interfaces/IBondDepository.sol";
 import "./interfaces/ITOSValueCalculator.sol";
+
+import "./interfaces/IBondDepository.sol";
 
 import "./common/ProxyAccessCommon.sol";
 
@@ -68,7 +69,6 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
      * @dev                
      * @param _check       ETH를 받을려면(true), token을 받으면(false)
      * @param _token       토큰 주소 
-     * @param _tokenId     V3 LP 아이디 (Market의 tokenId = 0 이면 ETH나 erc20토큰 판매이다.)
      * @param _market      [팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격, 한번에 구매 가능한 TOS물량]
      * @return id_         ID of new bond market
      */
@@ -76,14 +76,13 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         bool _check,
         IERC20 _token,
         address _poolAddress,
-        uint256 _tokenId,
         uint256[5] calldata _market
     ) 
         external
         override 
         onlyOwner
         returns (uint256 id_)
-    {
+    {   
         id_ = markets.length;
 
         //tokenPrice, tosPrice, capacity, totalSaleAmount는 관리자가 변경할 수 있게해야함 (capacity, totalSaleAmount는 한 변수 입력에 변경가능하게)
@@ -159,16 +158,21 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
             uint256 index_
         )
     {
+        require(_time > 0 && _amount > 0, "Depository : need the amount");
         Market storage market = markets[_id];
         Metadata memory meta = metadata[_id];
         uint256 currentTime = uint256(block.timestamp);
 
         require(currentTime < market.endSaleTime, "Depository : market end");
         //pool있는지 없는지 확인하는 require확인
+
+        uint256 _maxpayout = marketMaxPayout(_id);
+        require(_amount <= _maxpayout, "Depository : over maxPay");
         
         payout_ = calculPayoutAmount(meta.tokenPrice,meta.tosPrice,_amount);
 
         require(0 <= (market.capacity - payout_), "Depository : sold out");
+        
 
         market.capacity -= payout_;
         market.sold += payout_;
@@ -200,7 +204,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         treasury.backingUpdate();
 
         //tos staking route        
-        staking.stake(msg.sender,payout_,_time,true,_claim);
+        staking.stake(msg.sender,payout_,_time,0,true);
         
         //종료해야하는지 확인
         if (meta.totalSaleAmount <= (market.sold + 1e18)) {
@@ -268,14 +272,16 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         //update the backingData
         treasury.backingUpdate();
 
-        //tos staking route        
+        //tos staking route      
+        console.log("1");  
         staking.stake(
             msg.sender,
             payout_,
             _time,
-            true,
-            _claim
+            0,
+            true
         );
+        console.log("2");
 
         emit Bond(_id, _amount, payout_);
 

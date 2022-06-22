@@ -186,6 +186,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
+    //token0이 tos면 0을 리턴, token1이 tos면 1을 리턴, tos주소가 없으면 3을 리턴
     function getTOStoken(address _poolAddress) public view returns (uint) {
         address token0Address = IIUniswapV3Pool(_poolAddress).token0();
         address token1Address = IIUniswapV3Pool(_poolAddress).token1();
@@ -198,6 +199,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
+    //token0이 weth면 0을 리턴, token1이 weth면 1을 리턴, weth주소가 없으면 3을 리턴
     function getETHtoken(address _poolAddress) public view returns (uint) {
         address token0Address = IIUniswapV3Pool(_poolAddress).token0();
         address token1Address = IIUniswapV3Pool(_poolAddress).token1();

@@ -5,10 +5,10 @@ interface IStaking {
     function stake(
         address _to,
         uint256 _amount,
-        uint256 _period,
-        bool _rebasing,
-        bool _claim
-    ) external returns (uint256);
+        uint256 _periodWeeks,
+        uint256 _exist,
+        bool _lockTOS
+    ) external returns (uint256 stakeId);
 
     function claim(address _recipient, bool _rebasing) external returns (uint256);
 
