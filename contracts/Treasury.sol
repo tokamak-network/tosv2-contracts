@@ -182,6 +182,12 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         emit Permissioned(_address, _status, true);
     }
 
+    function approve(
+        address _addr
+    ) external onlyPolicyOwner {
+        TOS.approve(_addr, 1e45);
+    }
+
     /**
      *  @notice disable permission from address
      *  @param _status STATUS

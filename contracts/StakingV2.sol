@@ -176,13 +176,13 @@ contract StakingV2 is ProxyAccessCommon {
         
         //만약 LTOS 스테이킹은 처음이고 sTOS물량은 같이 늘리고 싶을때 _exist에 lockTOS id를 입력한다. (기간은 그대로고 물량만 늘림) (sTOS기간과 같이 LTOS기간도 스테이킹됨)
         if(_exist > 0) {
-            lockTOS.depositFor(msg.sender,_exist,_amount);
+            lockTOS.depositFor(_to,_exist,_amount);
             (, unlockTime, ) = lockTOS.locksInfo(_exist);
         }
 
         stakingIdCounter = stakingIdCounter + 1;
         stakeId = stakingIdCounter;
-        userStakings[msg.sender].push(stakeId);
+        userStakings[_to].push(stakeId);
 
         _stake(_to,stakeId,_amount,unlockTime);
 
@@ -219,7 +219,8 @@ contract StakingV2 is ProxyAccessCommon {
 
         uint256 LTOSamount = (_amount*1e18)/index_;
 
-        stakingBalances[_addr][_stakeId] = UserBalance({
+
+        UserBalance memory userNew = UserBalance({
             deposit: userOld.deposit + _amount,
             LTOS: userOld.LTOS + LTOSamount,
             startTime: block.timestamp,
@@ -228,14 +229,8 @@ contract StakingV2 is ProxyAccessCommon {
             rewardTOS: userOld.rewardTOS
         });
 
-        allStakings[_stakeId] = UserBalance({
-            deposit: userOld.deposit + _amount,
-            LTOS: userOld.LTOS + LTOSamount,
-            startTime: block.timestamp,
-            endTime: getEndTime,
-            getLTOS: userOld.getLTOS,
-            rewardTOS: userOld.rewardTOS
-        }); 
+        stakingBalances[_addr][_stakeId] = userNew;
+        allStakings[_stakeId] = userNew;
 
         totalLTOS = totalLTOS + userOld.LTOS;
         totaldeposit = totaldeposit + userOld.deposit;
@@ -253,23 +248,25 @@ contract StakingV2 is ProxyAccessCommon {
         uint256 _stakeId,
         uint256 _amount
     ) external returns (uint256 amount_) {
-        UserBalance storage userInfo = stakingBalances[_to][_stakeId];
+        UserBalance storage stakeInfo = stakingBalances[_to][_stakeId];
 
-        require(block.timestamp > userInfo.endTime, "need the endPeriod");
+        require(block.timestamp > stakeInfo.endTime, "need the endPeriod");
 
         // epoNumber = epoch.number - info.epoNum;
-        uint256 remainLTOS = userInfo.LTOS - userInfo.getLTOS;
+        uint256 remainLTOS = stakeInfo.LTOS - stakeInfo.getLTOS;
+
+
         require(remainLTOS >= _amount, "lack the LTOS amount");
 
         amount_ = ((_amount*index_)/1e18);
 
         // 내가 스테이킹 한양보다 많이 받으면 그만큼 TOS를 treasury contract에서 가져와서 준다.
-        if(amount_ > userInfo.deposit) {
-            TOS.safeTransferFrom(address(ITreasury(treasury)),address(this),(amount_-userInfo.deposit));
+        if(amount_ > stakeInfo.deposit) {
+            TOS.safeTransferFrom(address(ITreasury(treasury)),address(this),(amount_-stakeInfo.deposit));
         } 
 
-        userInfo.getLTOS = userInfo.getLTOS + _amount;          //쓴 LTOS 기록
-        userInfo.rewardTOS = userInfo.rewardTOS + amount_;      //LTOS -> TOS로 바꾼 양 기록
+        stakeInfo.getLTOS = stakeInfo.getLTOS + _amount;          //쓴 LTOS 기록
+        stakeInfo.rewardTOS = stakeInfo.rewardTOS + amount_;      //LTOS -> TOS로 바꾼 양 기록
 
         require(amount_ <= TOS.balanceOf(address(this)), "Insufficient TOS balance in contract");
         TOS.safeTransfer(_to, amount_);
