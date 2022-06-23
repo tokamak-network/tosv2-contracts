@@ -27,4 +27,36 @@ contract DTOSManagerProxy is
         tosAddress = _tos;
     }
 
+     /// Only Admin
+    function setPolicyAddress(address _addr)
+        external
+        nonZeroAddress(_addr) onlyOwner
+    {
+        require(policyAddress != _addr, "same address");
+        policyAddress = _addr;
+    }
+
+    function setTosAddress(address _addr)
+        external
+        nonZeroAddress(_addr) onlyOwner
+    {
+        require(tosAddress != _addr, "same address");
+        tosAddress = _addr;
+    }
+
+    function setRewardPoolFactory(address _addr)
+        external
+        nonZeroAddress(_addr) onlyOwner
+    {
+        require(rewardPoolFactory != _addr, "same address");
+        rewardPoolFactory = _addr;
+    }
+
+    function setRewardLPTokenManager(address _addr)
+        external
+        nonZeroAddress(_addr) onlyOwner
+    {
+        require(rewardLPTokenManager != _addr, "same address");
+        rewardLPTokenManager = _addr;
+    }
 }

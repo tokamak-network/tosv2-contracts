@@ -60,15 +60,11 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         nonfungiblePositionManager.transferFrom(address(this), msg.sender, tokenId);
     }
 
-    function transferFrom(address from, address to, uint256 tokenId, uint256 amount, uint256 factoredAmount) external override onlyNoExecPause {
+    function transferFrom(address from, address to, uint256 tokenId, uint256 amount, uint256 factoredAmount)
+        external override onlyNoExecPause
+    {
 
         require(msg.sender == address(rewardLPTokenManager), "sender is not rewardLPTokenManager.");
-
-        uint256 _index = userTokenIndexs[from][tokenId];
-        require(_index > 0,"It's not from's token");
-
-        deleteUserToken(from, tokenId);
-        addUserToken(to, tokenId);
 
         rebase();
         _transfer(from, to, amount, factoredAmount);
@@ -87,20 +83,15 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         if(token0 == tosAddress){
             tosAmount += amount0;
             uint256 price = TOSEvaluator.getPriceToken1(address(pool));
-            // console.log("token0 == tosAddress price %s", price);
-            // console.log("amount1 %s", amount1);
             if(price > 0) tosAmount += price * amount1 / (10**IIERC20(token1).decimals());
         }
         if(token1 == tosAddress) {
             tosAmount += amount1;
             uint256 price = TOSEvaluator.getPriceToken0(address(pool));
-            // console.log("token1 == tosAddress price %s", price);
-            // console.log("amount0 %s", amount0);
             if(price > 0){
                 tosAmount += price * amount0 / (10**IIERC20(token0).decimals());
             }
         }
-        // console.log("tosAmount %s", tosAmount);
     }
 
     function _stake(address sender, uint256 tokenId) internal {
@@ -117,28 +108,25 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
 
         uint256 tosAmount = evaluateTOS(tokenId, token0, token1);
         require(tosAmount > 0, "tosAmount is zero");
+
         uint256 dtosAmount = tosToDtosAmount(tosAmount);
         uint256 factoredAmount = 0;
 
         uint256 factor = getFactor();
 
         if(dtosAmount > 0) factoredAmount = wdiv2(dtosAmount, factor);
-        console.log("factoredAmount %s", factoredAmount);
+        // console.log("factoredAmount %s", factoredAmount);
 
         uint256 rTokenId = IIDTOSManager(dtosManagerAddress).mintNFT(sender, tokenId, tosAmount, factoredAmount);
-        /*
+
         rewardLPs[tokenId] = rTokenId;
 
-        addTokenInPool(tokenId);
-        addUserToken(sender, tokenId);
-        console.log('tokenId %s , rTokenId %s', tokenId, rTokenId);
+        // console.log('tokenId %s , rTokenId %s', tokenId, rTokenId);
 
-        _mint(sender, tosAmount, factoredAmount);
-
-        totalLiquidity += liquidity;
+        if(tosAmount > 0 && factoredAmount > 0) _mint(sender, tosAmount, factoredAmount);
 
         emit Staked(sender, rTokenId, tokenId, tosAmount, dtosAmount, factoredAmount, liquidity);
-        */
+
     }
 
     function tosToDtosAmount(uint256 _amount) public view virtual override returns (uint256) {
@@ -154,16 +142,12 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         require(info.owner == sender, "not owner");
         require(info.poolTokenId == tokenId, "not same token");
 
-        //rewardLPTokenManager.burn(rTokenId);
         IIDTOSManager(dtosManagerAddress).burn(rTokenId);
-
-        deleteTokenInPool(tokenId);
-        deleteUserToken(sender, tokenId);
 
         rebase();
 
         _burn(sender, info.tosAmount, info.factoredAmount);
-        // totalLiquidity -= info.liquidity;
+
         rewardLPs[tokenId] = 0;
 
         emit Unstaked(sender, tokenId, info.tosAmount, info.factoredAmount, rTokenId);
@@ -194,10 +178,9 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
     }
 
     function _mint(address account, uint256 amount, uint256 factoredAmount) internal virtual {
-        require(account != address(0), "RewardPool: mint to the zero address");
-        require(amount > 0 && factoredAmount > 0, "RewardPool: zero amount");
-        console.log('_mint %s %s %s', account, amount, factoredAmount );
-
+        //require(account != address(0), "RewardPool: mint to the zero address");
+        //require(amount > 0 && factoredAmount > 0, "RewardPool: zero amount");
+        //console.log('_mint %s %s %s', account, amount, factoredAmount );
         if (currentSnapshotId == 0) currentSnapshotId++;
 
         (, uint256 _value, uint256 _factoredAmount) = _valueAt(getCurrentSnapshotId(), accountBalanceSnapshots[account]);
@@ -281,7 +264,7 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
 
         emit UpdatedBalanceSnapshots(account, balances, factoredAmount);
     }
-
+    /*
     function addTokenInPool(uint256 tokenId) internal {
         stakedTokensInPoolIndexs[tokenId] = stakedTokensInPool.length;
         stakedTokensInPool.push(tokenId);
@@ -320,7 +303,7 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
             userTokens[user].pop();
         }
     }
-
+    */
     function onERC721Received(address from, address sender, uint256 tokenId, bytes calldata data) external onlyNoExecPause returns (bytes4){
         require(msg.sender == address(nonfungiblePositionManager), "operator is not nonfungiblePositionManager");
         _stake(from, tokenId);
@@ -633,16 +616,16 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         return factor_;
     }
 
-    function allUserTokens(address account) external view returns (uint256[] memory) {
-        return userTokens[account];
-    }
+    // function allUserTokens(address account) external view returns (uint256[] memory) {
+    //     return userTokens[account];
+    // }
 
-    function userTokenCount(address account) public view returns (uint256) {
-        return userTokens[account].length;
-    }
+    // function userTokenCount(address account) public view returns (uint256) {
+    //     return userTokens[account].length;
+    // }
 
-    function userToken(address account, uint256 _index) external view returns (uint256) {
-        require(_index < userTokenCount(account), "wrong index");
-        return userTokens[account][_index];
-    }
+    // function userToken(address account, uint256 _index) external view returns (uint256) {
+    //     require(_index < userTokenCount(account), "wrong index");
+    //     return userTokens[account][_index];
+    // }
 }

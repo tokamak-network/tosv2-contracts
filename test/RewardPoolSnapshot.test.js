@@ -21,9 +21,21 @@ describe("RewardPoolSnapshot", function () {
     let tosAddress = "0x73a54e5C054aA64C1AE7373C2B5474d8AFEa08bd";
     let wtontosPool = "0x516e1af7303a94f81e91e4ac29e20f4319d4ecaf";
     let lpWTONTOS_tokenId_admin = ethers.BigNumber.from("20968");
-    let lpWTONTOS_tokenId_user2 = ethers.BigNumber.from("20969");
-    let lpWTONTOS_tokenId_user2_outofrange = ethers.BigNumber.from("7550");
+    let lpWTONTOS_tokenId = ethers.BigNumber.from("6740");
+    let lpWTONTOS_tokenId_outofrange = ethers.BigNumber.from("4268");
     let lpTOSZK6_tokenId_otherpool = ethers.BigNumber.from("20813");
+    let lpTOSZK5_19316 = ethers.BigNumber.from("19316");
+
+    let admin_tokens = {
+        token_normal: lpWTONTOS_tokenId_admin,
+        token_otherpool: lpTOSZK5_19316
+    }
+
+    let user1_tokens = {
+        token_normal: lpWTONTOS_tokenId,
+        token_outofrange: lpWTONTOS_tokenId_outofrange,
+        token_otherpool: lpTOSZK6_tokenId_otherpool
+    }
 
     let TOS;
     let tosInfo = {
@@ -225,7 +237,7 @@ describe("RewardPoolSnapshot", function () {
         rewardPoolFactoryInfo.admin = admin;
         rewardPoolFactoryInfo.upgradeAdmin = admin;
 
-        await dTosManager.connect(admin).setRewardPoolFactory(rewardPoolFactory.address);
+        await dTosManagerProxy.connect(admin).setRewardPoolFactory(rewardPoolFactory.address);
     });
 
     describe("1-1. DTOSPolicy  ", function () {
@@ -323,73 +335,73 @@ describe("RewardPoolSnapshot", function () {
         });
 
         it("2-1-3. setPolicyAddress : when not admin, fail", async function () {
-            expect(await dTosManager.isAdmin(user2.address)).to.be.eq(false);
-            await expect(dTosManager.connect(user2).setPolicyAddress(
+            expect(await dTosManagerProxy.isAdmin(user2.address)).to.be.eq(false);
+            await expect(dTosManagerProxy.connect(user2).setPolicyAddress(
                 policyInfo.contract.address
             )).to.be.revertedWith("Accessible: Caller is not an admin");
         });
 
         it("2-1-3. setPolicyAddress only admin ", async function () {
-            expect(await dTosManager.isAdmin(dTosManagerInfo.admin.address)).to.be.eq(true);
-            await dTosManager.connect(dTosManagerInfo.admin).setPolicyAddress(
+            expect(await dTosManagerProxy.isAdmin(dTosManagerInfo.admin.address)).to.be.eq(true);
+            await dTosManagerProxy.connect(dTosManagerInfo.admin).setPolicyAddress(
                 policyInfo.contract.address
             );
-            expect(await dTosManager.policyAddress()).to.be.eq(policyInfo.contract.address);
+            expect(await dTosManagerProxy.policyAddress()).to.be.eq(policyInfo.contract.address);
         });
 
         it("2-1-4. setTosAddress : when not admin, fail", async function () {
-            expect(await dTosManager.isAdmin(user2.address)).to.be.eq(false);
-            await expect(dTosManager.connect(user2).setTosAddress(
+            expect(await dTosManagerProxy.isAdmin(user2.address)).to.be.eq(false);
+            await expect(dTosManagerProxy.connect(user2).setTosAddress(
                 tosAddress
             )).to.be.revertedWith("Accessible: Caller is not an admin");
         });
 
         it("2-1-4. setTosAddress only admin ", async function () {
-            expect(await dTosManager.isAdmin(dTosManagerInfo.admin.address)).to.be.eq(true);
-            await dTosManager.connect(dTosManagerInfo.admin).setTosAddress(
+            expect(await dTosManagerProxy.isAdmin(dTosManagerInfo.admin.address)).to.be.eq(true);
+            await dTosManagerProxy.connect(dTosManagerInfo.admin).setTosAddress(
                 policyInfo.contract.address
             );
-            expect(await dTosManager.tosAddress()).to.be.eq(policyInfo.contract.address);
+            expect(await dTosManagerProxy.tosAddress()).to.be.eq(policyInfo.contract.address);
 
-            await dTosManager.connect(dTosManagerInfo.admin).setTosAddress(
+            await dTosManagerProxy.connect(dTosManagerInfo.admin).setTosAddress(
                 tosAddress
             );
-            expect(await dTosManager.tosAddress()).to.be.eq(tosAddress);
+            expect(await dTosManagerProxy.tosAddress()).to.be.eq(tosAddress);
         });
 
         it("2-1-5. setRewardPoolFactory : when not admin, fail", async function () {
-            expect(await dTosManager.isAdmin(user2.address)).to.be.eq(false);
-            await expect(dTosManager.connect(user2).setRewardPoolFactory(
+            expect(await dTosManagerProxy.isAdmin(user2.address)).to.be.eq(false);
+            await expect(dTosManagerProxy.connect(user2).setRewardPoolFactory(
                 rewardPoolFactory.address
             )).to.be.revertedWith("Accessible: Caller is not an admin");
         });
 
         it("2-1-5. setRewardPoolFactory only admin ", async function () {
-            expect(await dTosManager.isAdmin(dTosManagerInfo.admin.address)).to.be.eq(true);
-            await dTosManager.connect(dTosManagerInfo.admin).setRewardPoolFactory(
+            expect(await dTosManagerProxy.isAdmin(dTosManagerInfo.admin.address)).to.be.eq(true);
+            await dTosManagerProxy.connect(dTosManagerInfo.admin).setRewardPoolFactory(
                 policyInfo.contract.address
             );
-            expect(await dTosManager.rewardPoolFactory()).to.be.eq(policyInfo.contract.address);
+            expect(await dTosManagerProxy.rewardPoolFactory()).to.be.eq(policyInfo.contract.address);
 
-            await dTosManager.connect(dTosManagerInfo.admin).setRewardPoolFactory(
+            await dTosManagerProxy.connect(dTosManagerInfo.admin).setRewardPoolFactory(
                 rewardPoolFactory.address
             );
-            expect(await dTosManager.rewardPoolFactory()).to.be.eq(rewardPoolFactory.address);
+            expect(await dTosManagerProxy.rewardPoolFactory()).to.be.eq(rewardPoolFactory.address);
         });
 
         it("2-1-5-1. setRewardLPTokenManager : when not admin, fail", async function () {
-            expect(await dTosManager.isAdmin(user2.address)).to.be.eq(false);
-            await expect(dTosManager.connect(user2).setRewardLPTokenManager(
+            expect(await dTosManagerProxy.isAdmin(user2.address)).to.be.eq(false);
+            await expect(dTosManagerProxy.connect(user2).setRewardLPTokenManager(
                 info.rewardLPTokenManager
             )).to.be.revertedWith("Accessible: Caller is not an admin");
         });
 
         it("2-1-5-1. setRewardLPTokenManager only admin ", async function () {
-            expect(await dTosManager.isAdmin(dTosManagerInfo.admin.address)).to.be.eq(true);
-            await dTosManager.connect(dTosManagerInfo.admin).setRewardLPTokenManager(
+            expect(await dTosManagerProxy.isAdmin(dTosManagerInfo.admin.address)).to.be.eq(true);
+            await dTosManagerProxy.connect(dTosManagerInfo.admin).setRewardLPTokenManager(
                 info.rewardLPTokenManager
             );
-            expect(await dTosManager.rewardLPTokenManager()).to.be.eq(info.rewardLPTokenManager);
+            expect(await dTosManagerProxy.rewardLPTokenManager()).to.be.eq(info.rewardLPTokenManager);
         });
         /*
 
@@ -929,6 +941,26 @@ describe("RewardPoolSnapshot", function () {
 
     describe("4-5. RewardPool : Any can execute  ", function () {
 
+        it("1-1-4. policy.execPause  : when not admin, fail", async function () {
+            expect(await policy.isAdmin(user2.address)).to.be.eq(false);
+            await expect(policy.connect(user2).execPause(rewardPoolContract.address, true)).to.be.revertedWith("Accessible: Caller is not an admin");
+        });
+
+        it("1-1-4. policy.execPause  only policy.admin ", async function () {
+            expect(await policy.isAdmin(policyInfo.admin.address)).to.be.eq(true);
+            await policy.connect(policyInfo.admin).execPause(rewardPoolContract.address, true);
+            expect(await rewardPoolContract.execPauseFlag()).to.be.eq(true);
+        });
+
+        it("4-5-4. stake : when pause, fail", async function () {
+            await expect(
+                rewardPoolContract.connect(user1).stake(lpWTONTOS_tokenId_admin)
+            ).to.be.revertedWith("exec pause");
+
+            await policy.connect(policyInfo.admin).execPause(rewardPoolContract.address, false);
+            expect(await rewardPoolContract.execPauseFlag()).to.be.eq(false);
+        });
+
         it("4-5-1. stake : when not LP owner, fail", async function () {
 
             await expect(
@@ -942,24 +974,122 @@ describe("RewardPoolSnapshot", function () {
             ).to.be.revertedWith("ERC721: transfer caller is not owner nor approved");
         });
 
-        it("4-5-1. stake after approve", async function () {
-            let stakedTokenId = lpWTONTOS_tokenId_admin;
-            let toeknCountPrev = await rewardPoolContract.userTokenCount(admin.address);
+        it("4-5-2/3/4. stake after approve", async function () {
+            let stakedTokenId = admin_tokens.token_normal;
+            let staker = admin;
+
+            let toeknCountPrev = await rewardLPTokenManager.userTokenCount(staker.address);
+            console.log('toeknCountPrev',toeknCountPrev)
+
             let abi = require("../abis/NonfungiblePositionManager.json").abi;
             nonfungiblePositionManager = await ethers.getContractAt(abi, info.nonfungiblePositionManager);
 
-            let approved = await nonfungiblePositionManager.isApprovedForAll(admin.address, rewardPoolContract.address);
+            let approved = await nonfungiblePositionManager.isApprovedForAll(staker.address, rewardPoolContract.address);
             if (!approved)
-                await nonfungiblePositionManager.connect(admin).setApprovalForAll(rewardPoolContract.address, true);
+                await nonfungiblePositionManager.connect(staker).setApprovalForAll(rewardPoolContract.address, true);
 
-            await rewardPoolContract.connect(admin).stake(stakedTokenId);
-
+            await rewardPoolContract.connect(staker).stake(stakedTokenId);
             /*
-            let toeknCountAfter = await rewardPoolContract.userTokenCount(admin.address);
+            let toeknCountAfter = await rewardLPTokenManager.userTokenCount(staker.address);
+            console.log('toeknCountAfter',toeknCountAfter)
+
+            let tokensOfOwner = await rewardLPTokenManager.tokensOfOwner(staker.address);
+            console.log('tokensOfOwner',tokensOfOwner)
+
+
             expect(toeknCountAfter).to.be.eq(toeknCountPrev.add(ethers.BigNumber.from("1")));
 
-            let allUserTokens = await rewardPoolContract.allUserTokens(admin.address);
-            let tokenId = await rewardPoolContract.userToken(admin.address, toeknCountPrev);
+            let rTokenId = await rewardLPTokenManager.userToken(staker.address, toeknCountPrev);
+            let rTokenIdInfo = await rewardLPTokenManager.deposits(rTokenId);
+            let tokenId = rTokenIdInfo.poolTokenId;
+            expect(tokenId).to.be.eq(stakedTokenId);
+
+            //let rTokenId = await rewardPoolContract.rewardLPs(tokenId);
+            expect(await rewardPoolContract.rewardLPs(tokenId)).to.be.eq(rTokenId);
+
+            let baseAmount = await rewardPoolContract.tosToDtosAmount(rTokenIdInfo.tosAmount);
+            let baseRate = await rewardPoolContract.dTosBaseRate();
+
+            expect(rTokenIdInfo.rewardPool).to.be.eq(rewardPoolContract.address);
+            expect(rTokenIdInfo.owner).to.be.eq(staker.address);
+            expect(rTokenIdInfo.poolTokenId).to.be.eq(tokenId);
+            expect(rTokenIdInfo.tosAmount).to.be.gt(zeroBN);
+            expect(rTokenIdInfo.usedAmount).to.be.eq(zeroBN);
+            expect(rTokenIdInfo.stakedTime).to.be.gt(zeroBN);
+            expect(rTokenIdInfo.factoredAmount).to.be.gte(baseAmount);
+
+            if (baseRate.eq(zeroBN)){
+                expect(baseAmount).to.be.eq(zeroBN);
+                expect(await rewardPoolContract.balanceOf(staker.address)).to.be.eq(zeroBN);
+            } else {
+                expect(baseAmount).to.be.gt(zeroBN);
+                expect(await rewardPoolContract.balanceOf(staker.address)).to.be.gt(zeroBN);
+            }
+
+            expect(await rewardPoolContract.balanceOf(staker.address)).to.be.eq(await rewardPoolContract.totalSupply());
+            */
+        });
+        /*
+        it("4-5-1. stake : when LP is zero liquidit, fail", async function () {
+            let stakedTokenId = user1_tokens.token_outofrange;
+            let ownerOf = await nonfungiblePositionManager.ownerOf(stakedTokenId);
+
+            let approved = await nonfungiblePositionManager.isApprovedForAll(user1.address, rewardPoolContract.address);
+            if (!approved)
+                await nonfungiblePositionManager.connect(user1).setApprovalForAll(rewardPoolContract.address, true);
+
+
+            await expect(
+                rewardPoolContract.connect(user1).stake(stakedTokenId)
+            ).to.be.revertedWith("zero liquidit");
+        });
+
+        it("4-5-1. stake : when LP is out of range, fail", async function () {
+            let stakedTokenId = admin_tokens.token_otherpool;
+            let ownerOf = await nonfungiblePositionManager.ownerOf(stakedTokenId);
+
+            await expect(
+                rewardPoolContract.connect(admin).stake(stakedTokenId)
+            ).to.be.revertedWith("out of range");
+        });
+        */
+        /*
+        it("4-5-1. stake : when LP is in other pool, fail", async function () {
+            let stakedTokenId = admin_tokens.token_otherpool;
+            let ownerOf = await nonfungiblePositionManager.ownerOf(stakedTokenId);
+
+            await expect(
+                rewardPoolContract.connect(admin).stake(stakedTokenId)
+            ).to.be.revertedWith("out of range");
+        });
+        */
+
+        /*
+        it("4-5-1. stake : can stake with nonfungiblePositionManager.transferFrom method ", async function () {
+            let stakedTokenId = user1_tokens.token_normal;
+            let staker = user1;
+            let toeknCountPrev = await rewardPoolContract.userTokenCount(staker.address);
+            console.log('toeknCountPrev',toeknCountPrev);
+            // let ownerOf = await nonfungiblePositionManager.ownerOf(stakedTokenId);
+            // console.log('ownerOf',ownerOf);
+            // console.log('staker',staker.address);
+
+            // let approved = await nonfungiblePositionManager.isApprovedForAll(staker.address, nonfungiblePositionManager.address);
+            // if (!approved)
+            //     await nonfungiblePositionManager.connect(user1).setApprovalForAll(nonfungiblePositionManager.address, true);
+
+            await nonfungiblePositionManager.connect(staker).transferFrom(
+                staker.address,
+                rewardPoolContract.address,
+                stakedTokenId);
+
+            let toeknCountAfter = await rewardPoolContract.userTokenCount(staker.address);
+            console.log('toeknCountAfter',toeknCountAfter);
+
+            expect(toeknCountAfter).to.be.eq(toeknCountPrev.add(ethers.BigNumber.from("1")));
+
+            let allUserTokens = await rewardPoolContract.allUserTokens(staker.address);
+            let tokenId = await rewardPoolContract.userToken(staker.address, toeknCountPrev);
 
             expect(tokenId).to.be.eq(stakedTokenId);
 
@@ -970,44 +1100,24 @@ describe("RewardPoolSnapshot", function () {
             let baseRate = await rewardPoolContract.dTosBaseRate();
 
             expect(rTokenIdInfo.rewardPool).to.be.eq(rewardPoolContract.address);
-            expect(rTokenIdInfo.owner).to.be.eq(admin.address);
-            expect(rTokenIdInfo.pool.toLowerCase()).to.be.eq(wtontosPool.toLowerCase());
+            expect(rTokenIdInfo.owner).to.be.eq(staker.address);
             expect(rTokenIdInfo.poolTokenId).to.be.eq(tokenId);
             expect(rTokenIdInfo.tosAmount).to.be.gt(zeroBN);
             expect(rTokenIdInfo.usedAmount).to.be.eq(zeroBN);
             expect(rTokenIdInfo.stakedTime).to.be.gt(zeroBN);
-
-
             expect(rTokenIdInfo.factoredAmount).to.be.gte(baseAmount);
-            expect(rTokenIdInfo.liquidity).to.be.gt(zeroBN);
 
             if (baseRate.eq(zeroBN)){
                 expect(baseAmount).to.be.eq(zeroBN);
-                expect(await rewardPoolContract.balanceOf(admin.address)).to.be.eq(zeroBN);
+                expect(await rewardPoolContract.balanceOf(staker.address)).to.be.eq(zeroBN);
             } else {
                 expect(baseAmount).to.be.gt(zeroBN);
-                expect(await rewardPoolContract.balanceOf(admin.address)).to.be.gt(zeroBN);
+                expect(await rewardPoolContract.balanceOf(staker.address)).to.be.gt(zeroBN);
             }
 
-            expect(await rewardPoolContract.balanceOf(admin.address)).to.be.eq(await rewardPoolContract.totalSupply());
-            */
-        });
+            expect(await rewardPoolContract.balanceOf(staker.address)).to.be.lt(
+                await rewardPoolContract.totalSupply());
 
-        /*
-        it("4-5-1. stake : when LP is out of range, fail", async function () {
-            await expect(
-                rewardPoolContract.connect(user2).stake(lpWTONTOS_tokenId_user2_outofrange)
-            ).to.be.revertedWith("out of range");
-        });
-
-        it("4-5-1. stake : when LP is in other pool, fail", async function () {
-            await expect(
-                rewardPoolContract.connect(user2).stake(lpTOSZK6_tokenId_otherpool)
-            ).to.be.revertedWith("out of range");
-        });
-
-        it("4-5-1. stake ", async function () {
-            await rewardPoolContract.connect(admin).stake(lpWTONTOS_tokenId_admin);
         });
         */
     });

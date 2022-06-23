@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import "../interfaces/IRewardLPTokenManagerAction.sol";
 
 contract DTOSManagerStorage
 {
@@ -16,7 +15,7 @@ contract DTOSManagerStorage
     address public rewardPoolFactory;
     address public tosAddress;
     address public policyAddress;
-    IRewardLPTokenManagerAction public rewardLPTokenManager;
+    address public rewardLPTokenManager;
 
 
     // pool
@@ -51,7 +50,7 @@ contract DTOSManagerStorage
 
     modifier onlyRewardLPTokenManager() {
         require(
-            address(rewardLPTokenManager) == msg.sender,
+            rewardLPTokenManager == msg.sender,
             "DTOS: sender is not rewardLPTokenManager"
         );
         _;

@@ -117,6 +117,7 @@ contract RewardLPTokenManager is
         });
 
         _mint(to, tokenId);
+        // console.log("nft mint tokenId %s ",tokenId);
 
         addUserToken(to, tokenId);
 
@@ -239,6 +240,17 @@ contract RewardLPTokenManager is
         return userTokens[account];
     }
 
+    function userTokenCount(address account) public view returns (uint256)
+    {
+        return userTokens[account].length;
+    }
+
+    function userToken(address account, uint256 _index) external view returns (uint256)
+    {
+        require(_index < userTokens[account].length, "wrong index");
+        return userTokens[account][_index];
+    }
+
     function deposit(uint256 tokenId) external view override returns (LibRewardLPToken.RewardTokenInfo memory)
     {
         return deposits[tokenId];
@@ -270,6 +282,8 @@ contract RewardLPTokenManager is
     function addUserToken(address user, uint256 tokenId) internal {
         userTokenIndexs[user][tokenId] = userTokens[user].length;
         userTokens[user].push(tokenId);
+
+        //console.log("userTokens : %s ",userTokens[user][userTokens[user].length-1]);
     }
 
     function deleteUserToken(address user, uint256 tokenId) internal {

@@ -9,9 +9,18 @@ import "../libraries/ABDKMath64x64.sol";
 
 import {IDTOSManager} from "../interfaces/IDTOSManager.sol";
 import "../interfaces/IPolicy.sol";
-import "../interfaces/IRewardLPTokenManagerAction.sol";
 
 import "hardhat/console.sol";
+
+interface IIRewardLPTokenManager {
+    function mint(
+        address to,
+        address rewardPool,
+        uint256 poolTokenId,
+        uint256 tosAmount,
+        uint256 factoredAmount
+    ) external returns (uint256);
+}
 
 interface IIRewardPool {
     function tosAddress() external view returns (address);
@@ -39,37 +48,6 @@ contract DTOSManager is
     }
 
     /// Only Admin
-    function setPolicyAddress(address _addr)
-        external
-        nonZeroAddress(_addr) onlyOwner
-    {
-        require(policyAddress != _addr, "same address");
-        policyAddress = _addr;
-    }
-
-    function setTosAddress(address _addr)
-        external
-        nonZeroAddress(_addr) onlyOwner
-    {
-        require(tosAddress != _addr, "same address");
-        tosAddress = _addr;
-    }
-
-    function setRewardPoolFactory(address _addr)
-        external
-        nonZeroAddress(_addr) onlyOwner
-    {
-        require(rewardPoolFactory != _addr, "same address");
-        rewardPoolFactory = _addr;
-    }
-
-    function setRewardLPTokenManager(address _addr)
-        external
-        nonZeroAddress(_addr) onlyOwner
-    {
-        require(address(rewardLPTokenManager) != _addr, "same address");
-        rewardLPTokenManager = IRewardLPTokenManagerAction(_addr);
-    }
 
     function setReabseInfo(address _pool, uint256 _period, uint256 _interest)
         external override onlyOwner
@@ -161,7 +139,9 @@ contract DTOSManager is
 
     ) external onlyRewardPool returns (uint256 rewardLP)
     {
-        rewardLP = rewardLPTokenManager.mint(staker, msg.sender, tokenId, tosAmount, factoredAmount);
+        // console.log("mintNFT in %s", tokenId);
+        rewardLP = IIRewardLPTokenManager(rewardLPTokenManager).mint(staker, msg.sender, tokenId, tosAmount, factoredAmount);
+        // console.log("mintNFT out %s", rewardLP);
     }
 
 

@@ -16,20 +16,6 @@ contract RewardPoolSnapshotStorage {
     string public symbol;
     uint8 public decimals = 18;
 
-    uint256 public currentSnapshotId;
-
-    // account - balance
-    mapping(address =>  LibFactorSnapshot.Snapshots) internal accountBalanceSnapshots;
-
-    // totalSupply
-    LibFactorSnapshot.Snapshots internal totalSupplySnapshots;
-
-    //factor
-    LibFactorSnapshot.FactorSnapshots internal factorSnapshots;
-
-    //----
-    //uint256 public totalLiquidity;
-
     //----
     IUniswapV3Pool public pool;
     address public token0;
@@ -42,13 +28,26 @@ contract RewardPoolSnapshotStorage {
     INonfungiblePositionManager public nonfungiblePositionManager;
     IRewardLPTokenManagerAction public rewardLPTokenManager;
 
+    //-- snapshot
+
+    uint256 public currentSnapshotId;
+
+    // account - balance
+    mapping(address =>  LibFactorSnapshot.Snapshots) internal accountBalanceSnapshots;
+
+    // totalSupply
+    LibFactorSnapshot.Snapshots internal totalSupplySnapshots;
+
+    //factor
+    LibFactorSnapshot.FactorSnapshots internal factorSnapshots;
+
     // user -> tokenIds
-    mapping(address => uint256[]) public userTokens;
-    mapping(address => mapping(uint256 => uint256)) public userTokenIndexs;
+    // mapping(address => uint256[]) public userTokens;
+    // mapping(address => mapping(uint256 => uint256)) public userTokenIndexs;
 
     // [tokenIds]
-    uint256[] public stakedTokensInPool;
-    mapping(uint256 => uint256) public stakedTokensInPoolIndexs;
+    // uint256[] public stakedTokensInPool;
+    // mapping(uint256 => uint256) public stakedTokensInPoolIndexs;
 
     // tokenIds - rewardLP
     mapping(uint256 => uint256) public rewardLPs;
