@@ -145,6 +145,7 @@ contract RewardLPTokenManager is
         // else IDTOS(dtos).burn(info.owner, balance);
 
         _burn(tokenId);
+
         deleteUserToken(info.owner, tokenId);
 
         delete deposits[tokenId];
@@ -183,8 +184,9 @@ contract RewardLPTokenManager is
     ) public view override whenNotPaused returns (uint256){
         uint256 dTosBalance = balanceOf(deposits[tokenId].rewardPool, deposits[tokenId].factoredAmount);
         if (dTosBalance == 0 || dTosBalance <= deposits[tokenId].usedAmount) return 0;
-        return (deposits[tokenId].usedAmount - dTosBalance);
+        return (dTosBalance - deposits[tokenId].usedAmount);
     }
+
 
     function usableAmounts(
         uint256[] memory tokenIds
@@ -195,7 +197,7 @@ contract RewardLPTokenManager is
         }
         return amounts;
     }
-
+    /*
     function useAll(uint256 tokenId) public override whenNotPaused {
         use(tokenId, usableAmount(tokenId));
     }
@@ -207,6 +209,7 @@ contract RewardLPTokenManager is
         }
     }
 
+    */
     function use(
         uint256 tokenId,
         uint256 amount
