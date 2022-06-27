@@ -34,6 +34,10 @@ contract RewardPoolSnapshotProxy is
         );
 
         pool = IUniswapV3Pool(poolAddress);
+        token0 = pool.token0();
+        token1 = pool.token1();
+        require(token0 != address(0) && token1 != address(0), "non exist pool");
+
         uniswapV3Factory = IUniswapV3Factory(factory);
         nonfungiblePositionManager = INonfungiblePositionManager(npm);
         rewardLPTokenManager = IRewardLPTokenManagerAction(rlpm);

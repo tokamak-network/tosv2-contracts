@@ -96,8 +96,12 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
 
     function _stake(address sender, uint256 tokenId) internal {
 
-        (,, address token0, address token1, , int24 tickLower, int24 tickUpper, uint128 liquidity,,,,)
+        (,, address _token0, address _token1, , int24 tickLower, int24 tickUpper, uint128 liquidity,,,,)
             = nonfungiblePositionManager.positions(tokenId);
+        console.log("tokens %s %s",_token0, _token1);
+        console.log("pools tokens %s %s",token0, token1);
+
+        require(_token0 == token0 && _token1 == token1, "different pool's token");
 
         require(liquidity > 0, "zero liquidity");
 
@@ -106,7 +110,7 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
 
         rebase();
 
-        uint256 tosAmount = evaluateTOS(tokenId, token0, token1);
+        uint256 tosAmount = evaluateTOS(tokenId, _token0, _token1);
         require(tosAmount > 0, "tosAmount is zero");
 
         uint256 dtosAmount = tosToDtosAmount(tosAmount);

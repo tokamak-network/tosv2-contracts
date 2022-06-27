@@ -23,18 +23,18 @@ describe("RewardPoolSnapshot", function () {
     let lpWTONTOS_tokenId_admin = ethers.BigNumber.from("20968");
     let lpWTONTOS_tokenId = ethers.BigNumber.from("6740");
     let lpWTONTOS_tokenId_outofrange = ethers.BigNumber.from("4268");
-    let lpTOSZK6_tokenId_otherpool = ethers.BigNumber.from("20813");
+    let lpTOSZK6_tokenId_zeroliquidity = ethers.BigNumber.from("20813");
     let lpTOSZK5_19316 = ethers.BigNumber.from("19316");
 
     let admin_tokens = {
         token_normal: lpWTONTOS_tokenId_admin,
-        token_otherpool: lpTOSZK5_19316
+        token_otherpool: lpTOSZK5_19316,
     }
 
     let user1_tokens = {
         token_normal: lpWTONTOS_tokenId,
         token_outofrange: lpWTONTOS_tokenId_outofrange,
-        token_otherpool: lpTOSZK6_tokenId_otherpool
+        zeroliquidity: lpWTONTOS_tokenId_outofrange
     }
 
     let TOS;
@@ -952,7 +952,7 @@ describe("RewardPoolSnapshot", function () {
             expect(await rewardPoolContract.execPauseFlag()).to.be.eq(true);
         });
 
-        it("4-5-4. stake : when pause, fail", async function () {
+        it("4-5-4 / 4-4-1. stake : when pause, fail", async function () {
             await expect(
                 rewardPoolContract.connect(user1).stake(lpWTONTOS_tokenId_admin)
             ).to.be.revertedWith("exec pause");
@@ -979,7 +979,6 @@ describe("RewardPoolSnapshot", function () {
             let staker = admin;
 
             let toeknCountPrev = await rewardLPTokenManager.userTokenCount(staker.address);
-            console.log('toeknCountPrev',toeknCountPrev)
 
             let abi = require("../abis/NonfungiblePositionManager.json").abi;
             nonfungiblePositionManager = await ethers.getContractAt(abi, info.nonfungiblePositionManager);
@@ -989,13 +988,10 @@ describe("RewardPoolSnapshot", function () {
                 await nonfungiblePositionManager.connect(staker).setApprovalForAll(rewardPoolContract.address, true);
 
             await rewardPoolContract.connect(staker).stake(stakedTokenId);
-            /*
+
             let toeknCountAfter = await rewardLPTokenManager.userTokenCount(staker.address);
-            console.log('toeknCountAfter',toeknCountAfter)
 
             let tokensOfOwner = await rewardLPTokenManager.tokensOfOwner(staker.address);
-            console.log('tokensOfOwner',tokensOfOwner)
-
 
             expect(toeknCountAfter).to.be.eq(toeknCountPrev.add(ethers.BigNumber.from("1")));
 
@@ -1027,35 +1023,33 @@ describe("RewardPoolSnapshot", function () {
             }
 
             expect(await rewardPoolContract.balanceOf(staker.address)).to.be.eq(await rewardPoolContract.totalSupply());
-            */
+
         });
-        /*
-        it("4-5-1. stake : when LP is zero liquidit, fail", async function () {
-            let stakedTokenId = user1_tokens.token_outofrange;
-            let ownerOf = await nonfungiblePositionManager.ownerOf(stakedTokenId);
+
+        it("4-5-1. stake : when LP is zero liquidity, fail", async function () {
+            let stakedTokenId = user1_tokens.zeroliquidity;
+            //let ownerOf = await nonfungiblePositionManager.ownerOf(stakedTokenId);
 
             let approved = await nonfungiblePositionManager.isApprovedForAll(user1.address, rewardPoolContract.address);
             if (!approved)
                 await nonfungiblePositionManager.connect(user1).setApprovalForAll(rewardPoolContract.address, true);
 
-
             await expect(
                 rewardPoolContract.connect(user1).stake(stakedTokenId)
-            ).to.be.revertedWith("zero liquidit");
+            ).to.be.revertedWith("zero liquidity");
         });
 
-        it("4-5-1. stake : when LP is out of range, fail", async function () {
-            let stakedTokenId = admin_tokens.token_otherpool;
-            let ownerOf = await nonfungiblePositionManager.ownerOf(stakedTokenId);
-
-            await expect(
-                rewardPoolContract.connect(admin).stake(stakedTokenId)
-            ).to.be.revertedWith("out of range");
-        });
-        */
-        /*
         it("4-5-1. stake : when LP is in other pool, fail", async function () {
             let stakedTokenId = admin_tokens.token_otherpool;
+            //let ownerOf = await nonfungiblePositionManager.ownerOf(stakedTokenId);
+
+            await expect(
+                rewardPoolContract.connect(admin).stake(stakedTokenId)
+            ).to.be.revertedWith("different pool's token");
+        });
+        /*
+        it("4-5-1. stake : when LP is out of range, fail", async function () {
+            let stakedTokenId = admin_tokens.token_outofrange;
             let ownerOf = await nonfungiblePositionManager.ownerOf(stakedTokenId);
 
             await expect(
@@ -1064,7 +1058,6 @@ describe("RewardPoolSnapshot", function () {
         });
         */
 
-        /*
         it("4-5-1. stake : can stake with nonfungiblePositionManager.transferFrom method ", async function () {
             let stakedTokenId = user1_tokens.token_normal;
             let staker = user1;
@@ -1119,7 +1112,7 @@ describe("RewardPoolSnapshot", function () {
                 await rewardPoolContract.totalSupply());
 
         });
-        */
+
     });
 
     /*

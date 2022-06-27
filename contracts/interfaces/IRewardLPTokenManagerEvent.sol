@@ -18,6 +18,6 @@ interface IRewardLPTokenManagerEvent{
         uint256 poolTokenId
         );
 
-    event UsedRewardToken(address account, uint256 amount);
+    event UsedRewardToken(uint256 tokenId, uint256 amount);
 
 }

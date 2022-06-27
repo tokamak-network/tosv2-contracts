@@ -11,15 +11,18 @@ import "@openzeppelin/contracts/utils/Context.sol";
 
 import "../interfaces/IRewardLPTokenManagerEvent.sol";
 import "../interfaces/IRewardLPTokenManagerAction.sol";
-import "../interfaces/IRewardPoolAction.sol";
+import "../interfaces/IRewardPoolSnapshotAction.sol";
 
 import {DSMath} from "../libraries/DSMath.sol";
 import "../libraries/LibRewardLPToken.sol";
 
 import "hardhat/console.sol";
 
-interface IIDTOS {
+
+interface IIRewardPoolSnapshotAction {
     function getFactor() external view returns (uint256);
+    function dTosBaseRate() external view returns (uint256);
+    function transferFrom(address from, address to, uint256 tokenId, uint256 amount, uint256 factoredAmount) external ;
 }
 
 contract RewardLPTokenManager is
@@ -124,20 +127,6 @@ contract RewardLPTokenManager is
         emit MintedRewardToken(tokenId, to, rewardPool, poolTokenId, tosAmount);
         return tokenId;
     }
-    /*
-    function mintableAmount(uint256 tokenId) public view returns (uint256 amount) {
-        LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
-        uint256 factor = IIDTOS(dtos).getFactor();
-
-        if(info.dtosPrincipal > 0 && info.dtosFactor > 0 && factor > 0) {
-            uint256 oldBalance = wdiv2(info.dtosPrincipal, info.dtosFactor);
-            uint256 balance =  wmul2(oldBalance, factor);
-            amount = balance;
-            if(amount >= info.usedAmount) amount -= info.usedAmount;
-            else amount = 0;
-        }
-    }
-    */
 
     // 소각은 리워드 풀에 의해서만 가능하다. 리워드 풀에서 언스테이크 할때만 가능
     function burn(
@@ -163,76 +152,87 @@ contract RewardLPTokenManager is
         emit BurnedRewardToken(tokenId, info.owner, info.rewardPool, info.poolTokenId);
     }
 
-    /*
-    function usableAmount(address account)
-        public view
-        returns (uint256 dtosBalance, uint256 tosAmount, uint256 usedAmount)
-    {
-
-        dtosBalance = 0;
-        tosAmount = 0;
-        usedAmount = 0;
-        uint256[] memory tokens = userTokens[account];
-        for(uint256 i = 0; i < tokens.length; i++){
-            LibRewardLPToken.RewardTokenInfo memory info = deposits[tokens[i]];
-
-            tosAmount += info.tosAmount;
-            usedAmount += info.usedAmount;
-        }
-
-        // dtos 가 토스 총계로 한번에 계산가능한지
-        // 또는 각 아이디별 이자율이 별도로 계산되어야 하는지 확인이 필요함.
-    }
-
-
-   */
-
-    function avaiableAmounts(
-        uint256[] memory tokenIds
-    ) external view override returns (uint256[] memory) {
-        if(tokenIds.length == 0) return new uint256[](0);
-        else {
-            uint256[] memory amounts = new uint256[](tokenIds.length);
-            return amounts;
-        }
-
-    }
-
-    function avaiableAmount(
+    function _transfer(
+        address from,
+        address to,
         uint256 tokenId
-    ) external view override returns (uint256 token) {
-        return 0;
+    ) internal virtual override(ERC721){
+        super._transfer(from, to, tokenId);
+        if(from != address(0) && to != address(0)){
+            LibRewardLPToken.RewardTokenInfo storage info = deposits[tokenId];
+            info.owner = to;
+            IIRewardPoolSnapshotAction(info.rewardPool).transferFrom(
+                    from,
+                    to,
+                    info.poolTokenId,
+                    info.tosAmount,
+                    info.factoredAmount
+                );
+        }
+    }
+
+    function balanceOf(address _rewardPool, uint256 factoredAmount) public view returns (uint256) {
+        if (IIRewardPoolSnapshotAction(_rewardPool).dTosBaseRate() == 0) return 0;
+        uint256 factor = IIRewardPoolSnapshotAction(_rewardPool).getFactor();
+        if (factor == 0) return 0;
+        return wmul2(factoredAmount, factor);
+    }
+
+    function usableAmount(
+        uint256 tokenId
+    ) public view override whenNotPaused returns (uint256){
+        uint256 dTosBalance = balanceOf(deposits[tokenId].rewardPool, deposits[tokenId].factoredAmount);
+        if (dTosBalance == 0 || dTosBalance <= deposits[tokenId].usedAmount) return 0;
+        return (deposits[tokenId].usedAmount - dTosBalance);
+    }
+
+    function usableAmounts(
+        uint256[] memory tokenIds
+    ) external view override whenNotPaused returns (uint256[] memory){
+        uint256[] memory amounts = new uint256[](tokenIds.length);
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            amounts[i] = usableAmount(tokenIds[i]);
+        }
+        return amounts;
+    }
+
+    function useAll(uint256 tokenId) public override whenNotPaused {
+        use(tokenId, usableAmount(tokenId));
+    }
+
+    function multiUseAll(uint256[] memory tokenIds) public override whenNotPaused {
+        require( tokenIds.length > 0,"wrong length");
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            useAll(tokenIds[i]);
+        }
+    }
+
+    function use(
+        uint256 tokenId,
+        uint256 amount
+    ) public override whenNotPaused {
+
+        require(hasRole(USER_ROLE, _msgSender()), "RewardLPTokenManager: must have user role to use");
+        require(amount > 0, "zero amount");
+        require(usableAmount(tokenId) > amount, "usabeAmount is insufficient");
+        LibRewardLPToken.RewardTokenInfo storage info = deposits[tokenId];
+
+        info.usedAmount += amount;
+
+        emit UsedRewardToken(tokenId, amount);
     }
 
     function multiUse(
         uint256[] memory tokenIds,
         uint256[] memory amounts
     ) external override whenNotPaused {
-        // update
-    }
+        require(
+            tokenIds.length == amounts.length && tokenIds.length > 0
+            ,"wrong length");
 
-    function use(
-        uint256 tokenId,
-        uint256 amount
-    ) external override whenNotPaused {
-
-        // require(hasRole(USER_ROLE, _msgSender()), "RewardLPTokenManager: must have user role to use");
-        // require(amount > 0, "zero amount");
-
-        // (uint256 dtosBalance, uint256 tosAmount, uint256 usedAmount) = usableAmount(account);
-
-        // require(dtosBalance > usedAmount && dtosBalance - usedAmount >= amount, "balance is insufficient.");
-
-        // uint256[] memory tokens = userTokens[account];
-
-        // for(uint256 i = 0; i < tokens.length; i++){
-        //     LibRewardLPToken.RewardTokenInfo memory info = deposits[tokens[i]];
-
-        //     // 사용금액에 반영한다.
-        //     //info.usedAmount
-        // }
-
-        // emit UsedRewardToken(account, amount);
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            use(tokenIds[i], amounts[i]);
+        }
     }
 
     function tokensOfOwner(address account) external view override returns (uint256[] memory)
@@ -262,11 +262,6 @@ contract RewardLPTokenManager is
         uint256 tokenId
     ) internal virtual override(ERC721, ERC721Pausable) whenNotPaused {
         // super._beforeTokenTransfer(from, to, tokenId);
-
-        if(from != address(0) && to != address(0)){
-            LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
-            IRewardPoolAction(info.rewardPool).transferFrom(from, to, info.poolTokenId, info.tosAmount);
-        }
     }
 
     function supportsInterface(bytes4 interfaceId)
