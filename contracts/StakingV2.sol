@@ -159,6 +159,8 @@ contract StakingV2 is ProxyAccessCommon {
      */
     //그냥 staking을 할때는 lockup 기간이 없는 걸로
     //마이그레이션 할때 index가 설정되야함 rebaseIndex를 0으로 해줘야함
+    //lockPeriod가 없는 Staking은 따로 관리 -> 1 tokenID -> 1 token increase (용량만) , period (기간만)
+    //기간 늘리는거, 양 늘리는거, 기간,양 같이 늘리는거 3개 function 추가
     function stake(
         address _to,
         uint256 _amount,
@@ -219,7 +221,6 @@ contract StakingV2 is ProxyAccessCommon {
 
         uint256 LTOSamount = (_amount*1e18)/index_;
 
-
         UserBalance memory userNew = UserBalance({
             deposit: userOld.deposit + _amount,
             LTOS: userOld.LTOS + LTOSamount,
@@ -243,6 +244,8 @@ contract StakingV2 is ProxyAccessCommon {
      * @param _amount uint LTOS양을 받음
      * @return amount_ uint
      */
+    //모든 LTOS를 unstaking하면 tokenId 삭제
+    //unstakingALL 만들기
     function unstake(
         address _to,
         uint256 _stakeId,
@@ -255,7 +258,6 @@ contract StakingV2 is ProxyAccessCommon {
         // epoNumber = epoch.number - info.epoNum;
         uint256 remainLTOS = stakeInfo.LTOS - stakeInfo.getLTOS;
 
-
         require(remainLTOS >= _amount, "lack the LTOS amount");
 
         amount_ = ((_amount*index_)/1e18);
@@ -263,7 +265,10 @@ contract StakingV2 is ProxyAccessCommon {
         // 내가 스테이킹 한양보다 많이 받으면 그만큼 TOS를 treasury contract에서 가져와서 준다.
         if(amount_ > stakeInfo.deposit) {
             TOS.safeTransferFrom(address(ITreasury(treasury)),address(this),(amount_-stakeInfo.deposit));
-        } 
+        }
+        
+        //TokenID <-> TokenId 연동하는 struct 이용해서 id찾아서 호출 sTOStokenId
+        lockTOS.withdrawByStaker(_to,_stakeId);
 
         stakeInfo.getLTOS = stakeInfo.getLTOS + _amount;          //쓴 LTOS 기록
         stakeInfo.rewardTOS = stakeInfo.rewardTOS + amount_;      //LTOS -> TOS로 바꾼 양 기록
@@ -309,6 +314,7 @@ contract StakingV2 is ProxyAccessCommon {
     }
 
     //유저가 가진 총 LTOS 리턴
+    //유저별 
     function balanceOf(address _addr)
         public
         view
