@@ -98,11 +98,11 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
 
         (,, address _token0, address _token1, , int24 tickLower, int24 tickUpper, uint128 liquidity,,,,)
             = nonfungiblePositionManager.positions(tokenId);
-        console.log("tokens %s %s",_token0, _token1);
-        console.log("pools tokens %s %s",token0, token1);
+
+        console.log("tokenId %s, _token0 %s, _token1 %s", tokenId, _token0, _token1);
+        console.log("tokenId %s, token0 %s, token1 %s",tokenId, token0, token1);
 
         require(_token0 == token0 && _token1 == token1, "different pool's token");
-
         require(liquidity > 0, "zero liquidity");
 
         (,int24 tick,,,,,) = pool.slot0();
@@ -119,13 +119,14 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         uint256 factor = getFactor();
 
         if(dtosAmount > 0) factoredAmount = wdiv2(dtosAmount, factor);
-        // console.log("factoredAmount %s", factoredAmount);
 
         uint256 rTokenId = IIDTOSManager(dtosManagerAddress).mintNFT(sender, tokenId, tosAmount, factoredAmount);
 
+        console.log('tosAmount %s, factoredAmount %s', tosAmount, factoredAmount);
+
         rewardLPs[tokenId] = rTokenId;
 
-        // console.log('tokenId %s , rTokenId %s', tokenId, rTokenId);
+        console.log(' Staked tokenId %s , rTokenId %s', tokenId, rTokenId);
 
         if(tosAmount > 0 && factoredAmount > 0) _mint(sender, tosAmount, factoredAmount);
 
@@ -310,6 +311,8 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
     */
     function onERC721Received(address from, address sender, uint256 tokenId, bytes calldata data) external onlyNoExecPause returns (bytes4){
         require(msg.sender == address(nonfungiblePositionManager), "operator is not nonfungiblePositionManager");
+        console.log("onERC721Received %s", tokenId);
+        console.log("from %s, sender %s, msg.sender %s ", from, sender, msg.sender);
         _stake(from, tokenId);
         return this.onERC721Received.selector;
     }

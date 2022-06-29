@@ -139,9 +139,9 @@ contract DTOSManager is
 
     ) external onlyRewardPool returns (uint256 rewardLP)
     {
-        // console.log("mintNFT in %s", tokenId);
+        console.log("mintNFT in %s", tokenId);
         rewardLP = IIRewardLPTokenManager(rewardLPTokenManager).mint(staker, msg.sender, tokenId, tosAmount, factoredAmount);
-        // console.log("mintNFT out %s", rewardLP);
+        console.log("mintNFT out %s", rewardLP);
     }
 
 

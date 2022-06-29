@@ -21,6 +21,8 @@ describe("RewardPoolSnapshot", function () {
     let tosAddress = "0x73a54e5C054aA64C1AE7373C2B5474d8AFEa08bd";
     let wtontosPool = "0x516e1af7303a94f81e91e4ac29e20f4319d4ecaf";
     let lpWTONTOS_tokenId_admin = ethers.BigNumber.from("20968");
+    let lpWTONTOS_tokenId2_admin = ethers.BigNumber.from("21313");
+
     let lpWTONTOS_tokenId = ethers.BigNumber.from("6740");
     let lpWTONTOS_tokenId_outofrange = ethers.BigNumber.from("4268");
     let lpTOSZK6_tokenId_zeroliquidity = ethers.BigNumber.from("20813");
@@ -29,6 +31,7 @@ describe("RewardPoolSnapshot", function () {
     let admin_tokens = {
         token_normal: lpWTONTOS_tokenId_admin,
         token_otherpool: lpTOSZK5_19316,
+        token_normal2: lpWTONTOS_tokenId2_admin,
     }
 
     let user1_tokens = {
@@ -67,7 +70,9 @@ describe("RewardPoolSnapshot", function () {
     let rewardLPTokenManagerInfo = {
         name: "RewardLP",
         symbol: "RLP",
-        baseTokenURI: ""
+        baseTokenURI: "",
+        admin: null,
+        lists: []
     }
 
     let dTosManagerInfo = {
@@ -91,7 +96,7 @@ describe("RewardPoolSnapshot", function () {
 
     let mintAmount = ethers.BigNumber.from('1'+'0'.repeat(18));
     let zeroBN = ethers.BigNumber.from('0');
-
+    let etherBN = ethers.BigNumber.from('1'+'0'.repeat(18));
     before(async function () {
         accounts = await ethers.getSigners();
         [admin, user1, user2, user3, user4 ] = accounts
@@ -200,6 +205,7 @@ describe("RewardPoolSnapshot", function () {
 
         await rewardLPTokenManager.connect(admin).setDtos(dTosManagerProxy.address);
         info.rewardLPTokenManager = rewardLPTokenManager.address;
+        rewardLPTokenManagerInfo.admin = admin;
     });
 
     it("Set DTOSManager ", async function () {
@@ -964,21 +970,21 @@ describe("RewardPoolSnapshot", function () {
         it("4-5-1. stake : when not LP owner, fail", async function () {
 
             await expect(
-                rewardPoolContract.connect(user1).stake(lpWTONTOS_tokenId_admin)
+                rewardPoolContract.connect(user1).stake(admin_tokens.token_normal)
             ).to.be.revertedWith("tokenId is not yours.");
         });
 
         it("4-5-1. stake : when LP didn't be approved before, fail", async function () {
             await expect(
-                rewardPoolContract.connect(admin).stake(lpWTONTOS_tokenId_admin)
+                rewardPoolContract.connect(admin).stake(admin_tokens.token_normal)
             ).to.be.revertedWith("ERC721: transfer caller is not owner nor approved");
         });
 
-        it("4-5-2/3/4. stake after approve", async function () {
+        it("4-5-2/3/4 / 4-8-1. stake after approve", async function () {
             let stakedTokenId = admin_tokens.token_normal;
             let staker = admin;
 
-            let toeknCountPrev = await rewardLPTokenManager.userTokenCount(staker.address);
+            let tokenCountPrev = await rewardLPTokenManager.userTokenCount(staker.address);
 
             let abi = require("../abis/NonfungiblePositionManager.json").abi;
             nonfungiblePositionManager = await ethers.getContractAt(abi, info.nonfungiblePositionManager);
@@ -989,16 +995,22 @@ describe("RewardPoolSnapshot", function () {
 
             await rewardPoolContract.connect(staker).stake(stakedTokenId);
 
-            let toeknCountAfter = await rewardLPTokenManager.userTokenCount(staker.address);
+            let tokenCountAfter = await rewardLPTokenManager.userTokenCount(staker.address);
 
             let tokensOfOwner = await rewardLPTokenManager.tokensOfOwner(staker.address);
 
-            expect(toeknCountAfter).to.be.eq(toeknCountPrev.add(ethers.BigNumber.from("1")));
+            expect(tokenCountAfter).to.be.eq(tokenCountPrev.add(ethers.BigNumber.from("1")));
 
-            let rTokenId = await rewardLPTokenManager.userToken(staker.address, toeknCountPrev);
+            let rTokenId = await rewardLPTokenManager.userToken(staker.address, tokenCountPrev);
             let rTokenIdInfo = await rewardLPTokenManager.deposits(rTokenId);
             let tokenId = rTokenIdInfo.poolTokenId;
             expect(tokenId).to.be.eq(stakedTokenId);
+
+            rewardLPTokenManagerInfo.lists.push({
+                id: rTokenId,
+                owner: staker,
+                info: rTokenIdInfo
+            });
 
             //let rTokenId = await rewardPoolContract.rewardLPs(tokenId);
             expect(await rewardPoolContract.rewardLPs(tokenId)).to.be.eq(rTokenId);
@@ -1025,6 +1037,66 @@ describe("RewardPoolSnapshot", function () {
             expect(await rewardPoolContract.balanceOf(staker.address)).to.be.eq(await rewardPoolContract.totalSupply());
 
         });
+
+
+        it("4-5-2/3/4 / 4-8-1.  stake  ", async function () {
+            let stakedTokenId = admin_tokens.token_normal2;
+            let staker = admin;
+
+            let tokenCountPrev = await rewardLPTokenManager.userTokenCount(staker.address);
+
+            let abi = require("../abis/NonfungiblePositionManager.json").abi;
+            nonfungiblePositionManager = await ethers.getContractAt(abi, info.nonfungiblePositionManager);
+
+            let approved = await nonfungiblePositionManager.isApprovedForAll(staker.address, rewardPoolContract.address);
+            if (!approved)
+                await nonfungiblePositionManager.connect(staker).setApprovalForAll(rewardPoolContract.address, true);
+
+            await rewardPoolContract.connect(staker).stake(stakedTokenId);
+
+            let tokenCountAfter = await rewardLPTokenManager.userTokenCount(staker.address);
+
+            let tokensOfOwner = await rewardLPTokenManager.tokensOfOwner(staker.address);
+
+            expect(tokenCountAfter).to.be.eq(tokenCountPrev.add(ethers.BigNumber.from("1")));
+
+            let rTokenId = await rewardLPTokenManager.userToken(staker.address, tokenCountPrev);
+            let rTokenIdInfo = await rewardLPTokenManager.deposits(rTokenId);
+            let tokenId = rTokenIdInfo.poolTokenId;
+            expect(tokenId).to.be.eq(stakedTokenId);
+
+            rewardLPTokenManagerInfo.lists.push({
+                id: rTokenId,
+                owner: staker,
+                info: rTokenIdInfo
+            });
+
+            //let rTokenId = await rewardPoolContract.rewardLPs(tokenId);
+            expect(await rewardPoolContract.rewardLPs(tokenId)).to.be.eq(rTokenId);
+
+            let baseAmount = await rewardPoolContract.tosToDtosAmount(rTokenIdInfo.tosAmount);
+            let baseRate = await rewardPoolContract.dTosBaseRate();
+
+            expect(rTokenIdInfo.rewardPool).to.be.eq(rewardPoolContract.address);
+            expect(rTokenIdInfo.owner).to.be.eq(staker.address);
+            expect(rTokenIdInfo.poolTokenId).to.be.eq(tokenId);
+            expect(rTokenIdInfo.tosAmount).to.be.gt(zeroBN);
+            expect(rTokenIdInfo.usedAmount).to.be.eq(zeroBN);
+            expect(rTokenIdInfo.stakedTime).to.be.gt(zeroBN);
+            expect(rTokenIdInfo.factoredAmount).to.be.gte(baseAmount);
+
+            if (baseRate.eq(zeroBN)){
+                expect(baseAmount).to.be.eq(zeroBN);
+                expect(await rewardPoolContract.balanceOf(staker.address)).to.be.eq(zeroBN);
+            } else {
+                expect(baseAmount).to.be.gt(zeroBN);
+                expect(await rewardPoolContract.balanceOf(staker.address)).to.be.gt(zeroBN);
+            }
+
+            expect(await rewardPoolContract.balanceOf(staker.address)).to.be.eq(await rewardPoolContract.totalSupply());
+
+        });
+
 
         it("4-5-1. stake : when LP is zero liquidity, fail", async function () {
             let stakedTokenId = user1_tokens.zeroliquidity;
@@ -1058,36 +1130,38 @@ describe("RewardPoolSnapshot", function () {
         });
         */
 
-        it("4-5-1. stake : can stake with nonfungiblePositionManager.transferFrom method ", async function () {
+        it("4-5-1 / 4-8-1. stake : can stake with nonfungiblePositionManager.safeTransferFrom method ", async function () {
             let stakedTokenId = user1_tokens.token_normal;
             let staker = user1;
-            let toeknCountPrev = await rewardPoolContract.userTokenCount(staker.address);
-            console.log('toeknCountPrev',toeknCountPrev);
-            // let ownerOf = await nonfungiblePositionManager.ownerOf(stakedTokenId);
-            // console.log('ownerOf',ownerOf);
-            // console.log('staker',staker.address);
 
-            // let approved = await nonfungiblePositionManager.isApprovedForAll(staker.address, nonfungiblePositionManager.address);
-            // if (!approved)
-            //     await nonfungiblePositionManager.connect(user1).setApprovalForAll(nonfungiblePositionManager.address, true);
+            let tokenCountPrev = await rewardLPTokenManager.userTokenCount(staker.address);
 
-            await nonfungiblePositionManager.connect(staker).transferFrom(
+            let tx = await nonfungiblePositionManager.connect(staker)["safeTransferFrom(address,address,uint256)"](
                 staker.address,
                 rewardPoolContract.address,
                 stakedTokenId);
 
-            let toeknCountAfter = await rewardPoolContract.userTokenCount(staker.address);
-            console.log('toeknCountAfter',toeknCountAfter);
+            await tx.wait();
 
-            expect(toeknCountAfter).to.be.eq(toeknCountPrev.add(ethers.BigNumber.from("1")));
+            let tokenCountAfter = await rewardLPTokenManager.userTokenCount(staker.address);
 
-            let allUserTokens = await rewardPoolContract.allUserTokens(staker.address);
-            let tokenId = await rewardPoolContract.userToken(staker.address, toeknCountPrev);
+            let tokensOfOwner = await rewardLPTokenManager.tokensOfOwner(staker.address);
 
+            expect(tokenCountAfter).to.be.eq(tokenCountPrev.add(ethers.BigNumber.from("1")));
+
+            let rTokenId = await rewardLPTokenManager.userToken(staker.address, tokenCountPrev);
+            let rTokenIdInfo = await rewardLPTokenManager.deposits(rTokenId);
+            let tokenId = rTokenIdInfo.poolTokenId;
             expect(tokenId).to.be.eq(stakedTokenId);
 
-            let rTokenId = await rewardPoolContract.rewardLPs(tokenId);
-            let rTokenIdInfo = await rewardLPTokenManager.deposits(rTokenId);
+            rewardLPTokenManagerInfo.lists.push({
+                id: rTokenId,
+                owner: staker,
+                info: rTokenIdInfo
+            });
+
+            //let rTokenId = await rewardPoolContract.rewardLPs(tokenId);
+            expect(await rewardPoolContract.rewardLPs(tokenId)).to.be.eq(rTokenId);
 
             let baseAmount = await rewardPoolContract.tosToDtosAmount(rTokenIdInfo.tosAmount);
             let baseRate = await rewardPoolContract.dTosBaseRate();
@@ -1111,6 +1185,211 @@ describe("RewardPoolSnapshot", function () {
             expect(await rewardPoolContract.balanceOf(staker.address)).to.be.lt(
                 await rewardPoolContract.totalSupply());
 
+        });
+
+    });
+
+    describe("4-6. RewardPool : Only RewardLPTokenManager ", function () {
+
+        it("4-6-1. transferFrom : if not through rewardLPTokenManager, fail ", async function () {
+            let nft = rewardLPTokenManagerInfo.lists[rewardLPTokenManagerInfo.lists.length-1];
+            let owner = nft.owner;
+            let nftId = nft.id;
+            expect(await rewardLPTokenManager.ownerOf(nftId)).to.be.eq(owner.address);
+
+            await expect(
+                rewardPoolContract.connect(owner).transferFrom(
+                    owner.address,
+                    user3.address,
+                    nft.info.poolTokenId,
+                    nft.info.tosAmount,
+                    nft.info.factoredAmount
+                    )
+           ).to.be.revertedWith("sender is not rewardLPTokenManager.");
+        });
+    });
+
+
+    describe("4-9. RewardLPTokenManager : Any can execute  ", function () {
+
+        it("4-9-1. use : if sender doesn't have a permission(USER_ROLE), fail ", async function () {
+            let nft = rewardLPTokenManagerInfo.lists[rewardLPTokenManagerInfo.lists.length-1];
+            let nonStaker = user2;
+            expect(await rewardLPTokenManager.hasRole(keccak256("USER_ROLE"), user2.address)).to.be.eq(false);
+
+            await expect(
+                 rewardLPTokenManager.connect(nonStaker).use(nft.id, nft.info.tosAmount)
+            ).to.be.revertedWith("RewardLPTokenManager: must have user role to use");
+        });
+
+        it("4-9-1 / 4-9-3. use ", async function () {
+            let nft = rewardLPTokenManagerInfo.lists[rewardLPTokenManagerInfo.lists.length-1];
+            let nonStaker = user2;
+
+            expect(await rewardLPTokenManager.hasRole(keccak256("USER_ROLE"), user2.address)).to.be.eq(false);
+
+            await rewardLPTokenManager.connect(rewardLPTokenManagerInfo.admin).grantRole(keccak256("USER_ROLE"), user2.address);
+            expect(await rewardLPTokenManager.hasRole(keccak256("USER_ROLE"), user2.address)).to.be.eq(true);
+
+            let f = await rewardPoolContract.getFactor();
+
+            let usable = nft.info.factoredAmount.mul(f).div(etherBN);
+            let usableAmount = await rewardLPTokenManager.usableAmount(nft.id);
+            expect(usable).to.be.eq(usableAmount);
+
+            await rewardLPTokenManager.connect(user2).use(nft.id, usableAmount);
+
+            expect(await rewardLPTokenManager.usableAmount(nft.id)).to.be.eq(zeroBN);
+        });
+
+        it("4-9-2 / 4-9-4. multiUse ", async function () {
+            let nftIds = [];
+            let usables = [];
+            let nonStaker = user2;
+
+            expect(await rewardLPTokenManager.hasRole(keccak256("USER_ROLE"), user2.address)).to.be.eq(true);
+            let f = await rewardPoolContract.getFactor();
+
+            for(let i = 0; i < (rewardLPTokenManagerInfo.lists.length-1); i++){
+                expect(await rewardLPTokenManager.usableAmount(rewardLPTokenManagerInfo.lists[i].id)).to.be.gt(zeroBN);
+                nftIds.push(rewardLPTokenManagerInfo.lists[i].id);
+                usables.push(rewardLPTokenManagerInfo.lists[i].info.factoredAmount.mul(f).div(etherBN));
+            }
+            let usableAmounts = await rewardLPTokenManager.usableAmounts(nftIds);
+
+            for(let i = 0; i < nftIds.length; i++){
+                expect(usableAmounts[i]).to.be.eq(usables[i]);
+            }
+
+            await rewardLPTokenManager.connect(user2).multiUse(nftIds, usableAmounts);
+
+            for(let i = 0; i < (rewardLPTokenManagerInfo.lists.length-1); i++){
+                expect(await rewardLPTokenManager.usableAmount(rewardLPTokenManagerInfo.lists[i].id)).to.be.eq(zeroBN);
+            }
+        });
+
+        it("4-9-5. transferFrom : if not NFT's owner, fail  ", async function () {
+            let nft = rewardLPTokenManagerInfo.lists[rewardLPTokenManagerInfo.lists.length-1];
+            let owner = nft.owner;
+            let nftId = nft.id;
+
+            expect(user2.address).to.not.eq(owner.address);
+            expect(await rewardLPTokenManager.ownerOf(nftId)).to.not.eq(user2.address);
+
+            await expect(
+                rewardLPTokenManager.connect(user2).transferFrom(user2.address, user3.address, nftId)
+           ).to.be.revertedWith("ERC721: transfer caller is not owner nor approved");
+        });
+
+        it("1-1-4. policy.execPause  only policy.admin ", async function () {
+            expect(await policy.isAdmin(policyInfo.admin.address)).to.be.eq(true);
+            await policy.connect(policyInfo.admin).execPause(rewardPoolContract.address, true);
+            expect(await rewardPoolContract.execPauseFlag()).to.be.eq(true);
+        });
+
+        it("4-9-6. transferFrom : if rewardPoolContract.execPauseFlag is true, fail ", async function () {
+            let nft = rewardLPTokenManagerInfo.lists[rewardLPTokenManagerInfo.lists.length-1];
+            let owner = nft.owner;
+            let nftId = nft.id;
+            expect(await rewardLPTokenManager.ownerOf(nftId)).to.be.eq(owner.address);
+
+            await expect(
+                rewardPoolContract.connect(owner).transferFrom(
+                    owner.address,
+                    user3.address,
+                    nft.info.poolTokenId,
+                    nft.info.tosAmount,
+                    nft.info.factoredAmount
+                    )
+            ).to.be.revertedWith("exec pause");
+
+            await expect(
+                rewardLPTokenManager.connect(owner).transferFrom(owner.address, user3.address, nftId)
+            ).to.be.revertedWith("exec pause");
+
+            await policy.connect(policyInfo.admin).execPause(rewardPoolContract.address, false);
+            expect(await rewardPoolContract.execPauseFlag()).to.be.eq(false);
+        });
+
+        it("4-9-5 / 4-6-1. transferFrom : only NFT's Owner through rewardLPTokenManager", async function () {
+            let nft = rewardLPTokenManagerInfo.lists[rewardLPTokenManagerInfo.lists.length-1];
+            let owner = nft.owner;
+            let nftId = nft.id;
+            expect(await rewardLPTokenManager.ownerOf(nftId)).to.be.eq(owner.address);
+
+            let balanceOfBeforeFrom = await dTosManager["balanceOf(address)"](owner.address);
+            let balanceOfBeforeTo = await dTosManager["balanceOf(address)"](user3.address);
+            expect(balanceOfBeforeFrom).to.be.gt(zeroBN);
+            expect(balanceOfBeforeTo).to.be.eq(zeroBN);
+
+            await rewardLPTokenManager.connect(owner).transferFrom(owner.address, user3.address, nftId);
+
+            expect(await rewardLPTokenManager.ownerOf(nftId)).to.be.eq(user3.address);
+            let balanceOfAfterFrom = await dTosManager["balanceOf(address)"](owner.address);
+            let balanceOfAfterTo = await dTosManager["balanceOf(address)"](user3.address);
+            expect(balanceOfAfterFrom).to.be.lt(balanceOfBeforeFrom);
+            expect(balanceOfAfterTo).to.be.eq(balanceOfBeforeFrom.sub(balanceOfAfterFrom));
+
+            rewardLPTokenManagerInfo.lists[rewardLPTokenManagerInfo.lists.length-1].owner = user3;
+        });
+    });
+
+
+    describe("4-5. RewardPool : Any can execute  ", function () {
+
+        it("4-5-5. rebase : if it hasn't passed a epoch period, does not run the rebase.", async function () {
+            let nft = rewardLPTokenManagerInfo.lists[rewardLPTokenManagerInfo.lists.length-1];
+            let owner = nft.owner;
+            let nftId = nft.id;
+
+            let factor = await rewardPoolContract.getFactor();
+
+            await rewardLPTokenManager.connect(owner).transferFrom(owner.address, user1.address, nftId);
+            expect( await rewardPoolContract.getFactor()).to.be.eq(factor);
+
+            rewardLPTokenManagerInfo.lists[rewardLPTokenManagerInfo.lists.length-1].owner = user1;
+        });
+
+
+        it("        pass blocks", async function () {
+            let rebaseIntervalSecond = await rewardPoolContract.rebaseIntervalSecond();
+            let passTime =  rebaseIntervalSecond.toNumber() ;
+
+            await ethers.provider.send("evm_increaseTime", [passTime]);
+            await ethers.provider.send("evm_mine");
+
+            // let block = await ethers.provider.getBlock();
+            // console.log('block2',block);
+        });
+
+        it("4-5-5. rebase : if it has passed a epoch period, does run the rebase.", async function () {
+            let nft = rewardLPTokenManagerInfo.lists[rewardLPTokenManagerInfo.lists.length-1];
+            let owner = nft.owner;
+            let nftId = nft.id;
+
+            let factor = await rewardPoolContract.getFactor();
+
+            await rewardLPTokenManager.connect(owner).transferFrom(owner.address, user3.address, nftId);
+            expect(await rewardPoolContract.getFactor()).to.be.gt(factor);
+            expect(await rewardPoolContract.lastRebaseTime()).to.be.gt(zeroBN);
+            expect(await rewardLPTokenManager.usableAmount(nftId)).to.be.gt(zeroBN);
+
+            rewardLPTokenManagerInfo.lists[rewardLPTokenManagerInfo.lists.length-1].owner = user3;
+        });
+
+    });
+
+    describe("4-5. RewardPool : Any can execute  ", function () {
+
+        it("4-5-9. unstake : if sender is not NFT owner, fail", async function () {
+            let nft = rewardLPTokenManagerInfo.lists[rewardLPTokenManagerInfo.lists.length-1];
+            let owner = nft.owner;
+            let nftId = nft.id;
+            expect(await rewardLPTokenManager.ownerOf(nftId)).to.not.eq(user1.address);
+
+            await expect(
+                rewardPoolContract.connect(user1).unstake(nft.info.poolTokenId)
+            ).to.be.revertedWith("not owner");
         });
 
     });

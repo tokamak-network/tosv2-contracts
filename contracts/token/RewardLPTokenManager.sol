@@ -120,7 +120,7 @@ contract RewardLPTokenManager is
         });
 
         _mint(to, tokenId);
-        // console.log("nft mint tokenId %s ",tokenId);
+        console.log("*** nft mint tokenId %s ",tokenId);
 
         addUserToken(to, tokenId);
 
@@ -158,7 +158,6 @@ contract RewardLPTokenManager is
         address to,
         uint256 tokenId
     ) internal virtual override(ERC721){
-        super._transfer(from, to, tokenId);
         if(from != address(0) && to != address(0)){
             LibRewardLPToken.RewardTokenInfo storage info = deposits[tokenId];
             info.owner = to;
@@ -170,6 +169,7 @@ contract RewardLPTokenManager is
                     info.factoredAmount
                 );
         }
+        super._transfer(from, to, tokenId);
     }
 
     function balanceOf(address _rewardPool, uint256 factoredAmount) public view returns (uint256) {
@@ -217,7 +217,7 @@ contract RewardLPTokenManager is
 
         require(hasRole(USER_ROLE, _msgSender()), "RewardLPTokenManager: must have user role to use");
         require(amount > 0, "zero amount");
-        require(usableAmount(tokenId) > amount, "usabeAmount is insufficient");
+        require(amount <= usableAmount(tokenId), "usabeAmount is insufficient");
         LibRewardLPToken.RewardTokenInfo storage info = deposits[tokenId];
 
         info.usedAmount += amount;
