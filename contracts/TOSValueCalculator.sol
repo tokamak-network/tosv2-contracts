@@ -106,7 +106,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
     }
 
 
-    //WETH-TOS Pool에서 1TOS = ? ETH를 반환한다
+    //WETH-TOS Pool에서 1TOS = ? ETH를 반환한다 (ether단위로 반환) -> ? ETH/1TOS
     function getWETHPoolTOSPrice() public override view returns (uint256 price) {
         uint tosOrder = getTOStoken0(weth,3000);
         if(tosOrder == 2 && tosOrder == 3) {
@@ -121,7 +121,8 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
-    //1TOS = ? ERC20 -> ?ERC20/1TOS
+    //1TOS = ? ERC20 -> ?ERC20/1TOS 
+    //TOS와 비율을 알고 싶은 erc20주소와 TOS-ERC20_Pool주소 fee를 입력함 -> 1TOS = ? Token에서 ? 비율
     function getTOSERC20PoolTOSPrice(address _erc20address, address _tosERC20Pool, uint24 fee) public override view returns (uint256 price) {
         uint tosOrder = getTOStoken0(_erc20address,fee);
         uint decimalCalcul;
@@ -145,6 +146,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
     }
 
     // 1ERC20 = ?TOS -> ?TOS/1ERC20
+    // TOS와 비율을 알고 싶은 erc20주소와 TOS-ERC20_Pool주소 fee를 입력함 -> 1token = ? TOS에서 ? 비율
     function getTOSERC20PoolERC20Price(address _erc20address, address _tosERC20Pool, uint24 fee) public override view returns (uint256 price) {
         uint tosOrder = getTOStoken0(_erc20address,fee);
         uint decimalCalcul;
@@ -169,6 +171,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
 
     //token0이 TOS면 0을 리턴, token1이 TOS면 1을 리턴, tokenPool 이없으면 2를 리턴, 3은 리턴하면 안됨.
     //_fee is 500, 3000, 10000
+    // tos와 pool인데 pool주소는 모르고 erc20주소 넣고 싶을때
     function getTOStoken0(address _erc20Addresss, uint24 _fee) public override view returns (uint) {
         address getPool = UniswapV3Factory.getPool(address(tos), address(_erc20Addresss), _fee);
         if(getPool == address(0)) {
@@ -187,6 +190,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
     }
 
     //token0이 tos면 0을 리턴, token1이 tos면 1을 리턴, tos주소가 없으면 3을 리턴
+    //tos와 pool인데 Pool주소를 알때
     function getTOStoken(address _poolAddress) public view returns (uint) {
         address token0Address = IIUniswapV3Pool(_poolAddress).token0();
         address token1Address = IIUniswapV3Pool(_poolAddress).token1();
@@ -211,6 +215,44 @@ contract TOSValueCalculator is ITOSValueCalculator {
             return 3;
         }
     }
+
+    //tokenID의 amount0이랑 amount1의 갯수를 리턴한다.
+    function getTokenIdAmount(address _poolAddress, uint256 _tokenId)
+        public
+        view
+        returns (uint256 amount0, uint256 amount1) 
+    {
+        (amount0, amount1) = getAmounts(npm_,_poolAddress,_tokenId);
+        return (amount0,amount1);
+    }  
+
+    //tokenId의 ETHValue를 리턴
+    //poolAddress는 tos - ? Pool 만 지원
+    //tosNum == 0이면 amount0 이 tos양을 나타냄 tos * (?ETH/1TOS), amount1은 다른 토큰 token * (ETH/1TOS * TOS/1ERC20)
+    //tosNum == 1이면 amount0 이 token양을 나타냄  token * (ETH/1TOS * TOS/1ERC20), amoun1은 tos * (?ETH/1TOS)
+    function getTokenIDETHValue(address _poolAddress, uint256 _tokenId)
+        public
+        view
+        returns (uint256 ethValue)
+    {   
+        ( , ,address token0 ,address token1 , uint24 fee,
+            int24 tickLower,
+            int24 tickUpper,
+            uint128 liquidity, , , ,
+        ) = IINonfungiblePositionManager(npm_).positions(_tokenId);
+
+        uint tosNum;
+        tosNum = getTOStoken(_poolAddress);
+        (uint256 amount0,uint256 amount1) = getTokenIdAmount(_poolAddress,_tokenId);
+        if(tosNum == 0){
+            ethValue = (amount0*getWETHPoolTOSPrice());
+            ethValue = ethValue + (amount1*getWETHPoolTOSPrice()*getTOSERC20PoolERC20Price(token1,_poolAddress,fee));
+        } else if (tosNum == 1){
+            ethValue = (amount1*getWETHPoolTOSPrice());
+            ethValue = ethValue + (amount0*getWETHPoolTOSPrice()*getTOSERC20PoolERC20Price(token0,_poolAddress,fee));
+        }
+    }
+
 
     function getAmounts(address npm, address poolAddress, uint256 tokenId)
         public view returns (uint256 amount0, uint256 amount1) {

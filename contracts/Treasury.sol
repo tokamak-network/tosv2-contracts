@@ -55,6 +55,8 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     Backing[] public backings;
 
     address[] public backingLists;
+    uint256[] public tokenIdLists;
+
     mapping(uint256 => uint256) public backingList;
 
     string internal notAccepted = "Treasury: not accepted";
@@ -76,6 +78,10 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         calculator = _calculator;
     }
 
+    //uniswapV3 LP token을 deposit할 수 있어야함
+    //uniswapV3 LP token을 backing할 수 있어야함
+    //uniswapV3 token을 manage할 수 있어야함, swap(TOS -> ETH) Treasury가 가지고 있는 물량 onlyPolicy , mint(treasury가 주인), increaseLiquidity(treasury물량을 씀) , collect(treasury가 받음), decreaseLiquidity(treasury한테 물량이 감)
+    
     /**
      * @notice allow approved address to deposit an asset for TOS (token의 현재 시세에 맞게 입금하고 TOS를 받음)
      * @param _amount uint256
@@ -123,7 +129,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         emit Withdrawal(_token, _amount, value);
     }
 
-    //TOS mint 권한 및 통제? 설정 필요
+    //TOS mint 권한 및 통제 설정 필요
     function mint(address _recipient, uint256 _amount) external override {
         require(permissions[STATUS.REWARDMANAGER][msg.sender], notApproved);
         ITOS(address(TOS)).mint(_recipient, _amount);
@@ -216,8 +222,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     function addbackingList(address _address,address _tosPooladdress, uint24 _fee) external onlyPolicyOwner {
         uint256 amount = IERC20(_address).balanceOf(address(this));
         backingList[backings.length] = amount;
-        // backingList[backingLists.length] = amount;
-        // backingLists.push(_address);
+
         backings.push(
             Backing({
                 erc20Address: _address,
@@ -225,6 +230,10 @@ contract Treasury is ITreasury, ProxyAccessCommon {
                 fee: _fee
             })
         );
+    }
+
+    function addbackingIdList(uint256 _tokenId) external onlyPolicyOwner {
+
     }
 
     //현재 지원하는 자산을 최신으로 업데이트 시킴
@@ -255,12 +264,13 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     //eth, weth, market에서 받은 자산 다 체크해야함
     //환산은 eth단위로 
     //Treasury에 있는 자산을 ETH로 환산하여서 합하여 리턴함
+    // token * (? ETH/1TOS * ?ERC20/1TOS)
     function backingReserve() public view returns (uint256) {
         uint256 totalValue;
         uint256 tosETHPrice = ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
         for(uint256 i = 0; i < backings.length; i++) {
             uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));
-            uint256 tosERC20Price = ITOSValueCalculator(calculator).getTOSERC20PoolTOSPrice(backings[i].erc20Address,backings[i].tosPoolAddress,backings[i].fee);
+            uint256 tosERC20Price = ITOSValueCalculator(calculator).getTOSERC20PoolERC20Price(backings[i].erc20Address,backings[i].tosPoolAddress,backings[i].fee);
             totalValue = totalValue + (amount * tosERC20Price * tosETHPrice);
         }
         totalValue = totalValue + ETHbacking;
