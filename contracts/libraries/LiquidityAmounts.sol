@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+// import '@uniswap/v3-core/contracts/libraries/FixedPoint96.sol';
 import './FullMath.sol';
 import './FixedPoint96.sol';
-import './FixedPoint128.sol';
-import './SafeMath512.sol';
+
 import "hardhat/console.sol";
+
 
 /// @title Liquidity amount functions
 /// @notice Provides functions for computing liquidity amounts from token amounts and prices
@@ -27,7 +28,7 @@ library LiquidityAmounts {
         uint160 sqrtRatioAX96,
         uint160 sqrtRatioBX96,
         uint256 amount0
-    ) internal view returns (uint128 liquidity) {
+    ) internal pure returns (uint128 liquidity) {
         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
         uint256 intermediate = FullMath.mulDiv(sqrtRatioAX96, sqrtRatioBX96, FixedPoint96.Q96);
         return toUint128(FullMath.mulDiv(amount0, intermediate, sqrtRatioBX96 - sqrtRatioAX96));
@@ -43,7 +44,7 @@ library LiquidityAmounts {
         uint160 sqrtRatioAX96,
         uint160 sqrtRatioBX96,
         uint256 amount1
-    ) internal view returns (uint128 liquidity) {
+    ) internal pure returns (uint128 liquidity) {
         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
         return toUint128(FullMath.mulDiv(amount1, FixedPoint96.Q96, sqrtRatioBX96 - sqrtRatioAX96));
     }
@@ -64,7 +65,7 @@ library LiquidityAmounts {
         uint256 amount1
     ) internal view returns (uint128 liquidity) {
         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
-
+        console.log("getLiquidityForAmounts1");
         if (sqrtRatioX96 <= sqrtRatioAX96) {
             liquidity = getLiquidityForAmount0(sqrtRatioAX96, sqrtRatioBX96, amount0);
         } else if (sqrtRatioX96 < sqrtRatioBX96) {
@@ -86,31 +87,9 @@ library LiquidityAmounts {
         uint160 sqrtRatioAX96,
         uint160 sqrtRatioBX96,
         uint128 liquidity
-    ) internal view returns (uint256 amount0) {
+    ) internal pure returns (uint256 amount0) {
         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
-        // console.log('getAmount0ForLiquidity');
-        // console.log('sqrtRatioAX96 %s', sqrtRatioAX96);
-        // console.log('sqrtRatioBX96 %s', sqrtRatioBX96);
-        /*
-        uint256 info1 = uint256(liquidity) << FixedPoint96.RESOLUTION ;
-        uint256 info2 = sqrtRatioBX96 - sqrtRatioAX96 ;
-        console.log('info1 %s', info1);
-        console.log('info2 %s', info2);
-        (uint256 r0, uint256 r1)  =  SafeMath512.mul512(info1, info2);
-        console.log('r0 %s', r0);
-        console.log('r1 %s', r1);
-        uint256 r = r1 * 2^256 + r0;
-        console.log('r %s', r);
-        (uint256 x0, uint256 x1) = SafeMath512.div512(r0, r1, sqrtRatioBX96);
-        console.log('x0 %s', x0);
-        console.log('x1 %s', x1);
-        (uint256 a0, uint256 a1) = SafeMath512.div512(x0, x1, sqrtRatioAX96);
-        console.log('a0 %s', a0);
-        console.log('a1 %s', a1);
-        uint256 a = a1 * 2^256 + a0;
-        console.log('a %s', a);
-        return a;
-        */
+
         return
             FullMath.mulDiv(
                 uint256(liquidity) << FixedPoint96.RESOLUTION,
@@ -128,11 +107,10 @@ library LiquidityAmounts {
         uint160 sqrtRatioAX96,
         uint160 sqrtRatioBX96,
         uint128 liquidity
-    ) internal view returns (uint256 amount1) {
+    ) internal pure returns (uint256 amount1) {
         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
 
         return FullMath.mulDiv(liquidity, sqrtRatioBX96 - sqrtRatioAX96, FixedPoint96.Q96);
-        //return FullMath.mulDiv(liquidity, sqrtRatioBX96 - sqrtRatioAX96, FixedPoint128.Q128);
     }
 
     /// @notice Computes the token0 and token1 value for a given amount of liquidity, the current
@@ -149,15 +127,18 @@ library LiquidityAmounts {
         uint160 sqrtRatioBX96,
         uint128 liquidity
     ) internal view returns (uint256 amount0, uint256 amount1) {
-
         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+        console.log("getAmountsForLiquidity1");
 
         if (sqrtRatioX96 <= sqrtRatioAX96) {
+            console.log("getAmountsForLiquidity2");
             amount0 = getAmount0ForLiquidity(sqrtRatioAX96, sqrtRatioBX96, liquidity);
         } else if (sqrtRatioX96 < sqrtRatioBX96) {
+            console.log("getAmountsForLiquidity3");
             amount0 = getAmount0ForLiquidity(sqrtRatioX96, sqrtRatioBX96, liquidity);
             amount1 = getAmount1ForLiquidity(sqrtRatioAX96, sqrtRatioX96, liquidity);
         } else {
+            console.log("getAmountsForLiquidity4");
             amount1 = getAmount1ForLiquidity(sqrtRatioAX96, sqrtRatioBX96, liquidity);
         }
     }

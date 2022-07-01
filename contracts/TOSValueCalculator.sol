@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import "./libraries/FullMath.sol";
+// import "./libraries/FullMath.sol";
+// import "./libraries/FixedPoint96.sol";
+
 import "./libraries/TickMath.sol";
 import "./libraries/LiquidityAmounts.sol";
 import "./libraries/OracleLibrary.sol";
 import "./libraries/FixedPoint128.sol";
-import "./libraries/FixedPoint96.sol";
 import "./libraries/PositionKey.sol";
 import "./libraries/SafeMath512.sol";
 
@@ -230,7 +231,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
     //poolAddress는 tos - ? Pool 만 지원
     //tosNum == 0이면 amount0 이 tos양을 나타냄 tos * (?ETH/1TOS), amount1은 다른 토큰 token * (ETH/1TOS * TOS/1ERC20)
     //tosNum == 1이면 amount0 이 token양을 나타냄  token * (ETH/1TOS * TOS/1ERC20), amoun1은 tos * (?ETH/1TOS)
-    function getTokenIDETHValue(address _poolAddress, uint256 _tokenId)
+    function getTokenIdETHValue(address _poolAddress, uint256 _tokenId)
         public
         view
         returns (uint256 ethValue)
@@ -245,12 +246,24 @@ contract TOSValueCalculator is ITOSValueCalculator {
         tosNum = getTOStoken(_poolAddress);
         (uint256 amount0,uint256 amount1) = getTokenIdAmount(_poolAddress,_tokenId);
         if(tosNum == 0){
-            ethValue = (amount0*getWETHPoolTOSPrice());
-            ethValue = ethValue + (amount1*getWETHPoolTOSPrice()*getTOSERC20PoolERC20Price(token1,_poolAddress,fee));
-        } else if (tosNum == 1){
             ethValue = (amount1*getWETHPoolTOSPrice());
-            ethValue = ethValue + (amount0*getWETHPoolTOSPrice()*getTOSERC20PoolERC20Price(token0,_poolAddress,fee));
+            ethValue = ethValue + (amount0*getWETHPoolTOSPrice()*getTOSERC20PoolERC20Price(token1,_poolAddress,fee));
+        } else if (tosNum == 1){
+            ethValue = (amount0*getWETHPoolTOSPrice());
+            ethValue = ethValue + (amount1*getWETHPoolTOSPrice()*getTOSERC20PoolERC20Price(token0,_poolAddress,fee));
         }
+    }
+
+    function tickCheck(uint256 _tokenId)
+        public
+        view
+        returns (int24 tickLower, int24 tickUpper, uint128 liquidity)
+    {
+         ( , , , , ,
+            tickLower,
+            tickUpper,
+            liquidity, , , ,
+        ) = IINonfungiblePositionManager(npm_).positions(_tokenId);
     }
 
 
@@ -267,10 +280,16 @@ contract TOSValueCalculator is ITOSValueCalculator {
             uint128 liquidity, , , ,
         ) = IINonfungiblePositionManager(npm).positions(tokenId);
 
+        console.log("getAmounts 1");
         uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(tickLower);
         uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(tickUpper);
-
+        
+        console.log("getAmounts 2");
         (amount0, amount1) = LiquidityAmounts.getAmountsForLiquidity(sqrtPriceX96, sqrtRatioAX96, sqrtRatioBX96, liquidity);
+        console.log("getAmounts 3");
+        console.log('sqrtRatioAX96 %s ', sqrtRatioAX96);
+        console.log('sqrtRatioAX96 %s ', sqrtRatioBX96);
+        console.log('liquidity %s ', liquidity);
         console.log('amount0 %s ', amount0);
         console.log('amount1 %s ', amount1);
     }

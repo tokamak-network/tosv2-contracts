@@ -264,7 +264,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     //eth, weth, market에서 받은 자산 다 체크해야함
     //환산은 eth단위로 
     //Treasury에 있는 자산을 ETH로 환산하여서 합하여 리턴함
-    // token * (? ETH/1TOS * ?ERC20/1TOS)
+    // token * (? ETH/1TOS * ?TOS/1ERC20) -> ? token * ( ? ETH/1token) -> ? ETH
     function backingReserve() public view returns (uint256) {
         uint256 totalValue;
         uint256 tosETHPrice = ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
