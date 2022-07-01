@@ -122,11 +122,18 @@ describe("price test", function () {
     console.log(uintETHprice2);
   })
 
-  // 1ETH = ? TOS
+  // 1TOS = ? ETH
   it("get TOS-WETHPool TOSPrice", async () => {
     let tosprice = await TOSValueCalculator.getWETHPoolTOSPrice();
     console.log("ETH/TOS Price:", Number(tosprice))
     console.log("real ETH/TOS Price :", (Number(tosprice)/1e18))
+  })
+
+  // 1ETH = ? TOS
+  it("get TOS-WETHPool TOSPrice", async () => {
+    let tosprice = await TOSValueCalculator.getTOSERC20PoolERC20Price(uniswapInfo.weth,uniswapInfo.tosethPool,3000);
+    console.log("TOS/ETH Price:", Number(tosprice))
+    console.log("real TOS/ETH Price :", (Number(tosprice)/1e18))
   })
 
   // 1TOS = ? WTON
@@ -154,41 +161,43 @@ describe("price test", function () {
   })
 
   it("getTokenIdAmount test", async () => {
-    let amount = await TOSValueCalculator.getTokenIdAmount(uniswapInfo.wtonTosPool,tokenIdtoseth);
+    let amount = await TOSValueCalculator.getTokenIdAmount(uniswapInfo.tosethPool,tokenIdtoseth);
     // console.log(amount);
     console.log("amount0 : ", Number(amount.amount0) ); // 1ETH = ? TOS -> ?TOS/1ETH
     console.log("amount1 : ", Number(amount.amount1) ); // 1TOS = ? ETH -> ?ETH/TOS
   })
 
-  // it("getTOkenIdETHVaule eth-tosPool test", async () => {
-  //   let amount = await TOSValueCalculator.getTokenIdETHValue(uniswapInfo.wtonTosPool,tokenIdtoseth);
-  //   console.log("ETH Value : ", Number(amount) );
-  // })
+  it("getTOkenIdETHVaule eth-tosPool test", async () => {
+    let amount = await TOSValueCalculator.getTokenIdETHValue(uniswapInfo.tosethPool,tokenIdtoseth);
+    console.log("ETH Value : ", Number(amount) );
+  })
 
-  // it("ETHVaule calculation test", async () => {
-  //   let tosNum = await TOSValueCalculator.getTOStoken(uniswapInfo.wtonTosPool)
-  //   console.log("tosNum : ", tosNum);
-  //   let amount = await TOSValueCalculator.getTokenIdAmount(uniswapInfo.wtonTosPool,tokenIdtoseth);
-  //   let tosprice = await TOSValueCalculator.getWETHPoolTOSPrice();
-  //   let tosprice2 = await TOSValueCalculator.getTOSERC20PoolERC20Price(uniswapInfo.wton,uniswapInfo.wtonTosPool,3000);
+  it("ETHVaule calculation test", async () => {
+    let tosNum = await TOSValueCalculator.getTOStoken(uniswapInfo.tosethPool)
+    console.log("tosNum : ", tosNum);
+    let amount = await TOSValueCalculator.getTokenIdAmount(uniswapInfo.tosethPool,tokenIdtoseth);
+    let tosprice = await TOSValueCalculator.getWETHPoolTOSPrice();
+    let tosprice2 = await TOSValueCalculator.getTOSERC20PoolERC20Price(uniswapInfo.weth,uniswapInfo.tosethPool,3000);
 
-  //   //amount0 -> 1ETH = ? TOS의 비율임
-  //   //amount1 -> 1TOS = ? ETH의 비율임
+    //amount0 -> 1ETH = ? TOS의 비율임
+    //amount1 -> 1TOS = ? ETH의 비율임
 
 
-  //   let ethValueSum;
-  //   if(tosNum == 0){
-  //     console.log("1")
-  //     ethValueSum = (Number(amount.amount0) * Number(tosprice))
-  //     ethValueSum = ethValueSum + (Number(amount.amount1)*Number(tosprice)*Number(tosprice2))
-  //   } else if (tosNum == 1){
-  //     console.log("2")
-  //     ethValueSum = (Number(amount.amount1) * Number(tosprice))
-  //     ethValueSum = ethValueSum + ((Number(amount.amount0)* Number(tosprice) * Number(tosprice2))/1e36) 
-  //   }
+    let ethValueSum;
+    if(tosNum == 0){
+      console.log("1")
+      ethValueSum = (Number(amount.amount0) * Number(tosprice))/1e18
+      console.log("ethValueSum tos-> eth :", ethValueSum);
+      ethValueSum = ethValueSum + ((Number(amount.amount1)*Number(tosprice)*Number(tosprice2))/1e18/1e18)
+      console.log("ethValueSum2 eth :", ethValueSum);
+    } else if (tosNum == 1){
+      console.log("2")
+      ethValueSum = (Number(amount.amount1) * Number(tosprice))
+      ethValueSum = ethValueSum + ((Number(amount.amount0)* Number(tosprice) * Number(tosprice2))/1e36) 
+    }
 
-  //   console.log("ethValueSum : ", ethValueSum)
-  // })
+    console.log("ethValueSum : ", ethValueSum)
+  })
 
   it("tickCheck test", async () => {
     let tick = await TOSValueCalculator.tickCheck(tokenIdtoseth);

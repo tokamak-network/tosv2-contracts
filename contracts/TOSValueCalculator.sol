@@ -236,21 +236,25 @@ contract TOSValueCalculator is ITOSValueCalculator {
         view
         returns (uint256 ethValue)
     {   
-        ( , ,address token0 ,address token1 , uint24 fee,
-            int24 tickLower,
-            int24 tickUpper,
-            uint128 liquidity, , , ,
+        ( 
+            , ,
+            address token0,
+            address token1,
+            uint24 fee, 
+            , , , , , ,
         ) = IINonfungiblePositionManager(npm_).positions(_tokenId);
 
         uint tosNum;
         tosNum = getTOStoken(_poolAddress);
         (uint256 amount0,uint256 amount1) = getTokenIdAmount(_poolAddress,_tokenId);
         if(tosNum == 0){
-            ethValue = (amount1*getWETHPoolTOSPrice());
-            ethValue = ethValue + (amount0*getWETHPoolTOSPrice()*getTOSERC20PoolERC20Price(token1,_poolAddress,fee));
+            ethValue = (amount0*getWETHPoolTOSPrice())/1e18;
+            console.log("ethValue1 : %s",ethValue);
+            ethValue = ethValue + (amount1*getWETHPoolTOSPrice()*getTOSERC20PoolERC20Price(token1,_poolAddress,fee)/1e18/1e18);
+            console.log("ethValue2 : %s",ethValue);
         } else if (tosNum == 1){
-            ethValue = (amount0*getWETHPoolTOSPrice());
-            ethValue = ethValue + (amount1*getWETHPoolTOSPrice()*getTOSERC20PoolERC20Price(token0,_poolAddress,fee));
+            ethValue = (amount1*getWETHPoolTOSPrice());
+            ethValue = ethValue + (amount0*getWETHPoolTOSPrice()*getTOSERC20PoolERC20Price(token0,_poolAddress,fee));
         }
     }
 
@@ -280,16 +284,10 @@ contract TOSValueCalculator is ITOSValueCalculator {
             uint128 liquidity, , , ,
         ) = IINonfungiblePositionManager(npm).positions(tokenId);
 
-        console.log("getAmounts 1");
         uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(tickLower);
         uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(tickUpper);
         
-        console.log("getAmounts 2");
         (amount0, amount1) = LiquidityAmounts.getAmountsForLiquidity(sqrtPriceX96, sqrtRatioAX96, sqrtRatioBX96, liquidity);
-        console.log("getAmounts 3");
-        console.log('sqrtRatioAX96 %s ', sqrtRatioAX96);
-        console.log('sqrtRatioAX96 %s ', sqrtRatioBX96);
-        console.log('liquidity %s ', liquidity);
         console.log('amount0 %s ', amount0);
         console.log('amount1 %s ', amount1);
     }
