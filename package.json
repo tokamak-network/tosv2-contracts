@@ -17,6 +17,9 @@
     "web3-eth-abi": "^1.7.3"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.5.0"
+    "@openzeppelin/contracts": "^4.5.0",
+    "dotenv": "^16.0.1",
+    "hardhat-gas-reporter": "^1.0.8",
+    "web3-eth-abi": "^1.7.3"
   }
 }

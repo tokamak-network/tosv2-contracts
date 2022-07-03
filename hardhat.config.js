@@ -2,9 +2,9 @@
 require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
-require("@nomiclabs/hardhat-web3");
+
 require("hardhat-gas-reporter");
-// require("dotenv/config");
+require("dotenv/config");
 
 require("dotenv").config();
 
@@ -43,8 +43,11 @@ module.exports = {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts: [`${process.env.PRIVATE_KEY}`],
       gasMultiplier: 1.25,
-      gasPrice: 95000000000,
+      gasPrice: 25000000000,
     },
+  },
+  localhost: {
+    timeout: 100000000,
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
@@ -58,7 +61,6 @@ module.exports = {
       },
     },
   },
-  //solidity: "0.8.0",
   paths: {
     sources: "./contracts",
     tests: "./test",
@@ -66,6 +68,6 @@ module.exports = {
     artifacts: "./artifacts",
   },
   mocha: {
-    timeout: 10000000,
+    timeout: 100000000,
   },
 };

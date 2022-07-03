@@ -63,7 +63,7 @@ library LiquidityAmounts {
         uint160 sqrtRatioBX96,
         uint256 amount0,
         uint256 amount1
-    ) internal view returns (uint128 liquidity) {
+    ) internal pure returns (uint128 liquidity) {
         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
         console.log("getLiquidityForAmounts1");
         if (sqrtRatioX96 <= sqrtRatioAX96) {
@@ -89,7 +89,41 @@ library LiquidityAmounts {
         uint128 liquidity
     ) internal pure returns (uint256 amount0) {
         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
+        // console.log('getAmount0ForLiquidity');
+        // console.log('sqrtRatioAX96 %s', sqrtRatioAX96);
+        // console.log('sqrtRatioBX96 %s', sqrtRatioBX96);
+        /*
 
+        uint256 info1 = uint256(liquidity) << FixedPoint96.RESOLUTION ;
+        uint256 info2 = sqrtRatioBX96 - sqrtRatioAX96 ;
+
+        console.log('info1 %s', info1);
+        console.log('info2 %s', info2);
+
+
+        (uint256 r0, uint256 r1)  =  SafeMath512.mul512(info1, info2);
+        console.log('r0 %s', r0);
+        console.log('r1 %s', r1);
+
+
+        uint256 r = r1 * 2^256 + r0;
+        console.log('r %s', r);
+
+        (uint256 x0, uint256 x1) = SafeMath512.div512(r0, r1, sqrtRatioBX96);
+        console.log('x0 %s', x0);
+        console.log('x1 %s', x1);
+
+
+        (uint256 a0, uint256 a1) = SafeMath512.div512(x0, x1, sqrtRatioAX96);
+        console.log('a0 %s', a0);
+        console.log('a1 %s', a1);
+
+        uint256 a = a1 * 2^256 + a0;
+
+        console.log('a %s', a);
+
+        return a;
+        */
         return
             FullMath.mulDiv(
                 uint256(liquidity) << FixedPoint96.RESOLUTION,
@@ -126,7 +160,7 @@ library LiquidityAmounts {
         uint160 sqrtRatioAX96,
         uint160 sqrtRatioBX96,
         uint128 liquidity
-    ) internal view returns (uint256 amount0, uint256 amount1) {
+    ) internal pure returns (uint256 amount0, uint256 amount1) {
         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
         console.log("getAmountsForLiquidity1");
 
