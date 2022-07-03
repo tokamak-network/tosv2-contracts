@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.0;
 
+import "./BondDepositoryStorage.sol";
+
 import "./libraries/SafeERC20.sol";
 
 import "./interfaces/IERC20Metadata.sol";
 
-import "./interfaces/IdTOS.sol";
-import "./interfaces/IStaking.sol";
-import "./interfaces/ITreasury.sol";
 import "./interfaces/ITOSValueCalculator.sol";
 
 import "./interfaces/IBondDepository.sol";
@@ -16,7 +15,11 @@ import "./common/ProxyAccessCommon.sol";
 
 import "hardhat/console.sol"; 
 
-contract BondDepository is IBondDepository, ProxyAccessCommon {
+contract BondDepository is 
+    BondDepositoryStorage,
+    ProxyAccessCommon,
+    IBondDepository
+{
     using SafeERC20 for IERC20;
 
     /* ======== EVENTS ======== */
@@ -27,42 +30,11 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
 
     event Received(address, uint);
 
-    /* ======== STATE VARIABLES ======== */
+    constructor() {
 
-    // Storage
-    Market[] public markets; // persistent market data
-    Metadata[] public metadata; // extraneous market data
-
-    mapping(address => User[]) public users;
-
-    IERC20 public tos;
-    IdTOS public dTOS;
-    IStaking public staking;
-    ITreasury public treasury;
-    address public calculator;
-
-    address payable treasuryContract;
-
-    uint256 public mintRate;
-
-    constructor(
-        IERC20 _tos,
-        IdTOS _dtos,
-        IStaking _staking,
-        ITreasury _treasury,
-        address _calculator
-    ) {
-        _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
-        _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-
-        tos = _tos;
-        dTOS = _dtos;
-        staking = _staking;
-        treasury = _treasury;
-        calculator = _calculator;
-        tos.approve(address(_staking), 1e45);
     }
+
+    
 
      /**
      * @notice             creates a new market type

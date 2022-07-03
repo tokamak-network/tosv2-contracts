@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
+import "./TreasuryStorage.sol";
+
 import "./libraries/SafeMath.sol";
 import "./libraries/SafeERC20.sol";
 
-import "./interfaces/IERC20.sol";
+// import "./interfaces/IERC20.sol";
+
 import "./interfaces/IERC20Metadata.sol";
 import "./interfaces/ITOS.sol";
 import "./interfaces/ITreasury.sol";
@@ -13,7 +16,7 @@ import "./interfaces/ITOSValueCalculator.sol";
 import "./common/ProxyAccessCommon.sol";
 
 
-contract Treasury is ITreasury, ProxyAccessCommon {
+contract Treasury is TreasuryStorage, ProxyAccessCommon, ITreasury {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -23,59 +26,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     event Permissioned(address addr, STATUS indexed status, bool result);
     event ReservesAudited(uint256 indexed totalReserves);
 
-    enum STATUS {
-        RESERVEDEPOSITOR,
-        RESERVESPENDER,
-        RESERVETOKEN,
-        RESERVEMANAGER,
-        LIQUIDITYDEPOSITOR,
-        LIQUIDITYTOKEN,
-        LIQUIDITYMANAGER,
-        REWARDMANAGER
-    }
-
-    struct Backing {
-        address erc20Address;
-        address tosPoolAddress;
-        uint24 fee; 
-    }
-
-    IERC20 public TOS;
-
-    address public calculator;
-
-    mapping(STATUS => address[]) public registry;
-    mapping(STATUS => mapping(address => bool)) public permissions;
-    mapping(address => address) public bondCalculator;
-
-    uint256 public totalReserves;
-    uint256 public ETHbacking;
-    uint256 public tosBacking;
-
-    Backing[] public backings;
-
-    address[] public backingLists;
-    uint256[] public tokenIdLists;
-
-    mapping(uint256 => uint256) public backingList;
-
-    string internal notAccepted = "Treasury: not accepted";
-    string internal notApproved = "Treasury: not approved";
-    string internal invalidToken = "Treasury: invalid token";
-    string internal insufficientReserves = "Treasury: insufficient reserves";
-
-    constructor(
-        address _tos,
-        address _calculator
-    ) {
-        require(_tos != address(0), "Zero address: TOS");
-
-        _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
-        _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-
-        TOS = IERC20(_tos);
-        calculator = _calculator;
+    constructor() {
     }
 
     //uniswapV3 LP token을 deposit할 수 있어야함

@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "./libraries/SafeMath.sol";
 import "./libraries/SafeERC20.sol";
 
+import "./StakingV2Storage.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/ILockTOSv2Action0.sol";
 import "./interfaces/ITreasury.sol";
@@ -14,7 +15,10 @@ import "./common/ProxyAccessCommon.sol";
 
 import "hardhat/console.sol"; 
 
-contract StakingV2 is ProxyAccessCommon {
+contract StakingV2 is 
+    StakingV2Storage, 
+    ProxyAccessCommon 
+{
     /* ========== DEPENDENCIES ========== */
 
     using SafeMath for uint256;
@@ -24,98 +28,8 @@ contract StakingV2 is ProxyAccessCommon {
 
     event WarmupSet(uint256 warmup);
 
-    /* ========== DATA STRUCTURES ========== */
-
-    struct Epoch {
-        uint256 length_; // in seconds
-        uint256 number; // since inception
-        uint256 end; // timestamp
-    }
-
-    // struct Claim {
-    //     uint256 deposit; // if forfeiting
-    //     uint256 gons; // staked balance
-    //     uint256 expiry; // end of warmup period
-    //     bool lock; // prevents malicious delays for claim
-    // }
-
-    // struct Users {
-    //     uint256 deposit;    // tos staking한 양
-    //     uint256 LTOS;       // LTOS 양
-    //     uint256 startTime;  // 시작 startTime
-    //     uint256 epoEnd;     // lock기간
-    //     uint256 getReward;  // 이미 받아간 claim 양
-    //     bool claim;         // claim 유무          
-    // }
-
-    struct UserBalance {
-        uint256 deposit;    //tos staking 양
-        uint256 LTOS;       //변환된 LTOS 양
-        uint256 startTime;  //시작 startTime
-        uint256 endTime;    //끝나는 endTime
-        uint256 getLTOS;    //이미 받아간 LTOS양
-        uint256 rewardTOS;  //받아간 TOS양
-    }
-
-    /* ========== STATE VARIABLES ========== */
-
-    IERC20 public immutable TOS;
-    ILockTOSv2Action0 public lockTOS;
-    ITreasury public treasury;
-
-    Epoch public epoch;
-
-    // mapping(address => Claim) public warmupInfo;
-    // mapping(address => Users) public userInfo;
-
-    uint256 public epochUnit;
-
-    uint256 public index_;
-
-    uint256 internal free = 1;
-
-    uint256 public totaldeposit;
-    uint256 public totalLTOS;
-
-    uint256 public rebasePerEpoch;
-
-    uint256 public stakingIdCounter;
-
-    mapping(address => uint256[]) public userStakings;
-    mapping(uint256 => UserBalance) public allStakings;
-    mapping(address => mapping(uint256 => UserBalance)) public stakingBalances;
-
     /* ========== CONSTRUCTOR ========== */
-
-    //addr[0] = tos, addr[1] = lockTOS
-    //_epoch[0] = _epochLength, _epoch[1] = _firstEpochNumber, _epoch[2] =  _firstEpochTime, _epoch[3] = _epochUnit
-    constructor(
-        address _tos,
-        uint256[4] memory _epoch,
-        address _lockTOS,
-        ITreasury _treasury
-    ) {
-        require(_tos != address(0), "Zero address : TOS");
-        require(_lockTOS != address(0), "Zero address : lockTOS");
-
-        _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
-        _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        
-        TOS = IERC20(_tos);
-        lockTOS = ILockTOSv2Action0(_lockTOS);
-        treasury = _treasury;
-
-        epoch = Epoch({length_: _epoch[0], number: _epoch[1], end: _epoch[2]});
-        epochUnit = _epoch[3];
-    }
-
-    /// @dev Check if a function is used or not
-    modifier ifFree {
-        require(free == 1, "LockId is already in use");
-        free = 0;
-        _;
-        free = 1;
+    constructor() {
     }
 
     /* ========== SET VALUE ========== */
