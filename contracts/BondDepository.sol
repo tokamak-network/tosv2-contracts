@@ -27,14 +27,11 @@ contract BondDepository is
     event CreateMarket(uint256 indexed id, uint256 saleAmount, uint256 endTime);
     event CloseMarket(uint256 indexed id);
     event Bond(uint256 indexed id, uint256 amount, uint256 payout);
-
     event Received(address, uint);
 
     constructor() {
 
     }
-
-    
 
      /**
      * @notice             creates a new market type
@@ -239,7 +236,10 @@ contract BondDepository is
         treasuryContract.transfer(msg.value);
 
         uint256 transAmount = mrAmount - payout_;
-        tos.safeTransfer(address(ITreasury(treasury)),transAmount);
+        //transAmount는 treasury에 갈 Amount이다. 
+        //payAmount는 transAmount물량 중 재단에 쌓이는 물량이다. 그래서 최종적으로 transAmount - payAmount가 treasury에 쌓인다
+        uint256 payAmount = transferLogic(transAmount);
+        tos.safeTransfer(address(ITreasury(treasury)),(transAmount - payAmount));
 
         //update the backingData
         treasury.backingUpdate();
@@ -266,6 +266,30 @@ contract BondDepository is
 
     function setMR(uint256 _mrRate) external onlyPolicyOwner {
         mintRate = _mrRate;
+    }
+
+    function addTransfer(address _addr, uint256 _percents) external onlyPolicyOwner {
+        require(_percents > 0 && _percents < 100, "_percents setting err");
+        require(totalPercents + _percents < 100, "totalPercents need small 100");
+        
+        mintingList[mintingList.length] = _addr;
+        totalPercents = totalPercents + _percents;
+
+        mintings.push(
+            Minting({
+                mintAddress: _addr,
+                mintPercents: _percents
+            })
+        );
+    }
+
+    function transferLogic(uint256 _transAmount) internal returns (uint256 totalAmount){
+        for(uint256 i = 0; i < mintingList.length; i++) {
+            uint256 eachAmount = _transAmount * mintings[i].mintPercents;
+            totalAmount = totalAmount + eachAmount;
+            tos.safeTransfer(mintings[i].mintAddress,eachAmount);
+        }
+        return totalAmount;
     }
 
     //이더리움(가격)을 기준으로만 mintingRate를 정한다. -> MR은 어떻게 정할까? admin이 세팅할 수 있고 비율은 나중에 알려줌 (admin이 정하게하면 됨) 

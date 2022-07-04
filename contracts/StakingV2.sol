@@ -108,6 +108,7 @@ contract StakingV2 is
         uint256 sTOSid;
         if(_lockTOS == true) {
             sTOSid = lockTOS.createLockByStaker(_to,_amount,_periodWeeks);
+            connectId[stakeId] = sTOSid;
             // sTOSid = lockTOS.createLock(_amount,_periodWeeks);
         }
     }
@@ -267,4 +268,33 @@ contract StakingV2 is
         return ((totalLTOS * nextIndex())/1e18) - totaldeposit;
     }
 
+    //sTOS 마이그레이션 sTOS에 있는 TOS를 가져오고 여기에 등록시켜준다
+    //TOS는 어떻게 가져올 것인가?
+    //기존 정보는 있으니까 그냥 TOS만 가지고오고 여기에 sTOS 정보만 저장?
+    function syncSTOS(
+        address[] memory accounts,
+        uint256[] memory balances,
+        uint256[] memory period,
+        uint256[] memory tokenId
+    )
+        external
+        onlyOwner
+        returns (bool)
+    {
+        require(accounts.length == balances.length, "No balances same length");
+        
+        uint256 stakeId;
+
+        for (uint256 i = 0; i < accounts.length; i++ ) {
+            stakingIdCounter = stakingIdCounter + 1;
+            stakeId = stakingIdCounter;
+            userStakings[accounts[i]].push(stakeId);
+
+            connectId[stakeId] = tokenId[i];
+        
+            _stake(accounts[i],stakeId,balances[i],period[i]);
+        }
+
+        return true;
+    }
 }

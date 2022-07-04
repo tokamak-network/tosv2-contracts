@@ -14,7 +14,7 @@ contract BondDepositoryProxy is
 
     function initialize(
         IERC20 _tos,
-        IdTOS _dtos,
+        IDTOS _dtos,
         IStaking _staking,
         ITreasury _treasury,
         address _calculator

@@ -68,6 +68,8 @@ contract StakingV2Storage {
     mapping(uint256 => UserBalance) public allStakings;
     mapping(address => mapping(uint256 => UserBalance)) public stakingBalances;
 
+    mapping(uint256 => uint256) public connectId;
+
     modifier nonZero(uint256 tokenId) {
         require(tokenId != 0, "BondDepository: zero uint");
         _;
