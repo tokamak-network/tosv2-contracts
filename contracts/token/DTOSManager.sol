@@ -31,6 +31,8 @@ interface IIRewardPool {
     function tosAddress() external view returns (address);
     function balanceOf(address account) external view  returns (uint256 amount);
     function totalSupply() external view  returns (uint256 amount);
+    function balanceOfAt(address account, uint256 snapshotId) external view  returns (uint256 amount);
+    function totalSupplyAt(uint256 snapshotId) external view  returns (uint256 amount);
     function currentSnapshotId() external view returns (uint256);
 
     function dTosBaseRate() external view returns (uint256);
@@ -39,6 +41,8 @@ interface IIRewardPool {
 
     function setDtosBaseRate(uint256 _baseRates) external;
     function setRebaseInfo(uint256 _period, uint256 _interest) external;
+
+    function snapshot() external returns (uint256);
 }
 
 contract dTOSManager is
@@ -48,6 +52,8 @@ contract dTOSManager is
     IDTOSManager
 {
     using SArrays for uint256[];
+
+    event onSnapshot(uint256 snapshotId);
 
     constructor() {
     }
@@ -118,6 +124,7 @@ contract dTOSManager is
     function deletePool(address _pool) public override nonZeroAddress(_pool) onlyOwner
     {
         uint256 _index = poolIndex[_pool];
+
         if (_index > 0 && _index < pools.length) {
             if (_index < pools.length-1) pools[_index] = pools[pools.length-1];
             pools.pop();
@@ -125,7 +132,7 @@ contract dTOSManager is
         }
     }
 
-    function savePoolSnapshots() public override
+    function snapshot() public override
     {
         curSnapshotId++;
 
@@ -133,10 +140,10 @@ contract dTOSManager is
         for (uint256 i = 1; i < len; i++) {
             address pool = pools[i];
             if (pool != address(0)) {
-                uint256 id = IIRewardPool(pool).currentSnapshotId();
-                poolSnapshots[curSnapshotId].push(Snapshot(pool, id));
+                poolSnapshots[curSnapshotId].push(Snapshot(pool, IIRewardPool(pool).snapshot()));
             }
         }
+        emit onSnapshot(curSnapshotId);
     }
 
     /// Only RewardPool
@@ -148,9 +155,8 @@ contract dTOSManager is
 
     ) external onlyRewardPool returns (uint256 rewardLP)
     {
-        // console.log("mintNFT in %s", tokenId);
         rewardLP = IIRewardLPTokenManager(rewardLPTokenManager).mint(staker, msg.sender, tokenId, tosAmount, factoredAmount);
-        // console.log("mintNFT out %s", rewardLP);
+
     }
 
     /// Only RewardPool
@@ -159,7 +165,6 @@ contract dTOSManager is
 
     ) external onlyRewardPool
     {
-        // console.log("burn %s", rTokenId);
         IIRewardLPTokenManager(rewardLPTokenManager).burn(rTokenId);
     }
 
@@ -195,7 +200,7 @@ contract dTOSManager is
         uint256 len = snaps.length;
 
         for (uint256 i = 0; i < len; i++) {
-            if (snaps[i].poolAddress != address(0)) amount += balanceOf(snaps[i].poolAddress, account);
+            if (snaps[i].poolAddress != address(0)) amount += IIRewardPool(snaps[i].poolAddress).balanceOfAt(account, snaps[i].snapshotId);
         }
     }
 
@@ -205,7 +210,7 @@ contract dTOSManager is
         uint256 len = snaps.length;
 
         for (uint256 i = 0; i < len; i++) {
-            if (snaps[i].poolAddress != address(0)) amount += totalSupply(snaps[i].poolAddress);
+            if (snaps[i].poolAddress != address(0)) amount += IIRewardPool(snaps[i].poolAddress).totalSupplyAt(snaps[i].snapshotId);
         }
     }
 
@@ -229,8 +234,16 @@ contract dTOSManager is
         return IPolicy(policyAddress).initialInterestRatePerRebase();
     }
 
-    function dtosBaseRate(address pool) external view returns (uint256 amount)
-    {
+    function dtosBaseRate(address pool) external view returns (uint256 amount){
         return IIRewardPool(pool).dTosBaseRate();
+    }
+
+    function getSnapshotId(address pool, uint256 id) external view returns (uint256 _poolSnapshotId) {
+        if(pool == address(0)) return 0;
+        Snapshot[] memory snapshots = poolSnapshots[id];
+        for(uint256 i = 0; i < snapshots.length; i++){
+            if(snapshots[i].poolAddress == pool) return snapshots[i].snapshotId;
+        }
+        return 0;
     }
 }

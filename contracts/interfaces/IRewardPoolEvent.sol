@@ -19,5 +19,6 @@ interface IRewardPoolEvent {
     event TransferFrom(address from, address to, uint256 tokenId, uint256 amount);
 
     event Rebased(uint256 prevFactor, uint256 newFactor, uint256 lastRebaseTime, uint256 total, uint256 profits);
+
 }
 

@@ -12,6 +12,10 @@ interface IIDTOS_RPF {
 
 }
 
+interface IIPolicy {
+    function wethAddress() external view returns(address);
+
+}
 contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
 {
     address public uniswapV3Factory;
@@ -71,6 +75,12 @@ contract RewardPoolFactory is VaultFactory, IRewardPoolFactory
             IUniswapV3Pool(poolAddress).token0() != address(0) &&
             IUniswapV3Pool(poolAddress).token1() != address(0),
             "pool's token is zero"
+        );
+
+        require(
+           (IUniswapV3Pool(poolAddress).token0() == tosAddress ||  IUniswapV3Pool(poolAddress).token0() == IIPolicy(dtosPolicy).wethAddress())
+           || (IUniswapV3Pool(poolAddress).token1() == tosAddress ||  IUniswapV3Pool(poolAddress).token1() == IIPolicy(dtosPolicy).wethAddress()),
+            "pool's token is not tos ot weth"
         );
 
         RewardPoolSnapshotProxy _proxy = new RewardPoolSnapshotProxy();

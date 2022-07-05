@@ -43,7 +43,7 @@ interface IDTOSManager {
     function addPoolAndInitialize(address _pool) external ;
     function addPool(address _pool) external;
     function deletePool(address _pool) external;
-    function savePoolSnapshots() external;
+    function snapshot() external;
 
 
 }

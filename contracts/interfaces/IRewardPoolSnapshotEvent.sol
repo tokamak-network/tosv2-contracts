@@ -27,5 +27,8 @@ interface IRewardPoolSnapshotEvent {
     event Rebased(uint256 prevFactor, uint256 newFactor, uint256 lastRebaseTime, uint256 total, uint256 profits);
 
     event UpdatedBalanceSnapshots(address account, uint256 balances, uint256 factoredAmount);
+
+    event SetFactor(uint256 factor, uint256 id);
+
 }
 

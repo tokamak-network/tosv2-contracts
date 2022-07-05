@@ -40,6 +40,9 @@ interface IIDTOSManager{
     ) external;
 }
 
+interface IIIPolicy {
+    function wethAddress() external view returns (address);
+}
 contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMath, IRewardPoolSnapshotEvent, IRewardPoolSnapshotAction {
 
     using SArrays for uint256[];
@@ -72,24 +75,55 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         emit TransferFrom(from, to, tokenId, amount, factoredAmount);
     }
 
-    function evaluateTOS(uint256 tokenId, address token0, address token1) public view override returns (uint256 tosAmount) {
+    function getTOSPricePerWETH() public view returns(uint256) {
 
+         address getPool = uniswapV3Factory.getPool(tosAddress, IIIPolicy(dtosPolicy).wethAddress(), 3000);
+         if (IUniswapV3Pool(getPool).token0() == tosAddress)
+            return  TOSEvaluator.getPriceToken1(getPool);
+        else return  TOSEvaluator.getPriceToken0(getPool);
+    }
+
+    function evaluateTOS(uint256 tokenId, address token0_, address token1_, uint24 fee) public view override returns (uint256 tosAmount) {
         tosAmount = 0;
+        address wethAddress = IIIPolicy(dtosPolicy).wethAddress();
+        address _pool = address(uniswapV3Factory.getPool(token0_, token1_, fee));
 
+        address _token0 = IUniswapV3Pool(_pool).token0();
+        address _token1 = IUniswapV3Pool(_pool).token1();
+        //
         (uint256 amount0, uint256 amount1) = TOSEvaluator.getAmounts(
-            address(nonfungiblePositionManager), address(pool), tokenId
+            address(nonfungiblePositionManager), _pool, tokenId
         );
 
-        if(token0 == tosAddress){
-            tosAmount += amount0;
-            uint256 price = TOSEvaluator.getPriceToken1(address(pool));
-            if(price > 0) tosAmount += price * amount1 / (10**IIERC20(token1).decimals());
-        }
-        if(token1 == tosAddress) {
-            tosAmount += amount1;
-            uint256 price = TOSEvaluator.getPriceToken0(address(pool));
-            if(price > 0){
-                tosAmount += price * amount0 / (10**IIERC20(token0).decimals());
+        if ( (_token0 == wethAddress || _token1 == wethAddress) && (_token0 != tosAddress && _token1 != tosAddress) ){
+            uint256 wethAmount = 0;
+            if(_token0 == wethAddress){
+                wethAmount += amount0;
+                uint256 price = TOSEvaluator.getPriceToken1(_pool);
+                if(price > 0) wethAmount += price * amount1 / (10**IIERC20(_token1).decimals()) ;
+            }
+            if(_token1 == wethAddress) {
+                wethAmount += amount1;
+                uint256 price = TOSEvaluator.getPriceToken0(_pool);
+                if(price > 0){
+                    wethAmount += price * amount0 / (10**IIERC20(_token0).decimals());
+                }
+            }
+            uint256 priceTos = getTOSPricePerWETH();
+            tosAmount += wethAmount * priceTos / (10**18);
+
+        } else {
+            if(_token0 == tosAddress){
+                tosAmount += amount0;
+                uint256 price = TOSEvaluator.getPriceToken1(_pool);
+                if(price > 0) tosAmount += price * amount1 / (10**IIERC20(_token1).decimals());
+            }
+            if(_token1 == tosAddress) {
+                tosAmount += amount1;
+                uint256 price = TOSEvaluator.getPriceToken0(_pool);
+                if(price > 0){
+                    tosAmount += price * amount0 / (10**IIERC20(_token0).decimals());
+                }
             }
         }
     }
@@ -107,7 +141,7 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
 
         rebase();
 
-        uint256 tosAmount = evaluateTOS(tokenId, _token0, _token1);
+        uint256 tosAmount = evaluateTOS(tokenId, _token0, _token1, 3000);
         require(tosAmount > 0, "tosAmount is zero");
 
         uint256 dtosAmount = tosToDtosAmount(tosAmount);
@@ -502,14 +536,30 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
     {
         uint256 currentId = currentSnapshotId;
         LibFactorSnapshot.FactorSnapshots storage snapshots = factorSnapshots;
+        uint256 latestSnapShotId = _lastSnapshotId(snapshots.ids);
 
-        uint256 index = _lastSnapshotId(snapshots.ids);
-        if (index < currentId) {
+        if (currentId <= latestSnapShotId) {
+            uint256 index = snapshots.ids.findIndex(currentId);
+
+            if(snapshots.ids.length > 0 && index < snapshots.ids.length){
+                snapshots.factors[index] = _factor;
+            } else{
+                snapshots.ids.push(currentId);
+                snapshots.factors.push(_factor);
+            }
+        } else {
             snapshots.ids.push(currentId);
             snapshots.factors.push(_factor);
-        } else {
-            snapshots.factors[snapshots.ids.length-1] = _factor;
         }
+
+        emit SetFactor(_factor, currentId);
+        // uint256 index = _lastSnapshotId(snapshots.ids);
+        // if (index < currentId) {
+        //     snapshots.ids.push(currentId);
+        //     snapshots.factors.push(_factor);
+        // } else {
+        //     snapshots.factors[snapshots.ids.length-1] = _factor;
+        // }
     }
 
     function _calcNewFactor(uint256 source, uint256 target, uint256 oldFactor) internal pure returns (uint256) {
@@ -546,4 +596,8 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         return factor_;
     }
 
+    function getFactorAt(uint256 id) public view override returns (uint256 f) {
+        (, uint256 factor_) = _factorAt(id);
+        return factor_;
+    }
 }

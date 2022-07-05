@@ -10,6 +10,7 @@ interface IPausableContract {
 
 contract dTOSPolicy is AccessibleCommon {
 
+    address public wethAddress;
     uint256 public minDtosBaseRate;
     uint256 public maxDtosBaseRate;
     uint256 public initialDtosBaseRate;
@@ -17,6 +18,7 @@ contract dTOSPolicy is AccessibleCommon {
     uint256 public initialRebaseIntervalSecond;
 
     constructor(
+        address _wethAddress,
         uint256 _min,
         uint256 _max,
         uint256 _initBaseRate,
@@ -27,6 +29,7 @@ contract dTOSPolicy is AccessibleCommon {
             _setupRole(ADMIN_ROLE, msg.sender);
             _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
+            wethAddress = _wethAddress;
             minDtosBaseRate = _min;
             maxDtosBaseRate = _max;
             initialDtosBaseRate = _initBaseRate;
@@ -35,6 +38,13 @@ contract dTOSPolicy is AccessibleCommon {
     }
 
     /// Only Admin
+    function setWethAddress(address addr) external onlyOwner
+    {
+        require(addr != address(0), "zero address");
+        require(wethAddress != addr, "same address");
+        wethAddress = addr;
+    }
+
     function setMinMaxBaseRate(uint256 minValue, uint256 maxValue) external onlyOwner
     {
         require(minDtosBaseRate != minValue || maxDtosBaseRate != maxValue, "same value");

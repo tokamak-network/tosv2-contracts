@@ -19,16 +19,25 @@ describe("RewardPoolSnapshot", function () {
     //------------------------------------------------------------------
     // mainnet test
     //------------------------------------------------------------------
+    // let wethAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     // let tosAddress = "0x409c4D8cd5d2924b9bc5509230d16a61289c8153";
     // let wtontosPool = "0x1c0ce9aaa0c12f53df3b4d8d77b82d6ad343b4e4";
+     let doctosPool = "";
+     let wtonethPool = "";
     */
 
     //------------------------------------------------------------------
     // rinkeby test : Change it with the information of the account running for testing
     //------------------------------------------------------------------
+    let wethAddress = "0xc778417E063141139Fce010982780140Aa0cD5Ab";
     let tosAddress = "0x73a54e5C054aA64C1AE7373C2B5474d8AFEa08bd";
+    let wtonAddress = "0x709bef48982Bbfd6F2D4Be24660832665F53406C";
     let wtontosPool = "0x516e1af7303a94f81e91e4ac29e20f4319d4ecaf";
     let doctosPool = "0x831a1f01ce17b6123a7d1ea65c26783539747d6d";
+    let wtonethPool = "";
+    // let wtonethPool = "";
+    // wtoneth pool's token
+    let ethpool_token = ethers.BigNumber.from("21571");
 
     let lpWTONTOS_tokenId_admin = ethers.BigNumber.from("20968");
     let lpWTONTOS_tokenId2_admin = ethers.BigNumber.from("21313");
@@ -59,11 +68,27 @@ describe("RewardPoolSnapshot", function () {
         poolAddress: null,
         before: {
             balanceOf : null,
-            totalSupply: null
+            totalSupply: null,
+            factor1: null
         },
         after: {
             balanceOf : null,
-            totalSupply: null
+            totalSupply: null,
+            factor1: null
+        }
+    }
+    let dTOSSnapshotInfo = {
+        user: null,
+        snapshotId: null,
+        before: {
+            balanceOf : null,
+            totalSupply: null,
+            factor1: null
+        },
+        after: {
+            balanceOf : null,
+            totalSupply: null,
+            factor1: null
         }
     }
 
@@ -96,6 +121,7 @@ describe("RewardPoolSnapshot", function () {
         uniswapV3Factory: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
         nonfungiblePositionManager: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
         rewardLPTokenManager: null,
+        wethAddress: wethAddress,
         tosAddress: null,
         dTosManager: null,
         dTosManagerImp: null,
@@ -186,7 +212,7 @@ describe("RewardPoolSnapshot", function () {
         // TOS = await ethers.getContractAt("TestERC20", tosAddress);
 
         info.tosAddress = tosAddress;
-
+        info.wethAddress = wethAddress;
     });
 
     it("Create dTOSPolicy", async function () {
@@ -201,6 +227,7 @@ describe("RewardPoolSnapshot", function () {
         // );
 
         policy = await DTOSPolicy.connect(admin).deploy(
+            wethAddress,
             zeroBN,
             zeroBN,
             zeroBN,
@@ -1030,11 +1057,13 @@ describe("RewardPoolSnapshot", function () {
             ).to.be.revertedWith("ERC721: transfer caller is not owner nor approved");
         });
 
-        it("4-5-2/3/4 / 4-8-1 / 4-5-12~15. stake after approve", async function () {
+        it("4-5-2/3/4 / 4-8-1 / 4-5-12~15,17. stake after approve", async function () {
             let stakedTokenId = admin_tokens.token_normal;
             let staker = admin;
 
             snapshotInfo.user = admin;
+
+            let depositAmountPrev = await rewardPoolContract.depositAmount(staker.address);
 
             let tokenCountPrev = await rewardLPTokenManager.userTokenCount(staker.address);
 
@@ -1088,11 +1117,18 @@ describe("RewardPoolSnapshot", function () {
 
             expect(await rewardPoolContract.balanceOf(staker.address)).to.be.eq(await rewardPoolContract.totalSupply());
 
+
+            //---
+            let token0 = await rewardPoolContract.token0();
+            let token1 = await rewardPoolContract.token1();
+            let evaluateTOS = await rewardPoolContract.evaluateTOS(stakedTokenId, token0, token1, ethers.BigNumber.from("3000"));
+            expect(evaluateTOS).to.be.gt(zeroBN);
+            let depositAmountAfter = await rewardPoolContract.depositAmount(staker.address);
+            expect(depositAmountAfter).to.be.eq(depositAmountPrev.add(evaluateTOS));
+
             // =====
             snapshotInfo.before.balanceOf = await rewardPoolContract.balanceOf(snapshotInfo.user.address);
             snapshotInfo.before.totalSupply = await rewardPoolContract.totalSupply();
-            // console.log("snapshotInfo.before.balanceOf", snapshotInfo.before.balanceOf);
-            // console.log("snapshotInfo.before.totalSupply", snapshotInfo.before.totalSupply);
 
             let tx1 = await rewardPoolContract.connect(snapshotInfo.user).snapshot();
             let receipt = await tx1.wait();
@@ -1104,16 +1140,11 @@ describe("RewardPoolSnapshot", function () {
                         let data = receipt.events[i].data;
                         let topics = receipt.events[i].topics;
                         let log = interface.parseLog({data,  topics});
-                        // console.log("Snapshot log ", log.args[0]);
                         snapshotInfo.poolSnapshotId = log.args[0];
                         snapshotInfo.poolAddress = rewardPoolContract.address;
                     }
                 }
             }
-
-            // console.log("getCurrentSnapshotId",await rewardPoolContract.getCurrentSnapshotId() );
-            // console.log("snapshotInfo.poolSnapshotId",snapshotInfo.poolSnapshotId );
-
             expect(await rewardPoolContract["balanceOfAt(address,uint256)"](snapshotInfo.user.address, snapshotInfo.poolSnapshotId))
                 .to.be.eq(snapshotInfo.before.balanceOf);
 
@@ -1652,7 +1683,6 @@ describe("RewardPoolSnapshot", function () {
             );
 
             expect(await rewardPoolContract.dTosBaseRate()).to.be.eq(zeroBN);
-
             expect(
                 await rewardPoolContract["balanceOfAt(address,uint256)"](snapshotInfo.user.address, snapshotInfo.poolSnapshotId)
                 ).to.be.eq(zeroBN);
@@ -1666,6 +1696,24 @@ describe("RewardPoolSnapshot", function () {
             expect(await rewardPoolContract["balanceOf(address)"](snapshotInfo.user.address)).to.be.eq(zeroBN);
             expect(await rewardPoolContract["totalSupply()"]()).to.be.eq(zeroBN);
 
+            //=====
+            await dTosManager.connect(dTosManagerInfo.admin).setDtosBaseRate(
+                rewardPoolContract.address,
+                policyInfo.initialDtosBaseRate
+            );
+            expect(await rewardPoolContract.dTosBaseRate()).to.be.eq(policyInfo.initialDtosBaseRate);
+            expect(
+                await rewardPoolContract["balanceOfAt(address,uint256)"](snapshotInfo.user.address, snapshotInfo.poolSnapshotId)
+                ).to.be.gt(zeroBN);
+            expect(await rewardPoolContract["totalSupplyAt(uint256)"](snapshotInfo.poolSnapshotId)).to.be.gt(zeroBN);
+            expect(
+                    await rewardPoolContract["balanceOfAt(address,uint256)"](snapshotInfo.user.address, snapshotInfo.poolSnapshotId.sub(ethers.constants.One))
+                ).to.be.gt(zeroBN);
+            expect(
+                await rewardPoolContract["totalSupplyAt(uint256)"](snapshotInfo.poolSnapshotId.sub(ethers.constants.One))
+                ).to.be.gt(zeroBN);
+            expect(await rewardPoolContract["balanceOf(address)"](snapshotInfo.user.address)).to.be.gt(zeroBN);
+            expect(await rewardPoolContract["totalSupply()"]()).to.be.gt(zeroBN);
         });
     });
 
@@ -1685,7 +1733,7 @@ describe("RewardPoolSnapshot", function () {
 
             let createdContract = await rewardPoolFactory.lastestCreated();
             expect(createdContract.name).to.be.eq(rewardPoolFactoryInfo2.name);
-            expect(createdContract.contractAddress).to.not.eq("0x0000000000000000000000000000000000000000");
+            expect(createdContract.contractAddress).to.not.eq(ethers.constants.AddressZero);
 
             rewardProgramPoolAddresss.push(createdContract.contractAddress);
             rewardPoolProxyContract2 = await ethers.getContractAt("RewardPoolSnapshotProxy", createdContract.contractAddress);
@@ -1753,8 +1801,8 @@ describe("RewardPoolSnapshot", function () {
         });
     });
 
-    describe("2-2. dTOSManager : Any can execute  ", function () {
-        it("2-2-2~3 / 2-1-13. balanceOf, totalSupply ", async function () {
+    describe("2-2. dTOSManager   ", function () {
+        it("2-2-2~3. balanceOf, totalSupply ", async function () {
             let tester = admin;
 
             let userBalancePrev = await dTosManager["balanceOf(address)"](tester.address);
@@ -1779,22 +1827,129 @@ describe("RewardPoolSnapshot", function () {
             expect(totalSupply).to.be.eq(totalSupply1.add(totalSupply2));
         });
 
-        it("2-2-1. savePoolSnapshots ", async function () {
+        it("2-1-14. deletePool : if caller is not admin(DAO). fail  ", async function () {
+
+            expect(await dTosManager.isAdmin(user2.address)).to.be.eq(false);
+            await expect(
+                dTosManager.connect(user2).deletePool(rewardPoolContract.address)
+            ).to.be.revertedWith("Accessible: Caller is not an admin");
+        });
+
+        it("2-1-14. deletePool ", async function () {
+            let tester = admin;
+            let userBalancePrev = await dTosManager["balanceOf(address)"](tester.address);
+
+            expect(await dTosManager.isAdmin(dTosManagerInfo.admin.address)).to.be.eq(true);
+
+            await dTosManager.connect(dTosManagerInfo.admin).deletePool(rewardPoolContract.address);
+
+            expect(await dTosManager["balanceOf(address)"](tester.address)).to.be.lt(userBalancePrev);
+        });
+
+        it("2-1-13. addPool : if caller is not admin(DAO). fail  ", async function () {
+
+            expect(await dTosManager.isAdmin(user2.address)).to.be.eq(false);
+            await expect(
+                dTosManager.connect(user2).addPool(rewardPoolContract.address)
+            ).to.be.revertedWith("sender is not RewardPoolFactory or Admin");
+        });
+
+        it("2-1-13. addPool ", async function () {
+            let tester = admin;
+            let userBalancePrev = await dTosManager["balanceOf(address)"](tester.address);
+
+            expect(await dTosManager.isAdmin(dTosManagerInfo.admin.address)).to.be.eq(true);
+
+            await dTosManager.connect(dTosManagerInfo.admin).addPool(rewardPoolContract.address);
+
+            expect(await dTosManager["balanceOf(address)"](tester.address)).to.be.gt(userBalancePrev);
+        });
+
+        it("2-2-1. snapshot ", async function () {
+            let tester = admin;
+
+            dTOSSnapshotInfo.user = tester;
+            dTOSSnapshotInfo.before.balanceOf = await dTosManager["balanceOf(address)"](dTOSSnapshotInfo.user.address);
+            dTOSSnapshotInfo.before.totalSupply = await dTosManager["totalSupply()"]();
+
+            dTOSSnapshotInfo.before.factor1 = await rewardPoolContract.getFactor();
+
+            let tx = await dTosManager.connect(tester).snapshot();
+
+            let receipt = await tx.wait();
+            let _function ="onSnapshot(uint256)";
+            let interface = dTosManager.interface;
+            if(receipt.events != null){
+                for(let i=0; i< receipt.events.length; i++){
+                    if(receipt.events[i].topics[0] == interface.getEventTopic(_function)){
+                        let data = receipt.events[i].data;
+                        let topics = receipt.events[i].topics;
+                        let log = interface.parseLog({data,  topics});
+                        dTOSSnapshotInfo.snapshotId = log.args[0];
+                    }
+                }
+            }
+        });
+
+        it("        pass blocks", async function () {
+            let rebaseIntervalSecond = await rewardPoolContract.rebaseIntervalSecond();
+            let passTime =  rebaseIntervalSecond.toNumber() ;
+
+            await ethers.provider.send("evm_increaseTime", [passTime*2]);
+            await ethers.provider.send("evm_mine");
+        });
+
+        it("4-5-5. rebase  ", async function () {
+            let nft = rewardLPTokenManagerInfo.lists[rewardLPTokenManagerInfo.lists.length-1];
+            let owner = nft.owner;
+            let nftId = nft.id;
+
+            let factor = await rewardPoolContract.getFactor();
+            expect(factor).to.be.eq(dTOSSnapshotInfo.before.factor1);
+
+            let lastRebaseTime = await rewardPoolContract.lastRebaseTime();
+
+            await rewardPoolContract.connect(owner).rebase();
+            expect(await rewardPoolContract.getFactor()).to.be.gt(factor);
+            expect(await rewardPoolContract.lastRebaseTime()).to.be.gt(lastRebaseTime);
 
         });
 
-        it("2-2-1. savePoolSnapshots ", async function () {
+        it("2-2-5/6. balanceOfAt, totalSupplyAt  ", async function () {
+            expect(
+                await dTosManager["balanceOf(address)"](dTOSSnapshotInfo.user.address)
+            ).to.be.gt(dTOSSnapshotInfo.before.balanceOf);
 
-        });
+            expect(
+                await dTosManager["totalSupply()"]()
+            ).to.be.gt(dTOSSnapshotInfo.before.totalSupply);
 
-        it("2-2-5/6. balanceOfAt, totalSupplyAt ", async function () {
+            expect(
+                await dTosManager["balanceOfAt(address,uint256)"](dTOSSnapshotInfo.user.address, dTOSSnapshotInfo.snapshotId)
+            ).to.be.eq(dTOSSnapshotInfo.before.balanceOf);
+
+            expect(
+                await dTosManager["totalSupplyAt(uint256)"](dTOSSnapshotInfo.snapshotId)
+            ).to.be.eq(dTOSSnapshotInfo.before.balanceOf);
 
         });
 
         it("2-2-7~11. minDtosBaseRate, maxDtosBaseRate, initialDtosBaseRate ...  ", async function () {
+            expect(await dTosManager.minDtosBaseRate()).to.be.eq(policyInfo.minDtosBaseRate);
+            expect(await dTosManager.maxDtosBaseRate()).to.be.eq(policyInfo.maxDtosBaseRate);
+            expect(await dTosManager.initialDtosBaseRate()).to.be.eq(policyInfo.initialDtosBaseRate);
+            expect(await dTosManager.initialInterestRatePerRebase()).to.be.eq(policyInfo.initialInterestRatePerRebase);
+            expect(await dTosManager.initialRebaseIntervalSecond()).to.be.eq(policyInfo.initialRebaseIntervalSecond);
 
         });
+    });
 
+    describe("4-5. RewardPool : Any can execute    ", function () {
+        it("4-5-16. evaluateTOS : when eth-pool, can get evaluated TOS amount", async function () {
+            let tosAmount = await rewardPoolContract.evaluateTOS(ethpool_token, wethAddress, wtonAddress, ethers.BigNumber.from("3000"));
+            expect(tosAmount).to.be.gt(zeroBN);
+
+        });
     });
 
 });
