@@ -271,6 +271,7 @@ contract StakingV2 is
     //sTOS 마이그레이션 sTOS에 있는 TOS를 가져오고 여기에 등록시켜준다
     //TOS는 어떻게 가져올 것인가?
     //기존 정보는 있으니까 그냥 TOS만 가지고오고 여기에 sTOS 정보만 저장?
+    //accounts = msg.sender, balances = TOS 원금, period = 끝나는 시간, tokenid = sTOS tokenId
     function syncSTOS(
         address[] memory accounts,
         uint256[] memory balances,
@@ -297,4 +298,5 @@ contract StakingV2 is
 
         return true;
     }
+    
 }

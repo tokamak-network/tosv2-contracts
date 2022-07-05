@@ -183,6 +183,8 @@ contract Treasury is TreasuryStorage, ProxyAccessCommon, ITreasury {
         );
     }
 
+
+    //tokenId는 유동성만 증가 -> backingReserve에 들어가지않음
     function addbackingIdList(uint256 _tokenId) external onlyPolicyOwner {
 
     }
