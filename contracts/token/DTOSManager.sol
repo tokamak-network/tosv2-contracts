@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./DTOSManagerStorage.sol";
+import "./dTOSManagerStorage.sol";
 import "../common/AccessibleCommon.sol";
 import {DSMath} from "../libraries/DSMath.sol";
 import "../libraries/SArrays.sol";
@@ -10,7 +10,7 @@ import "../libraries/ABDKMath64x64.sol";
 import {IDTOSManager} from "../interfaces/IDTOSManager.sol";
 import "../interfaces/IPolicy.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 interface IIRewardLPTokenManager {
     function mint(
@@ -20,6 +20,11 @@ interface IIRewardLPTokenManager {
         uint256 tosAmount,
         uint256 factoredAmount
     ) external returns (uint256);
+
+    function burn(
+        uint256 rTokenId
+    ) external ;
+
 }
 
 interface IIRewardPool {
@@ -36,8 +41,8 @@ interface IIRewardPool {
     function setRebaseInfo(uint256 _period, uint256 _interest) external;
 }
 
-contract DTOSManager is
-    DTOSManagerStorage,
+contract dTOSManager is
+    dTOSManagerStorage,
     AccessibleCommon,
     DSMath,
     IDTOSManager
@@ -76,10 +81,14 @@ contract DTOSManager is
         internal
     {
         require(poolIndex[_pool] > 0, "zero pool index");
+        require(IIRewardPool(_pool).dTosBaseRate() != _baserate, "same rate");
 
-        if(IIRewardPool(_pool).dTosBaseRate() != _baserate) {
-            IIRewardPool(_pool).setDtosBaseRate(_baserate);
-        }
+        require(
+            _baserate  >= IPolicy(policyAddress).minDtosBaseRate()
+            && _baserate  <= IPolicy(policyAddress).maxDtosBaseRate()
+        , "the non-acceptable DtosBaseRate");
+
+        IIRewardPool(_pool).setDtosBaseRate(_baserate);
     }
 
 
@@ -139,11 +148,20 @@ contract DTOSManager is
 
     ) external onlyRewardPool returns (uint256 rewardLP)
     {
-        console.log("mintNFT in %s", tokenId);
+        // console.log("mintNFT in %s", tokenId);
         rewardLP = IIRewardLPTokenManager(rewardLPTokenManager).mint(staker, msg.sender, tokenId, tosAmount, factoredAmount);
-        console.log("mintNFT out %s", rewardLP);
+        // console.log("mintNFT out %s", rewardLP);
     }
 
+    /// Only RewardPool
+    function burn(
+        uint256 rTokenId
+
+    ) external onlyRewardPool
+    {
+        // console.log("burn %s", rTokenId);
+        IIRewardLPTokenManager(rewardLPTokenManager).burn(rTokenId);
+    }
 
     /// Can Anybody
 

@@ -119,8 +119,8 @@ contract RewardLPTokenManager is
             factoredAmount: factoredAmount
         });
 
+
         _mint(to, tokenId);
-        console.log("*** nft mint tokenId %s ",tokenId);
 
         addUserToken(to, tokenId);
 
@@ -132,25 +132,21 @@ contract RewardLPTokenManager is
     function burn(
         uint256 tokenId
     ) external override whenNotPaused zeroAddress(dtos) {
+        // console.log("IIRewardLPTokenManager burn tokenId %s", tokenId) ;
 
         //require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have role to burn");
         require(_msgSender() == dtos, "RewardLPTokenManager: sender is not dtosManager");
 
-        LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
-
-        // uint256 amount = mintableAmount(tokenId);
-        // uint256 balance = IDTOS(dtos).balanceOf(info.owner);
-
-        // if(amount <= balance) IDTOS(dtos).burn(info.owner, amount);
-        // else IDTOS(dtos).burn(info.owner, balance);
-
+        // LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
+        address _tokenOwner = deposits[tokenId].owner;
+        address _rewardPool = deposits[tokenId].rewardPool;
+        uint256 _poolTokenId = deposits[tokenId].poolTokenId;
         _burn(tokenId);
 
-        deleteUserToken(info.owner, tokenId);
-
+        deleteUserToken(_tokenOwner, tokenId);
         delete deposits[tokenId];
 
-        emit BurnedRewardToken(tokenId, info.owner, info.rewardPool, info.poolTokenId);
+        emit BurnedRewardToken(tokenId, _tokenOwner, _rewardPool, _poolTokenId);
     }
 
     function _transfer(
@@ -161,6 +157,7 @@ contract RewardLPTokenManager is
         if(from != address(0) && to != address(0)){
             LibRewardLPToken.RewardTokenInfo storage info = deposits[tokenId];
             info.owner = to;
+
             IIRewardPoolSnapshotAction(info.rewardPool).transferFrom(
                     from,
                     to,
@@ -168,11 +165,15 @@ contract RewardLPTokenManager is
                     info.tosAmount,
                     info.factoredAmount
                 );
+
+            deleteUserToken(from, tokenId);
+            addUserToken(to, tokenId);
         }
         super._transfer(from, to, tokenId);
     }
 
     function balanceOf(address _rewardPool, uint256 factoredAmount) public view returns (uint256) {
+        if (_rewardPool == address(0) || factoredAmount == 0) return 0;
         if (IIRewardPoolSnapshotAction(_rewardPool).dTosBaseRate() == 0) return 0;
         uint256 factor = IIRewardPoolSnapshotAction(_rewardPool).getFactor();
         if (factor == 0) return 0;
@@ -281,13 +282,17 @@ contract RewardLPTokenManager is
         userTokenIndexs[user][tokenId] = userTokens[user].length;
         userTokens[user].push(tokenId);
 
-        //console.log("userTokens : %s ",userTokens[user][userTokens[user].length-1]);
+        console.log("addUserToken %s , userTokenIndexs : %s ,userTokens: %s ",user, userTokenIndexs[user][tokenId], userTokens[user][userTokenIndexs[user][tokenId]] );
     }
 
     function deleteUserToken(address user, uint256 tokenId) internal {
-
+         console.log("deleteUserToken %s %s", user, tokenId);
         uint256 _index = userTokenIndexs[user][tokenId];
+        console.log("userTokenIndexs %s", _index);
+
         uint256 _lastIndex = userTokens[user].length-1;
+        console.log("userTokenIndexs _lastIndex %s", _lastIndex);
+
         if(_index == _lastIndex){
             delete userTokenIndexs[user][tokenId];
             userTokens[user].pop();

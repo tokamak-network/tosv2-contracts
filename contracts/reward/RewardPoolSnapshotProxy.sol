@@ -44,6 +44,7 @@ contract RewardPoolSnapshotProxy is
         tosAddress = tos;
         dtosManagerAddress = dtos;
         dtosPolicy = policy;
+        // currentSnapshotId++;
     }
 
 

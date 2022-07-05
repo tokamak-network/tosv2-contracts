@@ -18,7 +18,7 @@ import "../libraries/LibFactorSnapshot.sol";
 import "../libraries/SArrays.sol";
 import "../libraries/ABDKMath64x64.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 interface IIERC721{
     function ownerOf(uint256 tokenId) external view returns (address owner);
@@ -99,9 +99,6 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         (,, address _token0, address _token1, , int24 tickLower, int24 tickUpper, uint128 liquidity,,,,)
             = nonfungiblePositionManager.positions(tokenId);
 
-        console.log("tokenId %s, _token0 %s, _token1 %s", tokenId, _token0, _token1);
-        console.log("tokenId %s, token0 %s, token1 %s",tokenId, token0, token1);
-
         require(_token0 == token0 && _token1 == token1, "different pool's token");
         require(liquidity > 0, "zero liquidity");
 
@@ -122,11 +119,8 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
 
         uint256 rTokenId = IIDTOSManager(dtosManagerAddress).mintNFT(sender, tokenId, tosAmount, factoredAmount);
 
-        console.log('tosAmount %s, factoredAmount %s', tosAmount, factoredAmount);
 
         rewardLPs[tokenId] = rTokenId;
-
-        console.log(' Staked tokenId %s , rTokenId %s', tokenId, rTokenId);
 
         if(tosAmount > 0 && factoredAmount > 0) _mint(sender, tosAmount, factoredAmount);
 
@@ -183,10 +177,6 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
     }
 
     function _mint(address account, uint256 amount, uint256 factoredAmount) internal virtual {
-        //require(account != address(0), "RewardPool: mint to the zero address");
-        //require(amount > 0 && factoredAmount > 0, "RewardPool: zero amount");
-        //console.log('_mint %s %s %s', account, amount, factoredAmount );
-        if (currentSnapshotId == 0) currentSnapshotId++;
 
         (, uint256 _value, uint256 _factoredAmount) = _valueAt(getCurrentSnapshotId(), accountBalanceSnapshots[account]);
         (, uint256 value_, uint256 factoredAmount_) = _valueAt(getCurrentSnapshotId(), totalSupplySnapshots);
@@ -247,68 +237,27 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
     ) internal  {
 
         uint256 currentId = currentSnapshotId;
+        uint256 latestSnapShotId = _lastSnapshotId(snapshots.ids);
 
-        uint256 index = _lastSnapshotId(snapshots.ids);
+        if (currentId <= latestSnapShotId) {
+            uint256 index = snapshots.ids.findIndex(currentId);
 
-        console.log('_updateBalanceSnapshots %s %s', currentId, index);
-
-        if (index < currentId) {
-            console.log('1. push %s %s', currentId, balances, factoredAmount);
-            snapshots.ids.push(currentId);
-            snapshots.values.push(balances);
-            snapshots.factoredAmounts.push(factoredAmount);
-        } else if (snapshots.ids.length > 0){
-            snapshots.values[snapshots.ids.length-1] = balances;
-            snapshots.factoredAmounts[snapshots.ids.length-1] = factoredAmount;
+            if(snapshots.ids.length > 0 && index < snapshots.ids.length){
+                snapshots.values[index] = balances;
+                snapshots.factoredAmounts[index] = factoredAmount;
+            } else{
+                snapshots.ids.push(currentId);
+                snapshots.values.push(balances);
+                snapshots.factoredAmounts.push(factoredAmount);
+            }
         } else {
-            console.log('2. push %s %s', currentId, balances, factoredAmount);
             snapshots.ids.push(currentId);
             snapshots.values.push(balances);
             snapshots.factoredAmounts.push(factoredAmount);
         }
-
         emit UpdatedBalanceSnapshots(account, balances, factoredAmount);
     }
-    /*
-    function addTokenInPool(uint256 tokenId) internal {
-        stakedTokensInPoolIndexs[tokenId] = stakedTokensInPool.length;
-        stakedTokensInPool.push(tokenId);
-    }
 
-    function deleteTokenInPool(uint256 tokenId) internal {
-        uint256 _index = stakedTokensInPoolIndexs[tokenId];
-        uint256 _lastIndex = stakedTokensInPool.length-1;
-        if(_index == _lastIndex){
-            delete stakedTokensInPoolIndexs[tokenId];
-            stakedTokensInPool.pop();
-        } else {
-            stakedTokensInPool[_index] = stakedTokensInPool[_lastIndex];
-            stakedTokensInPoolIndexs[stakedTokensInPool[_index]] = _index;
-            delete stakedTokensInPoolIndexs[tokenId];
-            stakedTokensInPool.pop();
-        }
-    }
-
-    function addUserToken(address user, uint256 tokenId) internal {
-        userTokenIndexs[user][tokenId] = userTokens[user].length;
-        userTokens[user].push(tokenId);
-    }
-
-    function deleteUserToken(address user, uint256 tokenId) internal {
-
-        uint256 _index = userTokenIndexs[user][tokenId];
-        uint256 _lastIndex = userTokens[user].length-1;
-        if(_index == _lastIndex){
-            delete userTokenIndexs[user][tokenId];
-            userTokens[user].pop();
-        } else {
-            userTokens[user][_index] = userTokens[user][_lastIndex];
-            userTokenIndexs[user][userTokens[user][_index]] = _index;
-            delete userTokenIndexs[user][tokenId];
-            userTokens[user].pop();
-        }
-    }
-    */
     function onERC721Received(address from, address sender, uint256 tokenId, bytes calldata data) external onlyNoExecPause returns (bytes4){
         require(msg.sender == address(nonfungiblePositionManager), "operator is not nonfungiblePositionManager");
         console.log("onERC721Received %s", tokenId);
@@ -344,32 +293,11 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         if (dTosBaseRate == 0) return 0;
 
         (bool snapshotted, uint256 values, uint256 factoredAmount) = _valueAt(snapshotId, accountBalanceSnapshots[account]);
-        console.log('balanceOfAt %s  %s', values, factoredAmount);
+
         if (snapshotted) {
-             console.log('balanceOfAt snapshotted true , factoredAmount %s', factoredAmount);
+
             if (factoredAmount > 0) {
                 (bool factorSnapshotted, uint256 factor) = _factorAt(snapshotId);
-                console.log('factoredAmount %s , factor %s ', factoredAmount, factor);
-                if (factorSnapshotted) return wmul2(factoredAmount, factor);
-                else return wmul2(factoredAmount, DEFAULT_FACTOR);
-
-            } else {
-                return 0;
-            }
-        } else {
-            console.log('balanceOfAt snapshotted false');
-            return balanceOf(account);
-        }
-
-        /*
-        if (snapshotted) {
-            if (factoredAmount > 0) {
-                (bool factorSnapshotted, uint256 factor) = _factorAt(snapshotId);
-                uint256 dtosAmount = tosToDtosAmount(values);
-
-                uint256 factoredAmount = 0;
-                if(dtosAmount > 0) factoredAmount = wdiv2(dtosAmount, factor);
-
                 if (factorSnapshotted) return wmul2(factoredAmount, factor);
                 else return wmul2(factoredAmount, DEFAULT_FACTOR);
 
@@ -379,12 +307,12 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         } else {
             return balanceOf(account);
         }
-        */
-
-
     }
 
     function totalSupplyAt(uint256 snapshotId) public view virtual override returns (uint256) {
+
+        if (dTosBaseRate == 0) return 0;
+
         (bool snapshotted, , uint256 factoredAmount) = _valueAt(snapshotId, totalSupplySnapshots);
 
         if (snapshotted) {
@@ -423,29 +351,26 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
     /// Internal Functions
 
     function _snapshot() internal virtual returns (uint256) {
-        currentSnapshotId++;
+
         uint256 currentId = getCurrentSnapshotId();
+
+        currentSnapshotId++;
         emit Snapshot(currentId);
         return currentId;
     }
 
     function _valueAt(uint256 snapshotId, LibFactorSnapshot.Snapshots storage snapshots) internal view returns (bool, uint256, uint256) {
-        console.log('_valueAt snapshotId %s ', snapshotId  );
 
-        console.log('snapshots.ids.length %s ', snapshots.ids.length  );
-        if(snapshots.ids.length == 0 || currentSnapshotId == 0) return (true, 0, 0);
+        if(snapshots.ids.length == 0 ) return (true, 0, 0);
         if(snapshotId == 0){
             if(snapshots.ids.length == 0) return (true, 0, 0);
             else {
-                console.log('_valueAt snapshots.values[0] %s, snapshots.factoredAmounts[0] %s', snapshots.values[0], snapshots.factoredAmounts[0]);
                 return (true, snapshots.values[0], snapshots.factoredAmounts[0]);
             }
         }
-        // require(snapshotId > 0, "RewardPool: id is 0");
         require(snapshotId <= getCurrentSnapshotId(), "RewardPool: nonexistent id");
 
-        uint256 index = snapshots.ids.findUpperBound(snapshotId);
-        console.log("_valueAt index %s", index);
+        uint256 index = snapshots.ids.findIndex(snapshotId);
         if (index == snapshots.ids.length) {
             return (false, 0, 0);
         } else {
@@ -453,21 +378,17 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         }
     }
 
+
     function _factorAt(uint256 snapshotId) internal view virtual returns (bool, uint256) {
 
         LibFactorSnapshot.FactorSnapshots storage snapshots = factorSnapshots;
-        // console.log("_factorAt snapshotId %s", snapshotId);
 
         if (snapshotId > 0 && snapshotId <= currentSnapshotId) {
             uint256 index = snapshots.ids.findIndex(snapshotId);
 
-            // console.log("_factorAt index %s", index);
-            // console.log("_factorAt snapshots.ids.length %s", snapshots.ids.length);
-
             if (index == snapshots.ids.length) {
                 return (false, DEFAULT_FACTOR);
             } else {
-                // console.log("_factorAt snapshots.factors[index] %s", snapshots.factors[index]);
                 return (true, snapshots.factors[index]);
             }
         } else {
@@ -476,6 +397,9 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
     }
 
     function _lastSnapshotId(uint256[] storage ids) internal view returns (uint256) {
+
+        console.log("_lastSnapshotId ids.length %s", ids.length );
+
         if (ids.length == 0) {
             return 0;
         } else {
@@ -538,7 +462,6 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
 
     function setRebaseInfo(uint256 _period, uint256 _interest)
         external override
-        nonZero(_period)
         onlyDTOSManager
     {
         require(rebaseIntervalSecond != _period || interestRatePerRebase != _interest, "same rebase period or rate");
@@ -547,7 +470,7 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         interestRatePerRebase = _interest;
     }
 
-    function rebase() internal
+    function rebase() public
     {
         if (rebaseIntervalSecond > 0 && interestRatePerRebase > 0) {
             uint256 curTime = block.timestamp;
@@ -623,16 +546,4 @@ contract RewardPoolSnapshot is RewardPoolSnapshotStorage, AccessibleCommon, DSMa
         return factor_;
     }
 
-    // function allUserTokens(address account) external view returns (uint256[] memory) {
-    //     return userTokens[account];
-    // }
-
-    // function userTokenCount(address account) public view returns (uint256) {
-    //     return userTokens[account].length;
-    // }
-
-    // function userToken(address account, uint256 _index) external view returns (uint256) {
-    //     require(_index < userTokenCount(account), "wrong index");
-    //     return userTokens[account][_index];
-    // }
 }

@@ -8,7 +8,7 @@ interface IPausableContract {
     function execPause(bool pauseFlag) external ;
 }
 
-contract DTOSPolicy is AccessibleCommon {
+contract dTOSPolicy is AccessibleCommon {
 
     uint256 public minDtosBaseRate;
     uint256 public maxDtosBaseRate;
@@ -45,6 +45,8 @@ contract DTOSPolicy is AccessibleCommon {
     function setInitialDtosBaseInfo(uint256 baserate) external onlyOwner
     {
         require(initialDtosBaseRate != baserate, "same value");
+        require(baserate >= minDtosBaseRate && baserate <= maxDtosBaseRate, "non-acceptable rate");
+
         initialDtosBaseRate = baserate;
     }
 
