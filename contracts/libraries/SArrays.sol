@@ -38,9 +38,6 @@ library SArrays {
             }
         }
 
-
-
-
         // At this point `low` is the exclusive upper bound. We will return the inclusive upper bound.
         if (low > 0 && array[low - 1] == element) {
             return low - 1;

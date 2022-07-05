@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-
-contract DTOSManagerStorage
+contract dTOSManagerStorage
 {
     struct Snapshot {
         address poolAddress;
@@ -13,22 +12,20 @@ contract DTOSManagerStorage
     string public symbol;
     uint8 public decimals = 18;
 
-    address public rewardLPTokenManager;
-    address public bondDepository;
     address public rewardPoolFactory;
     address public tosAddress;
+    address public policyAddress;
+    address public rewardLPTokenManager;
+
 
     // pool
     mapping (address => uint256) public poolIndex;
-    mapping (address => uint256) public poolDtosBaseRate;
+    // mapping (address => uint256) public poolDtosBaseRate;
     address[] public pools;
 
     // pool snapshot
     uint256 curSnapshotId;
     mapping (uint256 => Snapshot[]) public poolSnapshots;
-
-    uint256 public initialDtosBaseRate;
-    uint256 public initialRebasePeriod;
 
     modifier nonZero(uint256 tokenId) {
         require(tokenId != 0, "DTOS:zero address");
@@ -43,4 +40,19 @@ contract DTOSManagerStorage
         _;
     }
 
+    modifier onlyRewardPool() {
+        require(
+            poolIndex[msg.sender] != 0,
+            "DTOS: sender is not a managed RewardPool"
+        );
+        _;
+    }
+
+    modifier onlyRewardLPTokenManager() {
+        require(
+            rewardLPTokenManager == msg.sender,
+            "DTOS: sender is not rewardLPTokenManager"
+        );
+        _;
+    }
 }

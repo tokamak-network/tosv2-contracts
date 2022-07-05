@@ -7,13 +7,11 @@ library LibRewardLPToken
     struct RewardTokenInfo {
         address rewardPool;
         address owner;
-        address pool;
         uint256 poolTokenId;
         uint256 tosAmount;
         uint256 usedAmount;
         uint256 stakedTime;
         uint256 factoredAmount;
-        uint128 liquidity;
     }
 
 }

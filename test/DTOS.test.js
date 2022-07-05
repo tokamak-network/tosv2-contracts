@@ -6,7 +6,7 @@ const {
   keccak256,
 } = require("web3-utils");
 
-describe("DTOS", function () {
+describe("dTOS", function () {
 
     let dtosImpl, dtosProxy, testLogicAddress ;
     // let rebaseInterestRate = '30000000000000000'; // 연 이자율 3%
@@ -23,8 +23,8 @@ describe("DTOS", function () {
         contract: null,
         contractImp: null,
         implAddress: null,
-        name: 'DTOS',
-        symbol: 'DTOS',
+        name: 'dTOS',
+        symbol: 'dTOS',
         decimals: 18,
         factor: ethers.BigNumber.from('1'),
         totalSupply: ethers.BigNumber.from('0'),
@@ -42,14 +42,14 @@ describe("DTOS", function () {
 
     });
 
-    it("Create DTOS", async function () {
+    it("Create dTOS", async function () {
 
-        const DTOS = await ethers.getContractFactory("DTOS");
+        const DTOS = await ethers.getContractFactory("dTOS");
         dtosImpl = await DTOS.connect(admin).deploy();
         await dtosImpl.deployed();
 
 
-        const DTOSProxy = await ethers.getContractFactory("DTOSProxy")
+        const DTOSProxy = await ethers.getContractFactory("dTOSProxy")
         dtosProxy = await DTOSProxy.connect(admin).deploy();
         await dtosProxy.deployed();
 
@@ -255,7 +255,7 @@ describe("DTOS", function () {
 
             expect(await dtosProxy.pauseProxy()).to.be.eq(true);
 
-            dTOS.contractImp = await ethers.getContractAt("DTOS", dtosProxy.address);
+            dTOS.contractImp = await ethers.getContractAt("dTOS", dtosProxy.address);
 
             await expect(
                 dTOS.contractImp.totalSupply()
