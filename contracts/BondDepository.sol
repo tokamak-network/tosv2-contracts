@@ -58,9 +58,9 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
 
      /**
      * @notice             creates a new market type
-     * @dev                
+     * @dev
      * @param _check       ETH를 받을려면(true), token을 받으면(false)
-     * @param _token       토큰 주소 
+     * @param _token       토큰 주소
      * @param _tokenId     V3 LP 아이디 (Market의 tokenId = 0 이면 ETH나 erc20토큰 판매이다.)
      * @param _market      [팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격]
      * @return id_         ID of new bond market
@@ -70,9 +70,9 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         IERC20 _token,
         uint256 _tokenId,
         uint256[4] calldata _market
-    ) 
+    )
         external
-        override 
+        override
         onlyOwner
         returns (uint256 id_)
     {
@@ -165,7 +165,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         uint256 currentTime = uint256(block.timestamp);
 
         require(currentTime < meta.endTime, "Depository : market end");
-        
+
         payout_ = calculPayoutAmount(meta.tokenPrice,meta.tosPrice,_amount);
 
         require(0 <= (market.capacity - payout_), "Depository : sold out");
@@ -187,7 +187,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
 
         //tos를 산 후 MR을 곱해서 treasury에서 mint함
         uint256 mrAmount = payout_ * mintRate;
-        treasury.mint(address(this), mrAmount);        
+        treasury.mint(address(this), mrAmount);
 
         emit Bond(_id, _amount, payout_);
 
@@ -195,9 +195,9 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         //update the backingData
         treasury.backingUpdate();
 
-        //tos staking route        
+        //tos staking route
         staking.stake(msg.sender,payout_,_time,true,_claim);
-        
+
         //종료해야하는지 확인
         if (meta.totalSaleAmount <= (market.sold + 1e18)) {
            market.capacity = 0;
@@ -211,7 +211,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         uint256 _amount,
         uint256 _time,
         bool _claim
-    ) 
+    )
         public
         payable
         returns (
@@ -248,7 +248,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
 
         //tos를 산 후 MR을 곱해서 treasury에서 mint함
         uint256 mrAmount = payout_ * mintRate;
-        treasury.mint(address(this), mrAmount);       
+        treasury.mint(address(this), mrAmount);
 
         treasuryContract.transfer(msg.value);
 
@@ -258,7 +258,7 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         //update the backingData
         treasury.backingUpdate();
 
-        //tos staking route        
+        //tos staking route
         staking.stake(
             msg.sender,
             payout_,
@@ -280,22 +280,22 @@ contract BondDepository is IBondDepository, ProxyAccessCommon {
         mintRate = _mrRate;
     }
 
-    //이더리움(가격)을 기준으로만 mintingRate를 정한다. -> MR은 어떻게 정할까? admin이 세팅할 수 있고 비율은 나중에 알려줌 (admin이 정하게하면 됨) 
+    //이더리움(가격)을 기준으로만 mintingRate를 정한다. -> MR은 어떻게 정할까? admin이 세팅할 수 있고 비율은 나중에 알려줌 (admin이 정하게하면 됨)
     //admin과 policy가 있었으면 좋겠다. (admin이 하는 역할과 policy가 하는 역할은 다름)
-    //dTOS로직 
+    //dTOS로직
     //총 가지고 있는 ETH기반으로 minting할 수 있는지 없는지 정한다. -> ETH가 아니라 token이 들어왔을떄
     //본딩할때 트레저리에서 TOS를 발행할 수 있는지 물어봐야함
-    
+
     function calculPayoutAmount(
         uint256 _tokenPrice,
-        uint256 _tosPrice, 
-        uint256 _amount    
+        uint256 _tosPrice,
+        uint256 _amount
     )
         public
         pure
         returns (
             uint256 payout
-        ) 
+        )
     {
         return payout = ((((_tokenPrice * 1e10)/_tosPrice) * _amount) / 1e10);
     }

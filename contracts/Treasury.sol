@@ -37,7 +37,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     struct Backing {
         address erc20Address;
         address tosPoolAddress;
-        uint24 fee; 
+        uint24 fee;
     }
 
     IERC20 public TOS;
@@ -191,7 +191,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         permissions[_status][_toDisable] = false;
         emit Permissioned(_toDisable, _status, false);
     }
- 
+
     /**
      * @notice check if registry contains address
      * @return (bool, uint256)
@@ -247,7 +247,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
     }
 
     //eth, weth, market에서 받은 자산 다 체크해야함
-    //환산은 eth단위로 
+    //환산은 eth단위로
     //Treasury에 있는 자산을 ETH로 환산하여서 합하여 리턴함
     function backingReserve() public view returns (uint256) {
         uint256 totalValue;
@@ -261,7 +261,7 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         return totalValue;
     }
 
-    function enableStaking() public view returns (uint256) {
+    function enableStaking() public view override returns (uint256) {
         return TOS.balanceOf(address(this));
     }
 }

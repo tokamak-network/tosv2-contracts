@@ -72,7 +72,7 @@
 //     }
 
 //     /**
-//      * @notice stake TOS deposit할때 tos를 staking함 
+//      * @notice stake TOS deposit할때 tos를 staking함
 //      * @param _to address
 //      * @param _amount uint
 //      * @param _time uint
@@ -90,7 +90,7 @@
 //         Claim memory claimInfos = claimInfo[_to];
 //         uint256 reward = 0;
 //         rebase();
-        
+
 //         //이전 stake 내용이 만기가 되었을때
 //         if(claimInfos.expiry < block.timestamp && claimInfos.expiry != 0) {
 //             uint256 diffDay = (claimInfos.expiry - claimInfos.startTime) / 1 days;
@@ -105,12 +105,12 @@
 //         }
 
 //         info.push(Info({recipient: _to, amount: claimInfos.deposit.add(_amount)}));
-        
+
 //         rewards[_to] = Reward({
 //             getReward: 0,
 //             nowReward: 0
 //         });
-        
+
 
 //         claimInfo[_to] = Claim({
 //             deposit: claimInfo.deposit.add(_amount),
@@ -140,13 +140,13 @@
 
 //         rewardInfo.getReward += rewardInfo.nowReward;
 
-       
+
 //     }
 
 //     function unstake() external returns (uint256) {
 
 //     }
-    
+
 //     /**
 //      * @notice set rebase_rate for stakers (30% -> input 3000)
 //      * @param _rate uint

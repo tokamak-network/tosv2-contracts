@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 
-/// @title IDTOS
-interface IDTOS {
+/// @title IdTOS
+interface IdTOS {
 
 
     /// @notice total amount
