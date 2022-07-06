@@ -17,7 +17,7 @@ contract TreasuryProxy is
         address _tos,
         address _calculator
     )
-        external onlyOwner
+        external onlyProxyOwner
     {
         require(_tos != address(0), "Zero address: TOS");
 

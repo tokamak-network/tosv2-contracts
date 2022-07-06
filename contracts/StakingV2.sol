@@ -36,7 +36,7 @@ contract StakingV2 is
 
     //epochRebase 
     //If input the 0.9 -> 900000000000000000
-    function setRebasePerepoch(uint256 _rebasePerEpoch) external onlyOwner {
+    function setRebasePerepoch(uint256 _rebasePerEpoch) external onlyPolicyOwner {
         rebasePerEpoch = _rebasePerEpoch;
     }
 
@@ -56,7 +56,7 @@ contract StakingV2 is
     }
 
     //모지랄때 owner가 정해서 늘리는게 맞는가? index는 ether단위이다.
-    function setindex(uint256 _index) external onlyOwner {
+    function setindex(uint256 _index) external onlyPolicyOwner {
         index_ = _index;
     }
 

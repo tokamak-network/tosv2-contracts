@@ -43,7 +43,8 @@ let UniswapV3LiquidityChanger = require('../abis/UniswapV3LiquidityChanger.json'
 let tosabi = require('../abis/TOS.json');
 let lockTOSProxyabi = require('../abis/LockTOSProxy_ABI.json');
 let lockTOSProxy2abi = require('../abis/LockTOSProxy2_ABI.json');;
-let lockTOSLogic2abi = require('../abis/LockTOSLogic2_ABI.json');;
+let lockTOSLogic2abi = require('../abis/LockTOSLogic2_ABI.json');const { id } = require("@ethersproject/hash");
+;
 
 let UniswapV3LiquidityChangerAddress = "0xa839a0e64b27a34ed293d3d81e1f2f8b463c3514";
 
@@ -125,6 +126,8 @@ describe("price test", function () {
   let etherUint = ethers.utils.parseUnits("1", 18);     
   // let wtonUint = ethers.utils.parseUnits("1", 27);     
 
+  let firstExcute;
+
 
   // rinkeby
   let uniswapInfo={
@@ -164,49 +167,55 @@ describe("price test", function () {
       "0x8ac7230489e80000",
     ]);
 
+    firstExcute = false;
   });
 
   describe("#0. lockTOSContract update", async () => {
-    it("bring the LockTOSProxyContract", async () => {
-      lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSProxyabi, ethers.provider);
+    if(firstExcute == false) {
+      it("bring the LockTOSProxyContract", async () => {
+        lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSProxyabi, ethers.provider);
+    
+        let code = await ethers.provider.getCode(lockTosContract.address);
+        expect(code).to.not.eq("0x");
+      })
   
-      let code = await ethers.provider.getCode(lockTosContract.address);
-      expect(code).to.not.eq("0x");
-    })
-
-    it("bring the lockTOSProxy2Contract", async () => {
-      lockTos2Contract = new ethers.Contract( lockTOSProxy2Address, lockTOSProxy2abi, ethers.provider);
-
-      let code = await ethers.provider.getCode(lockTos2Contract.address);
-      expect(code).to.not.eq("0x");
-    })
-
-    it("bring the lockTOSLogic2Contract", async () => {
-      lockToslogic2Contract = new ethers.Contract( lockTOSLogic2Address, lockTOSLogic2abi, ethers.provider);
-
-      let code = await ethers.provider.getCode(lockToslogic2Contract.address);
-      expect(code).to.not.eq("0x");
-    })
-
-    it("lockTOSProxy upgrade", async () => {
-      await lockTosContract.connect(admin1).upgradeTo(lockTos2Contract.address);
-
-      let tx = lockTosContract.connect(admin1).upgradeTo(lockTos2Contract.address);
-      await expect(tx).to.be.revertedWith('LockTOSProxy: same');
-    })
-
-    it("bring the newLockTOSProxyContract", async () => {
-      lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSProxy2abi, ethers.provider);
-    })
-
-    it("lockTOSProxy2 setimpletation", async () => {
-      await lockTosContract.connect(admin1).setImplementation2(lockToslogic2Contract.address,0,true);
-    })
-
-    it("bring the newlogic", async () => {
-      lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSLogic2abi, ethers.provider);
-    })
-
+      it("bring the lockTOSProxy2Contract", async () => {
+        lockTos2Contract = new ethers.Contract( lockTOSProxy2Address, lockTOSProxy2abi, ethers.provider);
+  
+        let code = await ethers.provider.getCode(lockTos2Contract.address);
+        expect(code).to.not.eq("0x");
+      })
+  
+      it("bring the lockTOSLogic2Contract", async () => {
+        lockToslogic2Contract = new ethers.Contract( lockTOSLogic2Address, lockTOSLogic2abi, ethers.provider);
+  
+        let code = await ethers.provider.getCode(lockToslogic2Contract.address);
+        expect(code).to.not.eq("0x");
+      })
+  
+      it("lockTOSProxy upgrade", async () => {
+        await lockTosContract.connect(admin1).upgradeTo(lockTos2Contract.address);
+  
+        let tx = lockTosContract.connect(admin1).upgradeTo(lockTos2Contract.address);
+        await expect(tx).to.be.revertedWith('LockTOSProxy: same');
+      })
+  
+      it("bring the newLockTOSProxyContract", async () => {
+        lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSProxy2abi, ethers.provider);
+      })
+  
+      it("lockTOSProxy2 setimpletation", async () => {
+        await lockTosContract.connect(admin1).setImplementation2(lockToslogic2Contract.address,0,true);
+      })
+  
+      it("bring the newlogic", async () => {
+        lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSLogic2abi, ethers.provider);
+      })
+    } else {
+      it("bring the newlogic", async () => {
+        lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSLogic2abi, ethers.provider);
+      })
+    }
   })
 
   describe("#0. Deploy the contract", async () => {
@@ -328,8 +337,8 @@ describe("price test", function () {
         await bondDepositoryProxy.connect(admin1).initialize(
           uniswapInfo.tos,
           uniswapInfo.wton,
-          stakingContract.address,
-          treasuryContract.address,
+          stakingProxy.address,
+          treasuryProxy.address,
           TOSValueCalculator.address
         )
 
@@ -340,17 +349,7 @@ describe("price test", function () {
   
   })
 
-  describe("#2. setting the contract", async () => {
-    it("treasury admin, proxyAdmin check", async () => {
-      expect(await treasuryContract.isAdmin(admin1.address)).to.be.equal(true)
-      expect(await treasuryContract.isProxyAdmin(admin1.address)).to.be.equal(true)
-    })
-
-    it("treasury add policyAdmin", async () => {
-      await treasuryContract.connect(admin1).addPolicy(admin1.address)
-      expect(await treasuryContract.isPolicy(admin1.address)).to.be.equal(true)
-    })
-
+  describe("#1. setting the contract", async () => {
     it("give the mintRole to treasury", async () => {
       await tosContract.connect(admin1).grantRole(minter_role,treasuryContract.address);
   
@@ -358,20 +357,176 @@ describe("price test", function () {
       expect(tx).to.be.equal(true);
     })
 
-    it("setting the staking", async () => {
-      let epochtestbefore = await stakingContract.epoch();
-      console.log(epochtestbefore);
+    describe("#1-1. treasury setting", async () => {
+      it("1-1. treasury admin, proxyAdmin, policyAdmin check", async () => {
+        expect(await treasuryProxy.isAdmin(admin1.address)).to.be.equal(true)
+        expect(await treasuryProxy.isProxyAdmin(admin1.address)).to.be.equal(true)
   
-      expect(epochtestbefore.length_).to.be.equal(20);
+        expect(await treasuryProxy.isPolicy(admin1.address)).to.be.equal(false)
+      })
+  
+      it("#1-1-1. user can't call addPolicy", async () => {
+        await expect(
+          treasuryProxy.connect(user1).addPolicy(admin1.address)
+        ).to.be.revertedWith("Accessible: Caller is not an proxy admin")      
+      })
+  
+      it("#1-1-1. onlyProxyAdmin can call addPolicy", async () => {
+        await treasuryProxy.connect(admin1).addPolicy(admin1.address)
+        expect(await treasuryProxy.isPolicy(admin1.address)).to.be.equal(true)
+      })
+  
+      it("#1-1-2. user can't call initialize", async () => {
+        await expect(
+          treasuryProxy.connect(user1).initialize(
+            tosContract.address,
+            TOSValueCalculator.address
+          )
+        ).to.be.revertedWith("Accessible: Caller is not an proxy admin")      
+      })
+  
+      it("#1-1-2. onlyProxyAdmin can call initialize", async () => {
+        await treasuryProxy.connect(admin1).initialize(
+          tosContract.address,
+          TOSValueCalculator.address  
+        )
+  
+        let calculAddrCheck = await treasuryProxy.calculator();
+        expect(calculAddrCheck).to.be.equal(TOSValueCalculator.address);
+      })
+  
+      it("#1-1-3. user can't call enable (for mint)", async () => {
+        await expect(
+          treasuryProxy.connect(user1).enable(
+            7,
+            bondDepositoryProxy.address,
+            admin1.address
+          )
+        ).to.be.revertedWith("Accessible: Caller is not an policy admin")      
+      })
   
   
-      let index = ethers.utils.parseUnits("10", 18)
-      await stakingContract.setindex(index);
-      expect((await stakingContract.index_())).to.be.equal(index)
-      
-      let rebasePerEpoch = ethers.utils.parseUnits("1", 17) //index가 0.1크기만큼 증가
-      await stakingContract.setRebasePerepoch(rebasePerEpoch);
-      expect((await stakingContract.rebasePerEpoch())).to.be.equal(rebasePerEpoch)
+      it("#1-1-3. policy can call enable (for mint bondDepository)", async () => {
+        await treasuryProxy.connect(admin1).enable(7,bondDepositoryProxy.address,admin1.address);
+        let checkPermission = await treasuryContract.permissions(7,bondDepositoryProxy.address);
+        expect(checkPermission).to.be.equal(true)
+      })
+  
+      it("#1-1-3. policy can call enable (for mint staking)", async () => {
+        let checkPermission1 = await treasuryProxy.permissions(7,stakingProxy.address);
+        expect(checkPermission1).to.be.equal(false)
+  
+        await treasuryProxy.connect(admin1).enable(7,stakingProxy.address,admin1.address);
+  
+        let checkPermission2 = await treasuryProxy.permissions(7,stakingProxy.address);
+        expect(checkPermission2).to.be.equal(true)
+      })
+  
+      it("#1-1-4. user can't call approve (stakingV2)", async () => {
+        await expect(
+          treasuryProxy.connect(user1).approve(
+            stakingProxy.address
+          )
+        ).to.be.revertedWith("Accessible: Caller is not an policy admin")      
+      })
+  
+      it("#1-1-4. policy can call approve (stakingV2)", async () => {
+        let beforeApprove = await tosContract.allowance(treasuryProxy.address, stakingProxy.address);
+        expect(beforeApprove).to.be.equal(0)
+        await treasuryProxy.connect(admin1).approve(stakingProxy.address)
+  
+        let afterApprove = await tosContract.allowance(treasuryProxy.address, stakingProxy.address);
+        expect(afterApprove).to.be.above(0)
+      })
+  
+      it("#1-1-5. user can't call disable", async () => {
+        await expect(
+          treasuryProxy.connect(user1).disable(
+            7,
+            stakingProxy.address        )
+        ).to.be.revertedWith("Accessible: Caller is not an policy admin")  
+      })
+  
+      it("#1-1-5. policy can call disable", async () => {
+          let checkPermission1 = await treasuryProxy.permissions(7,stakingProxy.address);
+          expect(checkPermission1).to.be.equal(true)
+  
+          await treasuryProxy.connect(admin1).disable(7,stakingProxy.address);
+  
+          let checkPermission2 = await treasuryProxy.permissions(7,stakingProxy.address);
+          expect(checkPermission2).to.be.equal(false)
+  
+          await treasuryProxy.connect(admin1).enable(7,stakingProxy.address,admin1.address);
+      })
+    })
+
+    describe("#1-2. Staking setting", async () => {
+      it("#1-2. Staking admin, proxyAdmin, policyAdmin check", async () => {
+        expect(await stakingProxy.isAdmin(admin1.address)).to.be.equal(true)
+        expect(await stakingProxy.isProxyAdmin(admin1.address)).to.be.equal(true)
+  
+        expect(await stakingProxy.isPolicy(admin1.address)).to.be.equal(false)
+      })
+
+      it("#1-2-1. user can't call addPolicy", async () => {
+        await expect(
+          stakingProxy.connect(user1).addPolicy(admin1.address)
+        ).to.be.revertedWith("Accessible: Caller is not an proxy admin")      
+      })
+  
+      it("#1-2-1. onlyProxyAdmin can call addPolicy", async () => {
+        await stakingProxy.connect(admin1).addPolicy(admin1.address)
+        expect(await stakingProxy.isPolicy(admin1.address)).to.be.equal(true)
+      })
+
+      it("#1-2-2. user can't call initialize", async () => {
+        await expect(
+          treasuryProxy.connect(user1).initialize(
+            tosContract.address,
+            TOSValueCalculator.address
+          )
+        ).to.be.revertedWith("Accessible: Caller is not an proxy admin")      
+      })
+  
+      it("#1-2-2. onlyProxyAdmin can call initialize", async () => {
+        await stakingProxy.connect(admin1).initialize(
+          uniswapInfo.tos,
+          [epochLength,firstEpochNumber,firstEndEpochTime,epochUnit],
+          lockTosContract.address,
+          treasuryProxy.address
+        )
+
+        let treasuryAddr = await stakingProxy.treasury();
+        expect(treasuryAddr).to.be.equal(treasuryProxy.address);
+      })
+
+      it("#1-2-3. user can't call setRebasePerepoch", async () => {
+        let rebasePerEpoch = ethers.utils.parseUnits("1", 17) //index가 0.1크기만큼 증가
+        await expect(
+          stakingContract.connect(user1).setRebasePerepoch(rebasePerEpoch)
+        ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
+      })
+
+      it("#1-2-3. onlyProxyAdmin can call setRebasePerepoch", async () => {
+        let rebasePerEpoch = ethers.utils.parseUnits("1", 17) //index가 0.1크기만큼 증가
+        await stakingContract.connect(admin1).setRebasePerepoch(rebasePerEpoch);
+        expect((await stakingContract.rebasePerEpoch())).to.be.equal(rebasePerEpoch)
+      })
+
+      it("#1-2-4. user can't call setindex", async () => {
+        let index = ethers.utils.parseUnits("10", 18)
+        await expect(
+          stakingContract.connect(user1).setindex(index)
+        ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
+      })
+
+      it("#1-2-4. onlyProxyAdmin can call setindex", async () => {
+        expect(epochtestbefore.length_).to.be.equal(20);
+
+        let index = ethers.utils.parseUnits("10", 18)
+        await stakingContract.connect(admin1).setindex(index);
+        expect((await stakingContract.index_())).to.be.equal(index)
+      })
     })
 
     it("nextIndex test", async () => {
@@ -384,25 +539,9 @@ describe("price test", function () {
       expect(await bondDepositoryContract.isPolicy(admin1.address)).to.be.equal(true)
     })
   
-    it("treasury set the mint possible the bondDepository", async () => {
-      //enable의 마지막 admin1.address는 쓸데없는 값이다.
-      await treasuryContract.connect(admin1).enable(7,bondDepositoryContract.address,admin1.address);
-      let checkPermission = await treasuryContract.permissions(7,bondDepositoryContract.address);
-      expect(checkPermission).to.be.equal(true)
-    })
-  
-    it("treasury set the mint possible the staking", async () => {
-      await treasuryContract.connect(admin1).enable(7,stakingContract.address,admin1.address);
-      let checkPermission = await treasuryContract.permissions(7,stakingContract.address);
-      expect(checkPermission).to.be.equal(true)
-    })
 
     it("setting MintRate on BondDepository", async () => {
       await bondDepositoryContract.setMR(mintRate);
-    })
-
-    it("approve the Treasury -> StakingV2", async () => {
-      await treasuryContract.connect(admin1).approve(stakingContract.address);
     })
     
   })
