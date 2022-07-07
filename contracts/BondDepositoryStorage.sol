@@ -47,7 +47,9 @@ contract BondDepositoryStorage {
 
     mapping(address => User[]) public users;
 
-    address[] public mintingList;
+    // address[] public mintingList;
+    mapping(uint256 => address) public mintingList;
+
 
     IERC20 public tos;
     IDTOS public dTOS;

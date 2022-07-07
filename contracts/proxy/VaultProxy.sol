@@ -11,7 +11,7 @@ import "../common/ProxyAccessCommon.sol";
 
 import "hardhat/console.sol";
 
-contract VaultProxy is VaultStorage, ProxyAccessCommon, IProxyEvent, IProxyAction
+contract VaultProxy is ProxyAccessCommon, VaultStorage, IProxyEvent, IProxyAction
 {
 
     /**

@@ -272,10 +272,12 @@ contract BondDepository is
     function addTransfer(address _addr, uint256 _percents) external onlyPolicyOwner {
         require(_percents > 0 && _percents < 100, "_percents setting err");
         require(totalPercents + _percents < 100, "totalPercents need small 100");
-        
-        mintingList[mintingList.length] = _addr;
+        console.log("addTrasnfer1");
+        console.log("mintingList.length : %s", mintings.length);
+        mintingList[mintings.length] = _addr;
+        console.log("addTrasnfer2");
         totalPercents = totalPercents + _percents;
-
+        console.log("addTrasnfer3");
         mintings.push(
             Minting({
                 mintAddress: _addr,
@@ -293,7 +295,7 @@ contract BondDepository is
     }
 
     function transferLogic(uint256 _transAmount) internal returns (uint256 totalAmount){
-        for(uint256 i = 0; i < mintingList.length; i++) {
+        for(uint256 i = 0; i < mintings.length; i++) {
             uint256 eachAmount = _transAmount * mintings[i].mintPercents;
             totalAmount = totalAmount + eachAmount;
             tos.safeTransfer(mintings[i].mintAddress,eachAmount);

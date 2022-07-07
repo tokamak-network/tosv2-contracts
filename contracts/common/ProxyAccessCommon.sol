@@ -67,7 +67,7 @@ contract ProxyAccessCommon is AccessRoleCommon, AccessControl {
     }
 
     function addPolicy(address _account) public virtual onlyProxyOwner {
-        _setupRole(POLICY_ROLE, _account);
+        grantRole(POLICY_ROLE, _account);
     }
 
     function removePolicy() public virtual onlyPolicyOwner {
