@@ -22,7 +22,7 @@ contract StakingV2Proxy is
         address _lockTOS,
         ITreasury _treasury
     )
-        external onlyOwner
+        external onlyProxyOwner
     {
         require(_tos != address(0), "Zero address : TOS");
         require(_lockTOS != address(0), "Zero address : lockTOS");

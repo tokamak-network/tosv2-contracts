@@ -19,7 +19,7 @@ contract BondDepositoryProxy is
         ITreasury _treasury,
         address _calculator
     )
-        external onlyOwner
+        external onlyProxyOwner
     {
         tos = _tos;
         dTOS = _dtos;

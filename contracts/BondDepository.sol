@@ -49,7 +49,7 @@ contract BondDepository is
     ) 
         external
         override 
-        onlyOwner
+        onlyPolicyOwner
         returns (uint256 id_)
     {   
         id_ = markets.length;
@@ -95,7 +95,7 @@ contract BondDepository is
      * @notice             disable existing market
      * @param _id          ID of market to close
      */
-    function close(uint256 _id) external override onlyOwner {
+    function close(uint256 _id) external override onlyPolicyOwner {
         markets[_id].endSaleTime = uint48(block.timestamp);
         markets[_id].capacity = 0;
         emit CloseMarket(_id);
@@ -268,6 +268,7 @@ contract BondDepository is
         mintRate = _mrRate;
     }
 
+    //TOS mint 
     function addTransfer(address _addr, uint256 _percents) external onlyPolicyOwner {
         require(_percents > 0 && _percents < 100, "_percents setting err");
         require(totalPercents + _percents < 100, "totalPercents need small 100");
@@ -281,6 +282,14 @@ contract BondDepository is
                 mintPercents: _percents
             })
         );
+    }
+
+    function transferChange(uint256 _id, address _addr, uint256 _percents) external onlyPolicyOwner {
+        Minting storage info = mintings[_id];
+        totalPercents = totalPercents + _percents - info.mintPercents;
+        
+        info.mintAddress = _addr;
+        info.mintPercents = _percents;
     }
 
     function transferLogic(uint256 _transAmount) internal returns (uint256 totalAmount){
