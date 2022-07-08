@@ -105,7 +105,7 @@ contract BondDepository is
      * @notice             deposit quote tokens in exchange for a bond from a specified market
      * @param _id          the ID of the market
      * @param _amount      the amount of quote token to spend
-     * @param _time        staking time
+     * @param _time        staking time (uint is week)
      * @param _dTOSamount  dTOSAmount
      * @param _claim       Whether or not to claim
      * @return payout_     the amount of TOS due
@@ -238,14 +238,17 @@ contract BondDepository is
         uint256 transAmount = mrAmount - payout_;
         //transAmount는 treasury에 갈 Amount이다. 
         //payAmount는 transAmount물량 중 재단에 쌓이는 물량이다. 그래서 최종적으로 transAmount - payAmount가 treasury에 쌓인다
+        console.log("1");
         uint256 payAmount = transferLogic(transAmount);
+        console.log("transAmount : %s", transAmount);
+        console.log("payAmount : %s", payAmount);
+
         tos.safeTransfer(address(ITreasury(treasury)),(transAmount - payAmount));
 
         //update the backingData
         treasury.backingUpdate();
 
         //tos staking route      
-        console.log("1");  
         staking.stake(
             msg.sender,
             payout_,
@@ -272,12 +275,10 @@ contract BondDepository is
     function addTransfer(address _addr, uint256 _percents) external onlyPolicyOwner {
         require(_percents > 0 && _percents < 100, "_percents setting err");
         require(totalPercents + _percents < 100, "totalPercents need small 100");
-        console.log("addTrasnfer1");
-        console.log("mintingList.length : %s", mintings.length);
+
         mintingList[mintings.length] = _addr;
-        console.log("addTrasnfer2");
         totalPercents = totalPercents + _percents;
-        console.log("addTrasnfer3");
+
         mintings.push(
             Minting({
                 mintAddress: _addr,
@@ -296,7 +297,7 @@ contract BondDepository is
 
     function transferLogic(uint256 _transAmount) internal returns (uint256 totalAmount){
         for(uint256 i = 0; i < mintings.length; i++) {
-            uint256 eachAmount = _transAmount * mintings[i].mintPercents;
+            uint256 eachAmount = _transAmount * mintings[i].mintPercents / 100;
             totalAmount = totalAmount + eachAmount;
             tos.safeTransfer(mintings[i].mintAddress,eachAmount);
         }
