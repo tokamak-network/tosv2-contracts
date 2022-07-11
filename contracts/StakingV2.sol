@@ -139,36 +139,36 @@ contract StakingV2 is
         UserBalance memory userNew = UserBalance({
             deposit: userOld.deposit + _amount,
             LTOS: userOld.LTOS + LTOSamount,
-            startTime: block.timestamp,
             endTime: getEndTime,
             getLTOS: userOld.getLTOS,
-            rewardTOS: userOld.rewardTOS
+            rewardTOS: userOld.rewardTOS,
+            withdraw: false
         });
 
         stakingBalances[_addr][_stakeId] = userNew;
         allStakings[_stakeId] = userNew;
 
         totalLTOS = totalLTOS + userOld.LTOS;
-        totaldeposit = totaldeposit + userOld.deposit;
     }
 
     /**
      * @notice redeem LTOS -> TOS
-     * @param _to address
      * @param _stakeId uint unstake할 LTOS ID를 받음
      * @param _amount uint LTOS양을 받음
      * @return amount_ uint
      */
-    //모든 LTOS를 unstaking하면 tokenId 삭제
+    //모든 LTOS를 unstaking하면 tokenId 삭제 -> 불가능.. delete는 길이를 줄여주지않는다. pop을 이용해야하는데 pop을 이용하기 힘든 구조임 -> mapping이라서 delete하면 됨
+    //배열일때는 마지막 데이터를 현재 데이터에 넣고 마지막 데이터를 Pop 시킴
     //unstakingALL 만들기
+    //부분 unstaking이랑 stakeId 다빼는 unstake 따로 function 만들기
     function unstake(
-        address _to,
         uint256 _stakeId,
         uint256 _amount
     ) external returns (uint256 amount_) {
-        UserBalance storage stakeInfo = stakingBalances[_to][_stakeId];
-
+        UserBalance storage stakeInfo = stakingBalances[msg.sender][_stakeId];
         require(block.timestamp > stakeInfo.endTime, "need the endPeriod");
+
+        rebaseIndex();
 
         // epoNumber = epoch.number - info.epoNum;
         uint256 remainLTOS = stakeInfo.LTOS - stakeInfo.getLTOS;
@@ -183,13 +183,62 @@ contract StakingV2 is
         }
         
         //TokenID <-> TokenId 연동하는 struct 이용해서 id찾아서 호출 sTOStokenId
-        lockTOS.withdrawByStaker(_to,_stakeId);
+        if(stakeInfo.withdraw == false) {
+            uint256 sTOSid = connectId[_stakeId];
+            lockTOS.withdrawByStaker(msg.sender,sTOSid);
+            stakeInfo.withdraw == true;
+        }
 
         stakeInfo.getLTOS = stakeInfo.getLTOS + _amount;          //쓴 LTOS 기록
         stakeInfo.rewardTOS = stakeInfo.rewardTOS + amount_;      //LTOS -> TOS로 바꾼 양 기록
 
+        if(balanceOfId(_stakeId) == 0) {
+            delete stakingBalances[msg.sender][_stakeId];
+        }
+
         require(amount_ <= TOS.balanceOf(address(this)), "Insufficient TOS balance in contract");
-        TOS.safeTransfer(_to, amount_);
+        TOS.safeTransfer(msg.sender, amount_);
+    }
+
+    function unstakeId(
+        uint256 _stakeId
+    ) public returns (uint256 amount_) {
+        console.log("msg.sender2 : %s",msg.sender);
+        UserBalance storage stakeInfo = stakingBalances[msg.sender][_stakeId];
+        require(block.timestamp > stakeInfo.endTime, "need the endPeriod");
+
+        rebaseIndex();
+
+        uint256 remainLTOS = stakeInfo.LTOS - stakeInfo.getLTOS;
+
+        amount_ = ((remainLTOS*index_)/1e18);
+
+        if(amount_ > stakeInfo.deposit) {
+            TOS.safeTransferFrom(address(ITreasury(treasury)),address(this),(amount_-stakeInfo.deposit));
+        }
+        
+        //TokenID <-> TokenId 연동하는 struct 이용해서 id찾아서 호출 sTOStokenId
+        if(stakeInfo.withdraw == false) {
+            uint256 sTOSid = connectId[_stakeId];
+            lockTOS.withdrawByStaker(msg.sender,sTOSid);
+            stakeInfo.withdraw == true;
+        }
+
+        stakeInfo.getLTOS = stakeInfo.getLTOS + remainLTOS;       //쓴 LTOS 기록
+        stakeInfo.rewardTOS = stakeInfo.rewardTOS + amount_;      //LTOS -> TOS로 바꾼 양 기록
+
+        delete stakingBalances[msg.sender][_stakeId];
+
+        require(amount_ <= TOS.balanceOf(address(this)), "Insufficient TOS balance in contract");
+        TOS.safeTransfer(msg.sender, amount_);
+    }   
+
+    function allunStaking() external {
+        console.log("msg.sender1 : %s", msg.sender);
+        uint256[] memory stakingId = stakinOf(msg.sender);
+        for (uint256 i = 0; i < stakingId.length; i++) {
+            unstakeId(stakingId[i]);
+        }
     }
 
     function rebaseIndex() public {
@@ -253,19 +302,23 @@ contract StakingV2 is
     // LTOS를 TOS로 보상해주고 남은 TOS 물량
     function circulatingSupply() public view returns (uint256) {
         //treasury가지고 있는 TOS  - staking 이자 빼기
-        // uint256 amount = treasury.enableStaking() - ((totalLTOS * index_) - totaldeposit);
+        // uint256 amount = treasury.enableStaking() - ((totalLTOS * index_) - totalDepositTOS());
         uint256 amount = treasury.enableStaking() - LTOSinterest();
         return amount;
     }
 
-    // LTOS에 대한 이자 (LTOS -> TOS로 환산 후 staking된 TOS를 뺴줌)
+    // LTOS에 대한 현재 이자 (LTOS -> TOS로 환산 후 staking된 TOS를 뺴줌)
     function LTOSinterest() public view returns (uint256) {
-        return ((totalLTOS * index_)/1e18) - totaldeposit;
+        return ((totalLTOS * index_)/1e18) - totalDepositTOS();
     }
 
     // 다음 TOS이자 (다음 index를 구한뒤 -> LTOS -> TOS로 변경 여기서 staking 된 TOS를 뺴줌)
     function nextLTOSinterest() public view returns (uint256) {
-        return ((totalLTOS * nextIndex())/1e18) - totaldeposit;
+        return ((totalLTOS * nextIndex())/1e18) - totalDepositTOS();
+    }
+
+    function totalDepositTOS() public view returns (uint256) {
+        return TOS.balanceOf(address(this));
     }
 
     //sTOS 마이그레이션 sTOS에 있는 TOS를 가져오고 여기에 등록시켜준다

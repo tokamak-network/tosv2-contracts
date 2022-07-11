@@ -34,10 +34,10 @@ contract StakingV2Storage {
     struct UserBalance {
         uint256 deposit;    //tos staking 양
         uint256 LTOS;       //변환된 LTOS 양
-        uint256 startTime;  //시작 startTime
         uint256 endTime;    //끝나는 endTime
         uint256 getLTOS;    //이미 받아간 LTOS양
         uint256 rewardTOS;  //받아간 TOS양
+        bool withdraw;
     }
 
     /* ========== STATE VARIABLES ========== */
@@ -57,7 +57,6 @@ contract StakingV2Storage {
 
     uint256 internal free = 1;
 
-    uint256 public totaldeposit;
     uint256 public totalLTOS;
 
     uint256 public rebasePerEpoch;

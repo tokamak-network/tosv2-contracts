@@ -105,6 +105,11 @@ describe("price test", function () {
   let depositTime2;
   let unstakingTime;
 
+  let stakeIdcheck;
+  let balanceOfLTOS;
+  let stakingBalanceLTOS;
+  let totalLTOS;
+
   let sellingTime = 120;
 
   let sellTosAmount = ethers.utils.parseUnits("10000", 18); //1ETH = 1000TOS 라서 10ETH받으면 끝임
@@ -133,7 +138,7 @@ describe("price test", function () {
   let etherUint = ethers.utils.parseUnits("1", 18);     
   // let wtonUint = ethers.utils.parseUnits("1", 27);     
 
-  let firstExcute = true;
+  let firstExcute = false;
 
   let firstMarketlength;
 
@@ -707,6 +712,9 @@ describe("price test", function () {
   })
 
   describe("#3-1. bondDepository function test", async () => {
+    it("#3-1-1. user don't create the ETH market", async () => {
+      
+    })
 
     it("#3-1-1. create the ETH market", async () => {
       const block = await ethers.provider.getBlock('latest')
@@ -769,7 +777,7 @@ describe("price test", function () {
       expect(beforetosTreasuryAmount).to.be.equal(0)
       
       let epochtime = await stakingProxylogic.epoch();
-      
+
       await bondDepositoryProxylogic.connect(admin1).ETHDeposit(
         (marketlength-1),
         depositAmount,
@@ -796,80 +804,82 @@ describe("price test", function () {
       expect(aftertosTreasuryAmount).to.above(0)
     })
 
-    it("#3-1-4. deposit and staking checking", async () => {
-      let stakeId = await stakingProxylogic.connect(admin1).stakinOf(admin1.address);
-      console.log("stakeId :", Number(stakeId));
-
-      let balanceCheck = await stakingProxylogic.connect(admin1).balanceOfId(Number(stakeId));
-      console.log("id LTOS balance : ", balanceCheck);
-
-      let amount =  await stakingProxylogic.connect(admin1).stakingBalances(admin1.address,Number(stakeId));
-      console.log("LTOS : ", amount.LTOS);
-
-      let totaluserLTOS = await stakingProxylogic.connect(admin1).balanceOf(admin1.address);
-      console.log("totaluserLTOS : ", totaluserLTOS);
-
-      expect(balanceCheck).to.be.equal(amount.LTOS);
-      expect(balanceCheck).to.be.equal(totaluserLTOS);
+    it("#3-1-4. stakinOf view test", async () => {
+      stakeIdcheck = await stakingProxylogic.connect(admin1).stakinOf(admin1.address);
+      console.log("stakeId :", Number(stakeIdcheck)); 
     })
 
-    // it("#3-1-5. unstaking can't before endTime", async () => {
-    //   let stakeId = await stakingProxylogic.connect(admin1).stakinOf(admin1.address);
-    //   console.log("stakeId :", Number(stakeId));
+    it("#3-1-5. balanceOfId and balanceOf view test", async () => {
+      balanceOfLTOS = await stakingProxylogic.connect(admin1).balanceOfId(Number(stakeIdcheck));
+      console.log("id LTOS balance : ", balanceOfLTOS);
 
-    //   let amount =  await stakingProxylogic.connect(admin1).stakingBalances(admin1.address,Number(stakeId));
-    //   console.log("LTOS : ", amount.LTOS);
+      totalLTOS = await stakingProxylogic.connect(admin1).balanceOf(admin1.address);
+      console.log("totaluserLTOS : ", totalLTOS);
 
-    //   await expect(
-    //     stakingProxylogic.connect(admin1).unstake(
-    //           admin1.address,
-    //           Number(stakeId),
-    //           amount.LTOS,
-    //       )
-    //   ).to.be.revertedWith("need the endPeriod");
-    // })
+      expect(balanceOfLTOS).to.be.equal(totalLTOS);
+    })
+    
+    it("#3-1-6. stakingBalances storage and balanceOf view test", async () => {
+      stakingBalanceLTOS = await stakingProxylogic.connect(admin1).stakingBalances(admin1.address,Number(stakeIdcheck));
+      console.log("LTOS : ", stakingBalanceLTOS.LTOS);
 
-    // it("#3-1-6. unstaking can after endTime", async () => {
-    //   let stakeId = await stakingProxylogic.connect(admin1).stakinOf(admin1.address);
-    //   let stakingInfo =  await stakingProxylogic.connect(admin1).stakingBalances(admin1.address,Number(stakeId[0]));
+      totalLTOS = await stakingProxylogic.connect(admin1).balanceOf(admin1.address);
+      console.log("totaluserLTOS : ", totalLTOS);
 
-    //   const block = await ethers.provider.getBlock('latest')
+      expect(totalLTOS).to.be.equal(stakingBalanceLTOS.LTOS);
+    })
 
-    //   console.log("1")
-    //   if(Number(depositTime2) > Number(stakingInfo.endTime)) {
-    //     unstakingTime = depositTime2 + 15;
-    //   } else if(block.timestamp > depositTime2 && block.timestamp > stakingInfo.endTime) {
-    //     unstakingTime = block.timestamp;
-    //   } else {
-    //     unstakingTime = Number(stakingInfo.endTime) + 15;
-    //   }
-    //   console.log("2")
-    //   console.log("blockTime : ", block.timestamp);
-    //   console.log("unstakingTime : ", unstakingTime);
-    //   await ethers.provider.send('evm_setNextBlockTimestamp', [unstakingTime]);
-    //   await ethers.provider.send('evm_mine');
 
-    //   beforetosAmount = await tosContract.connect(admin1).balanceOf(admin1.address);
-    //   console.log("beforetosAmount :", beforetosAmount)
+    it("#3-1-7. unstaking can't before endTime", async () => {
+      await expect(
+        stakingProxylogic.connect(admin1).unstake(
+              admin1.address,
+              Number(stakeIdcheck),
+              stakingBalanceLTOS.LTOS,
+          )
+      ).to.be.revertedWith("need the endPeriod");
+    })
 
-    //   let index = await stakingProxylogic.index_()
-    //   console.log("index :" , index)
+    it("#3-1-6. unstaking can after endTime", async () => {
+      let stakingInfo =  await stakingProxylogic.connect(admin1).stakingBalances(admin1.address,Number(stakeId[0]));
 
-    //   //500LTOS unstaking함 -> 5500TOS 받아야함
-    //   await stakingProxylogic.connect(admin1).unstake(
-    //     admin1.address,
-    //     Number(stakeId[0]),
-    //     stakingInfo.LTOS
-    //   )    
+      const block = await ethers.provider.getBlock('latest')
+
+      console.log("1")
+      if(Number(depositTime2) > Number(stakingInfo.endTime)) {
+        unstakingTime = depositTime2 + 15;
+      } else if(block.timestamp > depositTime2 && block.timestamp > stakingInfo.endTime) {
+        unstakingTime = block.timestamp;
+      } else {
+        unstakingTime = Number(stakingInfo.endTime) + 15;
+      }
+      console.log("2")
+      console.log("blockTime : ", block.timestamp);
+      console.log("unstakingTime : ", unstakingTime);
+      await ethers.provider.send('evm_setNextBlockTimestamp', [unstakingTime]);
+      await ethers.provider.send('evm_mine');
+
+      beforetosAmount = await tosContract.connect(admin1).balanceOf(admin1.address);
+      console.log("beforetosAmount :", beforetosAmount)
+
+      let index = await stakingProxylogic.index_()
+      console.log("index :" , index)
+
+      //500LTOS unstaking함 -> 5500TOS 받아야함
+      await stakingProxylogic.connect(admin1).unstake(
+        admin1.address,
+        Number(stakeIdcheck),
+        stakingBalanceLTOS.LTOS
+      )    
       
-    //   let getTOSAmount = (unstakingAmount * index) / etherUint;
+      let getTOSAmount = (unstakingAmount * index) / etherUint;
 
-    //   aftertosAmount = await tosContract.connect(admin1).balanceOf(admin1.address);
-    //   console.log("aftertosAmount : ", aftertosAmount)
-    //   let tosdiffAmount = aftertosAmount - beforetosAmount;
-    //   console.log("tosdiffAmount", tosdiffAmount)
-    //   console.log("getTOSAmount :", getTOSAmount)
-    // })
+      aftertosAmount = await tosContract.connect(admin1).balanceOf(admin1.address);
+      console.log("aftertosAmount : ", aftertosAmount)
+      let tosdiffAmount = aftertosAmount - beforetosAmount;
+      console.log("tosdiffAmount", tosdiffAmount)
+      console.log("getTOSAmount :", getTOSAmount)
+    })
 
     // it("deposit2 ETHmarket", async() => {
     //   depositTime2 = depositTime + 25;
