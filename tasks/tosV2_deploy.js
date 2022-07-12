@@ -1,5 +1,5 @@
 const fs = require('fs');
-const { ethers } = require('hardhat');
+// const { ethers } = require('hardhat');
 let treasuryLogicAbi = require('../abis/Treasury.json');
 let stakingV2LogicAbi = require('../abis/StakingV2.json');
 
@@ -15,13 +15,19 @@ task("deploy-tos-v2", "Deploy TOSV2")
         const deployer = accounts[0];
         console.log("deployer: ", deployer.address);
 
-        await hre.network.provider.send('hardhat_impersonateAccount',[adminAddress]);
-        await hre.network.provider.send('hardhat_setBalance',[adminAddress, "0x10000000000000000000000000"]);
-        let admin = await hre.ethers.getSigner(adminAddress) ;
-        console.log("admin : ", admin.address);
+        // await hre.network.provider.send('hardhat_impersonateAccount',[adminAddress]);
+        // await hre.network.provider.send('hardhat_setBalance',[adminAddress, "0x10000000000000000000000000"]);
+        // let admin = await hre.ethers.getSigner(adminAddress) ;
+        // console.log("admin : ", admin.address);
+
+        await hre.ethers.provider.send("hardhat_setBalance", [
+            deployer.address,
+            "0x8ac7230489e80000",
+          ]);
+
 
         const treasuryLogic = await (await ethers.getContractFactory("Treasury"))
-            .connect(admin)
+            .connect(deployer)
             .deploy();
 
         await treasuryLogic.deployed();
@@ -30,7 +36,7 @@ task("deploy-tos-v2", "Deploy TOSV2")
         const tresuyLogicAddress = treasuryLogic.address;
 
         const treasuryProxy = await (await ethers.getContractFactory("TreasuryProxy"))
-            .connect(admin)
+            .connect(deployer)
             .deploy();
         await treasuryProxy.deployed();
 
@@ -40,7 +46,7 @@ task("deploy-tos-v2", "Deploy TOSV2")
         const treasuryProxyContract = new ethers.Contract( treasuryProxyAddrress, treasuryLogicAbi.abi, ethers.provider);
 
         const stakingLogic = await (await ethers.getContractFactory("StakingV2"))
-            .connect(admin)
+            .connect(deployer)
             .deploy();
         await stakingLogic.deployed();
 
@@ -48,9 +54,9 @@ task("deploy-tos-v2", "Deploy TOSV2")
         const stakingLogicAddress = stakingLogic.address;
 
         const stakingProxy = await ( await ethers.getContractFactory("StakingV2Proxy"))
-            .connect(admin)
+            .connect(deployer)
             .deploy();
-        await stakingProxy.deployd();
+        await stakingProxy.deployed();
 
         console.log("stakingProxy: ", stakingProxy.address);
         const stakingProxyAddress = stakingProxy.address;
@@ -61,7 +67,7 @@ task("deploy-tos-v2", "Deploy TOSV2")
         const firstEpochNumber = 0;
 
         const firstEndEpochTime = block.timestamp + epochLength;
-        await stakingProxy.connect(admin1).initialize(
+        await stakingProxy.connect(deployer).initialize(
             tosAddress,
             [epochLength,firstEpochNumber,firstEndEpochTime,epochUnit],
             lockTosAddress,
