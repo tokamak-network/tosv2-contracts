@@ -65,9 +65,9 @@ task("deploy-tos-v2", "Deploy TOSV2")
             tosAddress,
             [epochLength,firstEpochNumber,firstEndEpochTime,epochUnit],
             lockTosAddress,
-            treasuryProxy.address
+            treasuryProxyAddrress
         )
 
-        const stakingProxyContract = new ethers.Contract( stakingProxyAddress, treasuryLogicAbi.abi, ethers.provider);
+        const stakingProxyContract = new ethers.Contract( stakingProxyAddress, stakingV2LogicAbi.abi, ethers.provider);
         console.log("stakingProxyContract : ", stakingProxyContract.address);
     })
