@@ -55,6 +55,21 @@ contract StakingV2 is
         return newindex;
     }
 
+    /**
+     * @notice input the endTime get the exponent
+     * @param _endTime endTime
+     * @return maxindex uint256
+     */
+    // ((스테이킹 끝나는 시간 - 다음 인덱스 증가 시간)/인덱스 rebase 시간) = 몇번 rebase가 일어나는지 나옴
+    function maxIndex(uint256 _endTime) public view returns (uint256 maxindex) {
+        uint256 exponent = (_endTime - epoch.end) / epoch.length_ ;
+        maxindex = index_;
+        for (uint256 i = 0; i < exponent; i++) {
+            maxindex = (maxindex *(1 ether+rebasePerEpoch)/ 1e18);
+        }
+        return maxindex;
+    }
+
     //모지랄때 owner가 정해서 늘리는게 맞는가? index는 ether단위이다.
     function setindex(uint256 _index) external onlyPolicyOwner {
         index_ = _index;
@@ -154,7 +169,7 @@ contract StakingV2 is
     /**
      * @notice redeem LTOS -> TOS
      * @param _stakeId uint unstake할 LTOS ID를 받음
-     * @param _amount uint LTOS양을 받음
+     * @param _amount uint TOS로 전환할 LTOS양
      * @return amount_ uint
      */
     //모든 LTOS를 unstaking하면 tokenId 삭제 -> 불가능.. delete는 길이를 줄여주지않는다. pop을 이용해야하는데 pop을 이용하기 힘든 구조임 -> mapping이라서 delete하면 됨
@@ -290,14 +305,22 @@ contract StakingV2 is
         }
     }
 
+    //sTOS의 양은 최대의 index를 계산하여서 LTOS -> TOS로 변경 -> TOS의 최대양을 return함
+    // 현재 TOS양과 끝나는 시간 입력 시 모든 경우에 index가 다 증가했을경우 staking이 끝난 후 바로 unstaking하면 최종적으로 받게될 TOS의 양을 return함
+    // ((스테이킹 끝나는 시간 - 다음 인덱스 증가 시간)/인덱스 rebase 시간) = 몇번 rebase가 일어나는지 나옴
+    // _amount = 현재 TOS 양, _endTime 스테이킹 끝나는 시간
     function maxIndexProfit(
+        uint256 _amount,
         uint256 _endTime
     ) 
         public
         view
         returns (uint256 amount_)
-    {
-        
+    {   
+        uint256 nowLTOS = (_amount*1e18)/index_;
+        uint256 maxindex_ = maxIndex(_endTime);
+        amount_ = ((nowLTOS * maxindex_) / 1e18);
+        return amount_;
     }
         
 
@@ -339,8 +362,7 @@ contract StakingV2 is
         address[] memory accounts,
         uint256[] memory balances,
         uint256[] memory period,
-        uint256[] memory tokenId,
-        uint256[] memory profit
+        uint256[] memory tokenId
     )
         external
         onlyOwner
