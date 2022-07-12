@@ -40,6 +40,8 @@ task("deploy-tos-v2", "Deploy TOSV2")
             .deploy();
         await treasuryProxy.deployed();
 
+        await treasuryProxy.connect(deployer).upgradeTo(tresuyLogicAddress);
+
         console.log("treasuryProxy: ", treasuryProxy.address);
         const treasuryProxyAddrress = treasuryProxy.address;
 
@@ -58,12 +60,16 @@ task("deploy-tos-v2", "Deploy TOSV2")
             .deploy();
         await stakingProxy.deployed();
 
+        await stakingProxy.connect(deployer).upgradeTo(stakingLogicAddress);
+
         console.log("stakingProxy: ", stakingProxy.address);
         const stakingProxyAddress = stakingProxy.address;
         
         const block = await ethers.provider.getBlock('latest')
-        const epochLength = 20;
-        const epochUnit = 60;
+
+        const epochLength = 60*60*8;        //rebasePeriod임
+
+        const epochUnit = 604800;           //sTOS와 설정 같아야함
         const firstEpochNumber = 0;
 
         const firstEndEpochTime = block.timestamp + epochLength;
@@ -75,5 +81,17 @@ task("deploy-tos-v2", "Deploy TOSV2")
         )
 
         const stakingProxyContract = new ethers.Contract( stakingProxyAddress, stakingV2LogicAbi.abi, ethers.provider);
+
+        await stakingProxyContract.connect(deployer).addPolicy(deployer.address);
+        const policyCheck = await stakingProxyContract.isPolicy(deployer.address)
+        console.log("policyCheck : ", policyCheck)
+        
+        const rebasePerEpoch = 87000000000000;
+        await stakingProxyContract.connect(deployer).setRebasePerepoch(rebasePerEpoch)
+        const rebaseCheck = await stakingProxyContract.connect(deployer).rebasePerEpoch()
+        console.log("rebaseCheck : ", Number(rebaseCheck));
+
+        //초기 index값도 설정해야함
+
         console.log("stakingProxyContract : ", stakingProxyContract.address);
     })
