@@ -713,7 +713,19 @@ describe("price test", function () {
 
   describe("#3-1. bondDepository function test", async () => {
     it("#3-1-1. user don't create the ETH market", async () => {
-      
+      const block = await ethers.provider.getBlock('latest')
+      let finishTime = block.timestamp + sellingTime  //2분
+      let marketbefore = await bondDepositoryProxylogic.marketsLength();
+      console.log(marketbefore)
+      await bondDepositoryProxylogic.connect(admin1).create(
+          true,
+          admin1.address,
+          uniswapInfo.tosethPool,
+          [sellTosAmount,finishTime,ETHPrice,TOSPrice,onePayout]
+      )
+      let marketafter = await bondDepositoryProxylogic.marketsLength();
+      console.log(marketafter)
+      expect(Number(marketbefore)+1).to.be.equal(marketafter);
     })
 
     it("#3-1-1. create the ETH market", async () => {
