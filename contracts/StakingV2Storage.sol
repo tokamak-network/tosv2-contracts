@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "./interfaces/IERC20.sol";
 import "./interfaces/ILockTOSv2Action0.sol";
 import "./interfaces/ITreasury.sol";
-import "./interfaces/IStaking.sol";
 
 contract StakingV2Storage {
      /* ========== DATA STRUCTURES ========== */

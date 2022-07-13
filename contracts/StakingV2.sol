@@ -5,9 +5,6 @@ import "./libraries/SafeMath.sol";
 import "./libraries/SafeERC20.sol";
 
 import "./StakingV2Storage.sol";
-import "./interfaces/IERC20.sol";
-import "./interfaces/ILockTOSv2Action0.sol";
-import "./interfaces/ITreasury.sol";
 
 import "./interfaces/IStaking.sol";
 
@@ -17,16 +14,13 @@ import "hardhat/console.sol";
 
 contract StakingV2 is 
     StakingV2Storage, 
-    ProxyAccessCommon 
+    ProxyAccessCommon,
+    IStaking 
 {
     /* ========== DEPENDENCIES ========== */
 
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
-
-    /* ========== EVENTS ========== */
-
-    event WarmupSet(uint256 warmup);
 
     /* ========== CONSTRUCTOR ========== */
     constructor() {
@@ -36,7 +30,7 @@ contract StakingV2 is
 
     //epochRebase 
     //If input the 0.9 -> 900000000000000000
-    function setRebasePerepoch(uint256 _rebasePerEpoch) external onlyPolicyOwner {
+    function setRebasePerepoch(uint256 _rebasePerEpoch) external override onlyPolicyOwner {
         rebasePerEpoch = _rebasePerEpoch;
     }
 
@@ -50,7 +44,7 @@ contract StakingV2 is
         return index_;
     }
 
-    function nextIndex() public view returns (uint256) {
+    function nextIndex() public view override returns (uint256) {
         uint256 newindex = (index_*(1 ether+rebasePerEpoch) / 1e18);
         return newindex;
     }
@@ -61,7 +55,7 @@ contract StakingV2 is
      * @return maxindex uint256
      */
     // ((스테이킹 끝나는 시간 - 다음 인덱스 증가 시간)/인덱스 rebase 시간) = 몇번 rebase가 일어나는지 나옴
-    function maxIndex(uint256 _endTime) public view returns (uint256 maxindex) {
+    function maxIndex(uint256 _endTime) public view override returns (uint256 maxindex) {
         uint256 exponent = (_endTime - epoch.end) / epoch.length_ ;
         maxindex = index_;
         for (uint256 i = 0; i < exponent; i++) {
@@ -71,7 +65,7 @@ contract StakingV2 is
     }
 
     //모지랄때 owner가 정해서 늘리는게 맞는가? index는 ether단위이다.
-    function setindex(uint256 _index) external onlyPolicyOwner {
+    function setindex(uint256 _index) external override onlyPolicyOwner {
         index_ = _index;
     }
 
@@ -102,6 +96,7 @@ contract StakingV2 is
         bool _lockTOS
     ) 
         external 
+        override
         returns (uint256 stakeId) 
     {
         require(_amount > 0, "amount should be non-zero");
@@ -130,7 +125,6 @@ contract StakingV2 is
             sTOSid = lockTOS.createLockByStaker(_to,maxProfit,_periodWeeks);
             connectId[stakeId] = sTOSid;
             lockTOSId[sTOSid] = stakeId;
-            // sTOSid = lockTOS.createLock(_amount,_periodWeeks);
         }
     }
 
@@ -142,15 +136,12 @@ contract StakingV2 is
     ) internal ifFree {
         UserBalance memory userOld = stakingBalances[_addr][_stakeId];
         
-        //그냥 스테이킹할때
+        //그냥 스테이킹할때 && 기간을 늘릴때
         uint256 getEndTime = _period;
         //이전에 스테이킹한적이 있으면
         if(userOld.deposit > 0) {
-            //기간을 늘릴때 -> 현재기준으로 늘릴지 아니면 최종 타임 기준으로 늘릴지 결정해야함
-            if(_period > 0) {
-                getEndTime = userOld.endTime + _period;
-            } else {
-                //기간을 늘리지않고 수량만 늘릴때
+            //기간을 늘리지않고 수량만 늘릴때
+            if(_period == 0) {
                 getEndTime = userOld.endTime;
             }
         }
@@ -172,6 +163,51 @@ contract StakingV2 is
         totalLTOS = totalLTOS + userOld.LTOS;
     }
 
+    //사전에 TOS approve 필요
+    function increaseAmountStake(
+        address _to,
+        uint256 _tokenId,
+        uint256 _amount
+    ) 
+        external
+        override 
+    {
+        require(_tokenId != 0, "need the tokenId");
+        require(_amount > 0, "amount should be non-zero");
+        TOS.safeTransferFrom(_to, address(this), _amount);
+
+        _stake(_to,_tokenId,_amount,0);
+         
+        uint256 sTOSid = connectId[_tokenId];
+
+        lockTOS.increaseAmountByStaker(_to,sTOSid,_amount);
+
+        rebaseIndex();
+    }
+
+    //_unlockWeeks 만큼 더 늘어남
+    function increasePeriodStake(
+        address _to,
+        uint256 _tokenId,
+        uint256 _unlockWeeks
+    )
+        external
+        override
+    {
+        require(_tokenId != 0, "need the tokenId");
+        require(_unlockWeeks > 0, "period should be non-zero");
+        UserBalance memory userOld = stakingBalances[_to][_tokenId];
+
+        uint256 unlockTime = userOld.endTime.add(_unlockWeeks.mul(epochUnit));
+
+        _stake(_to,_tokenId,0,unlockTime);
+        
+        uint256 sTOSid = connectId[_tokenId];
+        lockTOS.increaseUnlockTimeByStaker(_to,sTOSid,_unlockWeeks);
+        
+        rebaseIndex();
+    }
+
     /**
      * @notice redeem LTOS -> TOS
      * @param _stakeId uint unstake할 LTOS ID를 받음
@@ -185,7 +221,11 @@ contract StakingV2 is
     function unstake(
         uint256 _stakeId,
         uint256 _amount
-    ) external returns (uint256 amount_) {
+    ) 
+        external 
+        override 
+        returns (uint256 amount_) 
+    {
         UserBalance storage stakeInfo = stakingBalances[msg.sender][_stakeId];
         require(block.timestamp > stakeInfo.endTime, "need the endPeriod");
 
@@ -223,7 +263,11 @@ contract StakingV2 is
 
     function unstakeId(
         uint256 _stakeId
-    ) public returns (uint256 amount_) {
+    ) 
+        public 
+        override 
+        returns (uint256 amount_) 
+    {
         console.log("msg.sender2 : %s",msg.sender);
         UserBalance storage stakeInfo = stakingBalances[msg.sender][_stakeId];
         require(block.timestamp > stakeInfo.endTime, "need the endPeriod");
@@ -254,7 +298,7 @@ contract StakingV2 is
         TOS.safeTransfer(msg.sender, amount_);
     }   
 
-    function allunStaking() external {
+    function allunStaking() external override {
         console.log("msg.sender1 : %s", msg.sender);
         uint256[] memory stakingId = stakinOf(msg.sender);
         for (uint256 i = 0; i < stakingId.length; i++) {
@@ -262,7 +306,7 @@ contract StakingV2 is
         }
     }
 
-    function rebaseIndex() public {
+    function rebaseIndex() public override {
         if(epoch.end <= block.timestamp) {
             uint256 epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
             epoch.end = epoch.end + (epoch.length_ * (epochNumber + 1));
@@ -282,6 +326,7 @@ contract StakingV2 is
     //유저가 스테이킹한 id 리턴
     function stakinOf(address _addr)
         public
+        override
         view
         returns (uint256[] memory)
     {
@@ -291,6 +336,7 @@ contract StakingV2 is
     //stakeId가 가지고 있는 남은 LTOS를 리턴
     function balanceOfId(uint256 _stakeId)
         public
+        override
         view
         returns (uint256)
     {
@@ -301,6 +347,7 @@ contract StakingV2 is
     //유저가 가진 총 LTOS 리턴
     function balanceOf(address _addr)
         public
+        override
         view
         returns (uint256 balance)
     {
@@ -320,6 +367,7 @@ contract StakingV2 is
         uint256 _endTime
     ) 
         public
+        override
         view
         returns (uint256 amount_)
     {   
@@ -333,13 +381,13 @@ contract StakingV2 is
     /**
      * @notice seconds until the next epoch begins
      */
-    function secondsToNextEpoch() external view returns (uint256) {
+    function secondsToNextEpoch() external override view returns (uint256) {
         return epoch.end.sub(block.timestamp);
     }
 
 
     // LTOS를 TOS로 보상해주고 남은 TOS 물량
-    function circulatingSupply() public view returns (uint256) {
+    function circulatingSupply() public override view returns (uint256) {
         //treasury가지고 있는 TOS  - staking 이자 빼기
         // uint256 amount = treasury.enableStaking() - ((totalLTOS * index_) - totalDepositTOS());
         uint256 amount = treasury.enableStaking() - LTOSinterest();
@@ -347,16 +395,16 @@ contract StakingV2 is
     }
 
     // LTOS에 대한 현재 이자 (LTOS -> TOS로 환산 후 staking된 TOS를 뺴줌)
-    function LTOSinterest() public view returns (uint256) {
+    function LTOSinterest() public override view returns (uint256) {
         return ((totalLTOS * index_)/1e18) - totalDepositTOS();
     }
 
     // 다음 TOS이자 (다음 index를 구한뒤 -> LTOS -> TOS로 변경 여기서 staking 된 TOS를 뺴줌)
-    function nextLTOSinterest() public view returns (uint256) {
+    function nextLTOSinterest() public override view returns (uint256) {
         return ((totalLTOS * nextIndex())/1e18) - totalDepositTOS();
     }
 
-    function totalDepositTOS() public view returns (uint256) {
+    function totalDepositTOS() public override view returns (uint256) {
         return TOS.balanceOf(address(this));
     }
 
@@ -371,6 +419,7 @@ contract StakingV2 is
         uint256[] memory tokenId
     )
         external
+        override
         onlyOwner
         returns (bool)
     {

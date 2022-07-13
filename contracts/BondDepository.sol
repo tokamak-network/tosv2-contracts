@@ -238,7 +238,6 @@ contract BondDepository is
         uint256 transAmount = mrAmount - payout_;
         //transAmount는 treasury에 갈 Amount이다. 
         //payAmount는 transAmount물량 중 재단에 쌓이는 물량이다. 그래서 최종적으로 transAmount - payAmount가 treasury에 쌓인다
-        console.log("1");
         uint256 payAmount = transferLogic(transAmount);
         console.log("transAmount : %s", transAmount);
         console.log("payAmount : %s", payAmount);

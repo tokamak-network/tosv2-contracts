@@ -204,6 +204,24 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
+    //token0이 Weth면 0을 리턴, token1이 weth면 1을 리턴, tokenPool 이없으면 2를 리턴, 3은 리턴하면 안됨.
+    function getETHtoken0(address _erc20Address, uint24 _fee) public view returns (uint){
+        address getPool = UniswapV3Factory.getPool(address(weth), address(_erc20Address), _fee);
+        if(getPool == address(0)) {
+            return 2;
+        }
+
+        address token0Address = IIUniswapV3Pool(getPool).token0();
+        address token1Address = IIUniswapV3Pool(getPool).token1();
+        if(token0Address == address(weth)) {
+           return 0;
+        } else if(token1Address == address(weth)) {
+            return 1;
+        } else {
+            return 3;
+        }
+    }
+
     //token0이 weth면 0을 리턴, token1이 weth면 1을 리턴, weth주소가 없으면 3을 리턴
     function getETHtoken(address _poolAddress) public view returns (uint) {
         address token0Address = IIUniswapV3Pool(_poolAddress).token0();

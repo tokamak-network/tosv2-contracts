@@ -2,6 +2,26 @@
 pragma solidity >=0.7.5;
 
 interface IStaking {
+    /* ========== EVENTS ========== */
+
+    event WarmupSet(uint256 warmup);
+
+    /* ========== FUNCTIONS ========== */
+
+    function setRebasePerepoch(
+        uint256 _rebasePerEpoch
+    ) external;
+
+    function nextIndex() external view returns (uint256);
+
+    function maxIndex(
+        uint256 _endTime
+    ) external view returns (uint256 maxindex);
+
+    function setindex(
+        uint256 _index
+    ) external;
+
     function stake(
         address _to,
         uint256 _amount,
@@ -10,30 +30,70 @@ interface IStaking {
         bool _lockTOS
     ) external returns (uint256 stakeId);
 
-    function claim(address _recipient, bool _rebasing) external returns (uint256);
+    function increaseAmountStake(
+        address _to,
+        uint256 _tokenId,
+        uint256 _amount
+    ) external;
 
-    function forfeit() external returns (uint256);
-
-    function toggleLock() external;
+    function increasePeriodStake(
+        address _to,
+        uint256 _tokenId,
+        uint256 _unlockWeeks
+    ) external;
 
     function unstake(
-        address _to,
+        uint256 _stakeId,
+        uint256 _amount
+    ) external returns (uint256 amount_);
+
+    function unstakeId(
+        uint256 _stakeId
+    ) external returns (uint256 amount_);
+
+    function allunStaking() external;
+
+    function rebaseIndex() external;
+
+    function stakinOf(address _addr)
+        external
+        view
+        returns (uint256[] memory);
+
+    function balanceOfId(uint256 _stakeId)
+        external
+        view
+        returns (uint256);
+
+    function balanceOf(address _addr)
+        external
+        view
+        returns (uint256 balance);
+
+    function maxIndexProfit(
         uint256 _amount,
-        bool _trigger,
-        bool _rebasing
-    ) external returns (uint256);
+        uint256 _endTime
+    ) 
+        external
+        view
+        returns (uint256 amount_);
 
-    function wrap(address _to, uint256 _amount) external returns (uint256 gBalance_);
+    function secondsToNextEpoch() external view returns (uint256);
 
-    function unwrap(address _to, uint256 _amount) external returns (uint256 sBalance_);
+    function circulatingSupply() external view returns (uint256);
 
-    function rebase() external;
+    function LTOSinterest() external view returns (uint256);
 
-    function index() external view returns (uint256);
+    function nextLTOSinterest() external view returns (uint256);
 
-    function contractBalance() external view returns (uint256);
+    function totalDepositTOS() external view returns (uint256);
 
-    function totalStaked() external view returns (uint256);
-
-    function supplyInWarmup() external view returns (uint256);
+    function syncSTOS(
+        address[] memory accounts,
+        uint256[] memory balances,
+        uint256[] memory period,
+        uint256[] memory tokenId
+    )
+        external
+        returns (bool);
 }
