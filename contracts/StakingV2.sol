@@ -90,6 +90,10 @@ contract StakingV2 is
     //마이그레이션 할때 index가 설정되야함 rebaseIndex를 0으로 해줘야함
     //lockPeriod가 없는 Staking은 따로 관리 -> 1 tokenID -> 1 token increase (용량만) , period (기간만)
     //기간 늘리는거, 양 늘리는거, 기간,양 같이 늘리는거 3개 function 추가
+    //lockTOS가 true이면 periodweeks는 1이상이여야한다.
+    //lockTOS가 false이면 경우는 2가지이다. 1. 
+    //본딩 락업기간 범위: 5일 또는 1주일 단위(sTOS를 위해 락업할 경우)
+    //스테이킹 락업기간 범위: 0일 또는 1주일 단위(sTOS를 위해 락업할 경우) -> 0일인경우 periodWeeks = 0, lockTOS = false로 가능, 1주일 단위 
     function stake(
         address _to,
         uint256 _amount,
@@ -122,8 +126,10 @@ contract StakingV2 is
         //sTOS와 id같이 쓸려면 id별 mapping 따로 만들어서 관리해야함 (이 경우는 sTOS스테이킹하면서 동시에 LTOS를 구매할때)
         uint256 sTOSid;
         if(_lockTOS == true) {
-            sTOSid = lockTOS.createLockByStaker(_to,_amount,_periodWeeks);
+            uint256 maxProfit = maxIndexProfit(_amount,unlockTime);
+            sTOSid = lockTOS.createLockByStaker(_to,maxProfit,_periodWeeks);
             connectId[stakeId] = sTOSid;
+            lockTOSId[sTOSid] = stakeId;
             // sTOSid = lockTOS.createLock(_amount,_periodWeeks);
         }
     }
@@ -378,7 +384,8 @@ contract StakingV2 is
             userStakings[accounts[i]].push(stakeId);
 
             connectId[stakeId] = tokenId[i];
-        
+            lockTOSId[tokenId[i]] = stakeId;
+
             _stake(accounts[i],stakeId,balances[i],period[i]);
         }
 

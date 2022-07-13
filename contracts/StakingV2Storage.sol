@@ -37,7 +37,7 @@ contract StakingV2Storage {
         uint256 endTime;    //끝나는 endTime
         uint256 getLTOS;    //이미 받아간 LTOS양
         uint256 rewardTOS;  //받아간 TOS양
-        bool withdraw;
+        bool withdraw;      //unstakeing을 한번이라도 했는지
     }
 
     /* ========== STATE VARIABLES ========== */
@@ -68,6 +68,7 @@ contract StakingV2Storage {
     mapping(address => mapping(uint256 => UserBalance)) public stakingBalances;
 
     mapping(uint256 => uint256) public connectId;
+    mapping(uint256 => uint256) public lockTOSId;
 
     modifier nonZero(uint256 tokenId) {
         require(tokenId != 0, "BondDepository: zero uint");
