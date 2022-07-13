@@ -34,6 +34,16 @@ contract StakingV2 is
         rebasePerEpoch = _rebasePerEpoch;
     }
 
+    //모지랄때 owner가 정해서 늘리는게 맞는가? index는 ether단위이다.
+    function setindex(uint256 _index) external override onlyPolicyOwner {
+        index_ = _index;
+    }
+
+    function setBasicBondPeriod(uint256 _period) external onlyPolicyOwner {
+        require(basicBondPeriod != _period && _period != 0,"period check need");
+        basicBondPeriod = _period;
+    }
+
     //index는 ether단위이다. 
     /**
      * @notice returns the sOHM index, which tracks rebase growth
@@ -64,11 +74,6 @@ contract StakingV2 is
         return maxindex;
     }
 
-    //모지랄때 owner가 정해서 늘리는게 맞는가? index는 ether단위이다.
-    function setindex(uint256 _index) external override onlyPolicyOwner {
-        index_ = _index;
-    }
-
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     /**
@@ -76,23 +81,19 @@ contract StakingV2 is
      * @param _to address
      * @param _amount uint tosAmount
      * @param _periodWeeks uint lockup하는 기간
-     * @param _exist uint256 sTOS 아이디
+     * @param _bonding bool bonding으로 들어왔는지 확인
      * @param _lockTOS bool
      * @return stakeId uint256
      */
-    //그냥 staking을 할때는 lockup 기간이 없는 걸로
-    //마이그레이션 할때 index가 설정되야함 rebaseIndex를 0으로 해줘야함
-    //lockPeriod가 없는 Staking은 따로 관리 -> 1 tokenID -> 1 token increase (용량만) , period (기간만)
-    //기간 늘리는거, 양 늘리는거, 기간,양 같이 늘리는거 3개 function 추가
-    //lockTOS가 true이면 periodweeks는 1이상이여야한다.
-    //lockTOS가 false이면 경우는 2가지이다. 1. 
-    //본딩 락업기간 범위: 5일 또는 1주일 단위(sTOS를 위해 락업할 경우)
+    //그냥 staking을 할때는 lockup 기간이 없는 걸로 -> periodweeks가 0이면 lockup기간이 없음
+    //마이그레이션 할때 index가 설정되야함 rebaseIndex를 0으로 해줘야함 -> 변경됨 index도 설정되야함
+    //본딩 락업기간 범위: 5일 또는 1주일 단위(sTOS를 위해 락업할 경우) -> 5일(_periodweeks = 0, _bonding = true), 1주일 단위(_periodweeks > 0, _bonding = true)
     //스테이킹 락업기간 범위: 0일 또는 1주일 단위(sTOS를 위해 락업할 경우) -> 0일인경우 periodWeeks = 0, lockTOS = false로 가능, 1주일 단위 
     function stake(
         address _to,
         uint256 _amount,
         uint256 _periodWeeks,
-        uint256 _exist,
+        bool _bonding,
         bool _lockTOS
     ) 
         external 
@@ -100,14 +101,16 @@ contract StakingV2 is
         returns (uint256 stakeId) 
     {
         require(_amount > 0, "amount should be non-zero");
+        if(_lockTOS == true) {
+            require(_periodWeeks > 0, "period should be non-zero");
+        }
         TOS.safeTransferFrom(msg.sender, address(this), _amount);
 
         uint256 unlockTime = block.timestamp.add(_periodWeeks.mul(epochUnit));
-        
-        //만약 LTOS 스테이킹은 처음이고 sTOS물량은 같이 늘리고 싶을때 _exist에 lockTOS id를 입력한다. (기간은 그대로고 물량만 늘림) (sTOS기간과 같이 LTOS기간도 스테이킹됨)
-        if(_exist > 0) {
-            lockTOS.depositFor(_to,_exist,_amount);
-            (, unlockTime, ) = lockTOS.locksInfo(_exist);
+
+        //bonding으로 들어왔는데 기간을 정하지 않은 경우
+        if(_bonding == true && _periodWeeks == 0) {
+            unlockTime = block.timestamp.add(basicBondPeriod);
         }
 
         stakingIdCounter = stakingIdCounter + 1;
@@ -139,11 +142,9 @@ contract StakingV2 is
         //그냥 스테이킹할때 && 기간을 늘릴때
         uint256 getEndTime = _period;
         //이전에 스테이킹한적이 있으면
-        if(userOld.deposit > 0) {
+        if(userOld.deposit > 0 && _period == 0) {
             //기간을 늘리지않고 수량만 늘릴때
-            if(_period == 0) {
-                getEndTime = userOld.endTime;
-            }
+            getEndTime = userOld.endTime;
         }
 
         uint256 LTOSamount = (_amount*1e18)/index_;
@@ -164,6 +165,7 @@ contract StakingV2 is
     }
 
     //사전에 TOS approve 필요
+    //amount에 해당하는 maxProfit만큼 sTOS는 추가로 staking됨
     function increaseAmountStake(
         address _to,
         uint256 _tokenId,
@@ -175,12 +177,15 @@ contract StakingV2 is
         require(_tokenId != 0, "need the tokenId");
         require(_amount > 0, "amount should be non-zero");
         TOS.safeTransferFrom(_to, address(this), _amount);
+        UserBalance memory userOld = stakingBalances[_to][_tokenId];
 
         _stake(_to,_tokenId,_amount,0);
          
         uint256 sTOSid = connectId[_tokenId];
 
-        lockTOS.increaseAmountByStaker(_to,sTOSid,_amount);
+        uint256 maxProfit = maxIndexProfit(_amount,userOld.endTime);
+
+        lockTOS.increaseAmountByStaker(_to,sTOSid,maxProfit);
 
         rebaseIndex();
     }
@@ -208,6 +213,34 @@ contract StakingV2 is
         rebaseIndex();
     }
 
+    //amount, period 둘다 늘릴때
+    function increaseAmountAndPeriodStake(
+        address _to,
+        uint256 _tokenId,
+        uint256 _amount,
+        uint256 _unlockWeeks
+    ) 
+        external
+    {
+        require(_tokenId != 0, "need the tokenId");
+        require(_unlockWeeks > 0, "period should be non-zero");
+        require(_amount > 0, "amount should be non-zero");
+
+        TOS.safeTransferFrom(_to, address(this), _amount);
+        UserBalance memory userOld = stakingBalances[_to][_tokenId];
+
+        uint256 unlockTime = userOld.endTime.add(_unlockWeeks.mul(epochUnit));
+
+        _stake(_to,_tokenId,_amount,unlockTime);
+
+        uint256 sTOSid = connectId[_tokenId];
+        uint256 maxProfit = maxIndexProfit(_amount,userOld.endTime);
+
+        //lockTOS에서 둘다 증가하는 경우 해서 넣어야함
+
+        rebaseIndex();
+    }
+
     /**
      * @notice redeem LTOS -> TOS
      * @param _stakeId uint unstake할 LTOS ID를 받음
@@ -216,8 +249,7 @@ contract StakingV2 is
      */
     //모든 LTOS를 unstaking하면 tokenId 삭제 -> 불가능.. delete는 길이를 줄여주지않는다. pop을 이용해야하는데 pop을 이용하기 힘든 구조임 -> mapping이라서 delete하면 됨
     //배열일때는 마지막 데이터를 현재 데이터에 넣고 마지막 데이터를 Pop 시킴
-    //unstakingALL 만들기
-    //부분 unstaking이랑 stakeId 다빼는 unstake 따로 function 만들기
+    //일부분 unstaking한후 다시 추가 staking했을경우
     function unstake(
         uint256 _stakeId,
         uint256 _amount
@@ -243,9 +275,8 @@ contract StakingV2 is
             TOS.safeTransferFrom(address(ITreasury(treasury)),address(this),(amount_-stakeInfo.deposit));
         }
         
-        //TokenID <-> TokenId 연동하는 struct 이용해서 id찾아서 호출 sTOStokenId
+        uint256 sTOSid = connectId[_stakeId];
         if(stakeInfo.withdraw == false) {
-            uint256 sTOSid = connectId[_stakeId];
             lockTOS.withdrawByStaker(msg.sender,sTOSid);
             stakeInfo.withdraw == true;
         }
@@ -254,7 +285,10 @@ contract StakingV2 is
         stakeInfo.rewardTOS = stakeInfo.rewardTOS + amount_;      //LTOS -> TOS로 바꾼 양 기록
 
         if(balanceOfId(_stakeId) == 0) {
+            delete connectId[_stakeId];
+            delete lockTOSId[sTOSid];
             delete stakingBalances[msg.sender][_stakeId];
+            delete allStakings[_stakeId];
         }
 
         require(amount_ <= TOS.balanceOf(address(this)), "Insufficient TOS balance in contract");
@@ -282,9 +316,8 @@ contract StakingV2 is
             TOS.safeTransferFrom(address(ITreasury(treasury)),address(this),(amount_-stakeInfo.deposit));
         }
         
-        //TokenID <-> TokenId 연동하는 struct 이용해서 id찾아서 호출 sTOStokenId
+        uint256 sTOSid = connectId[_stakeId];
         if(stakeInfo.withdraw == false) {
-            uint256 sTOSid = connectId[_stakeId];
             lockTOS.withdrawByStaker(msg.sender,sTOSid);
             stakeInfo.withdraw == true;
         }
@@ -293,6 +326,9 @@ contract StakingV2 is
         stakeInfo.rewardTOS = stakeInfo.rewardTOS + amount_;      //LTOS -> TOS로 바꾼 양 기록
 
         delete stakingBalances[msg.sender][_stakeId];
+        delete allStakings[_stakeId];
+        delete connectId[_stakeId];
+        delete lockTOSId[sTOSid];
 
         require(amount_ <= TOS.balanceOf(address(this)), "Insufficient TOS balance in contract");
         TOS.safeTransfer(msg.sender, amount_);

@@ -106,8 +106,7 @@ contract BondDepository is
      * @param _id          the ID of the market
      * @param _amount      the amount of quote token to spend
      * @param _time        staking time (uint is week)
-     * @param _dTOSamount  dTOSAmount
-     * @param _claim       Whether or not to claim
+     * @param _lockTOS     lockTOS set
      * @return payout_     the amount of TOS due
      * @return index_      the user index of the Note (used to redeem or query information)
      */
@@ -117,8 +116,7 @@ contract BondDepository is
         uint256 _id,
         uint256 _amount,
         uint256 _time,
-        uint256 _dTOSamount,
-        bool _claim
+        bool _lockTOS
     )
         external
         override
@@ -173,7 +171,7 @@ contract BondDepository is
         treasury.backingUpdate();
 
         //tos staking route        
-        staking.stake(msg.sender,payout_,_time,0,true);
+        staking.stake(msg.sender,payout_,_time,true,_lockTOS);
         
         //종료해야하는지 확인
         if (meta.totalSaleAmount <= (market.sold + 1e18)) {
@@ -188,8 +186,7 @@ contract BondDepository is
         uint256 _id,
         uint256 _amount,
         uint256 _time,
-        uint256 _dTOSamount,
-        bool _claim
+        bool _lockTOS
     ) 
         public
         payable
@@ -252,8 +249,8 @@ contract BondDepository is
             msg.sender,
             payout_,
             _time,
-            0,
-            true
+            true,
+            _lockTOS
         );
         console.log("2");
 

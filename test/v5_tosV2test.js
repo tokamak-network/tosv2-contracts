@@ -54,22 +54,8 @@ let UniswapV3LiquidityChangerAddress = "0xa839a0e64b27a34ed293d3d81e1f2f8b463c35
 
 
 describe("price test", function () {
-  //시나리오
-  //팔려고하는 tos 목표치 = 10,000 -> 10ETH 받으면 판매 종료
-  //받는 token(ETH)의 가격 = 1,000,000
-  //TOS의 가격 = 1,000
-  //1ETH = 1,000TOS
-  //실제 ETH 가격 = 1,500,000, TOS의 가격 = 1,000 -> 1ETH = 1,500 TOS
-  //500개의 tos만 더 생산되어도됨
-  //mintRate = 10 -> ex) 1ETH가 들어오면 1000TOS * 10 -> 10,000TOS mint -> 1,000개는 유저에게, 9,000개는 treasury에 있음
-  
-  //mintingRate => 1ETH당 발행되는 TOS 물량이 mintingRate -> 10000 이여야함
-  //dTOS 물량 users에 dTOS쓴 물량 넣기
-  //한 tx당 살 수 있는 TOS물량이 정해져있음, 마켓만들때 세팅 가능하게 함 (공격을 막을려고 쓰는거임)
-  
-  //staking index가 증가되는 조건
-  //staking index 증가시키는 시점
-  //LTOS lockup 기간, TOS -> LTOS, TOS랑 이자는 Treasury에서 나오게함 돌려줌
+  //시나리오 : https://www.notion.so/onther/BondDepository-StakingV2-scenario-Suah-497853d6e65f48a390255f3bca29fa36
+
   let provider;
   let nonfungiblePositionManager, uniswapV3Pool, uniswapV3LiquidityChanger ;
 
@@ -141,6 +127,8 @@ describe("price test", function () {
   let firstExcute = false;
 
   let firstMarketlength;
+
+  let basicBondPeriod = 86400 * 5;
 
   // rinkeby
   let uniswapInfo={
@@ -562,6 +550,17 @@ describe("price test", function () {
         let index = ethers.utils.parseUnits("10", 18)
         await stakingProxylogic.connect(admin1).setindex(index);
         expect((await stakingProxylogic.index_())).to.be.equal(index)
+      })
+
+      it("#1-2-5. user can't call setBasicBondPeriod", async () => {
+        await expect(
+          stakingProxylogic.connect(user1).setBasicBondPeriod(basicBondPeriod)
+        ).to.be.revertedWith("Accessible: Caller is not an policy admin")
+      })
+
+      it("#1-2-5. onlyPolicyAdmin can call setBasicBondPeriod", async () => {
+        await stakingProxylogic.connect(admin1).setBasicBondPeriod(basicBondPeriod)
+        expect((await stakingProxylogic.basicBondPeriod())).to.be.equal(basicBondPeriod);
       })
 
     })

@@ -17,7 +17,6 @@ interface IBondDepository {
         uint256 _id,
         uint256 _amount,
         uint256 _time,
-        uint256 _dTOSamount,
         bool _claim
     )
         external

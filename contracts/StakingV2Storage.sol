@@ -59,6 +59,7 @@ contract StakingV2Storage {
     uint256 public totalLTOS;
 
     uint256 public rebasePerEpoch;
+    uint256 public basicBondPeriod;
 
     uint256 public stakingIdCounter;
 

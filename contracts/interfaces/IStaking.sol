@@ -26,7 +26,7 @@ interface IStaking {
         address _to,
         uint256 _amount,
         uint256 _periodWeeks,
-        uint256 _exist,
+        bool _bonding,
         bool _lockTOS
     ) external returns (uint256 stakeId);
 

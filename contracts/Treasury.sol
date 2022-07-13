@@ -16,7 +16,11 @@ import "./interfaces/ITOSValueCalculator.sol";
 import "./common/ProxyAccessCommon.sol";
 
 
-contract Treasury is TreasuryStorage, ProxyAccessCommon, ITreasury {
+contract Treasury is 
+    TreasuryStorage, 
+    ProxyAccessCommon, 
+    ITreasury 
+{
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 

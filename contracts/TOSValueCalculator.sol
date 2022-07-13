@@ -167,7 +167,53 @@ contract TOSValueCalculator is ITOSValueCalculator {
         } else {
             return price = 0;
         }
+    }
 
+    //1ETH = ? ERC20 -> ?ERC20/1ETH
+    //ETH와 비율을 알고 싶은 erc20주소와 eth-ERC20_pool주소, fee를 입력함 1ETH = ? ERC20
+    function getETHERC20PoolETHPrice(address _erc20address, address _ethERC20Pool, uint24 fee) public view returns (uint256 price) {
+        uint ethOrder = getETHtoken0(_erc20address,fee);
+        uint decimalCalcul;
+        if(ethOrder == 2 && ethOrder == 3) {
+            return price = 0;
+        }
+        (uint256 token0Decimal, uint256 token1Decimal) = getDecimals(weth,_erc20address);
+        if(token0Decimal >= token1Decimal){
+            decimalCalcul = 0;
+        } else if (token0Decimal < token1Decimal) {
+            decimalCalcul = token1Decimal - token0Decimal;
+        }
+
+        if(ethOrder == 0) {
+            return price = getPriceToken0(_ethERC20Pool)/(10 ** decimalCalcul);
+        } else if (ethOrder == 1) {
+            return price = getPriceToken1(_ethERC20Pool)/(10 ** decimalCalcul);
+        } else {
+            return price = 0;
+        }
+    }
+
+    // 1ERC20 = ?ETH -> ?ETH/1ERC20
+    //ETH와 비율을 알고 싶은 erc20주소와 ETH-ERC20_Pool주소와 fee를 입력함 1ERC20 = ? ETH
+    function getETHERC20PoolERC20Price(address _erc20address, address _ethERC20Pool, uint24 fee) public view returns (uint256 price) {
+        uint ethOrder = getETHtoken0(_erc20address,fee);
+        uint decimalCalcul;
+        if(ethOrder == 2 && ethOrder == 3) {
+            return price = 0;
+        }
+        (uint256 token0Decimal, uint256 token1Decimal) = getDecimals(weth,_erc20address);
+        if(token0Decimal <= token1Decimal){
+            decimalCalcul = 0;
+        } else if (token0Decimal > token1Decimal) {
+            decimalCalcul = token0Decimal - token1Decimal;
+        }
+        if(ethOrder == 0) {
+            return price = getPriceToken1(_ethERC20Pool)/(10 ** decimalCalcul);
+        } else if (ethOrder == 1) {
+            return price = getPriceToken0(_ethERC20Pool)/(10 ** decimalCalcul);
+        } else {
+            return price = 0;
+        }
     }
 
     //token0이 TOS면 0을 리턴, token1이 TOS면 1을 리턴, tokenPool 이없으면 2를 리턴, 3은 리턴하면 안됨.
