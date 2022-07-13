@@ -7,8 +7,7 @@ let stakingV2LogicAbi = require('../abis/StakingV2.json');
 task("deploy-tos-v2", "Deploy TOSV2")
     .addParam("lockTosAddress", "LockTOS Address")
     .addParam("tosAddress", "TOS Address")
-    .addParam("adminAddress", "admin Address")
-    .setAction(async ({ lockTosAddress,tosAddress,adminAddress }) => {
+    .setAction(async ({ lockTosAddress,tosAddress }) => {
         const { RINKEBY_PRIVATE_KEY: account } = process.env;
 
         const accounts = await ethers.getSigners();
@@ -91,7 +90,10 @@ task("deploy-tos-v2", "Deploy TOSV2")
         const rebaseCheck = await stakingProxyContract.connect(deployer).rebasePerEpoch()
         console.log("rebaseCheck : ", Number(rebaseCheck));
 
-        //초기 index값도 설정해야함
+        const index = ethers.utils.parseUnits("10", 18)
+        await stakingProxyContract.connect(deployer).setindex(index);
+        const indexCheck = await stakingProxyContract.index_()
+        console.log("indexCheck : ", Number(indexCheck));
 
         console.log("stakingProxyContract : ", stakingProxyContract.address);
     })
