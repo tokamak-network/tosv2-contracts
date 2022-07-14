@@ -414,8 +414,7 @@ describe("price test", function () {
         await expect(
           treasuryProxylogic.connect(user1).enable(
             7,
-            bondDepositoryProxy.address,
-            admin1.address
+            bondDepositoryProxy.address
           )
         ).to.be.revertedWith("Accessible: Caller is not an policy admin")      
       })
@@ -425,7 +424,7 @@ describe("price test", function () {
         expect(await treasuryProxylogic.isAdmin(admin1.address)).to.be.equal(true)
         expect(await treasuryProxylogic.isProxyAdmin(admin1.address)).to.be.equal(true)
 
-        await treasuryProxylogic.connect(admin1).enable(7,bondDepositoryProxy.address,user1.address);
+        await treasuryProxylogic.connect(admin1).enable(7,bondDepositoryProxy.address);
 
         let checkPermission = await treasuryProxylogic.permissions(7,bondDepositoryProxy.address);
 
@@ -436,7 +435,7 @@ describe("price test", function () {
         let checkPermission1 = await treasuryProxylogic.permissions(7,stakingProxy.address);
         expect(checkPermission1).to.be.equal(false)
   
-        await treasuryProxylogic.connect(admin1).enable(7,stakingProxy.address,admin1.address);
+        await treasuryProxylogic.connect(admin1).enable(7,stakingProxy.address);
   
         let checkPermission2 = await treasuryProxylogic.permissions(7,stakingProxy.address);
         expect(checkPermission2).to.be.equal(true)
@@ -476,7 +475,7 @@ describe("price test", function () {
           let checkPermission2 = await treasuryProxylogic.permissions(7,stakingProxy.address);
           expect(checkPermission2).to.be.equal(false)
   
-          await treasuryProxylogic.connect(admin1).enable(7,stakingProxy.address,admin1.address);
+          await treasuryProxylogic.connect(admin1).enable(7,stakingProxy.address);
       })
     })
 

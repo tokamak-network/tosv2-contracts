@@ -169,7 +169,7 @@ contract StakingV2 is
     //LTOS의 staking물량을 늘림
     //사전에 sTOS를 스테이킹하지않은 경우 sTOS를 추가하지않음
     //기간이 끝나기전에 늘리는 경우 -> sTOS 로직에서 그래도 늘려줌
-    //기간이 끝난후 늘리는 경우 -> sTOS 기존 껀 unstaking함 -> 새 staking 불가 (기간이 없어서)
+    //기간이 끝난후 늘리는 경우 -> sTOS 기존 껀 unstaking함 -> 새 sTOS staking 불가 (기간이 없어서)
     function increaseAmountStake(
         address _to,
         uint256 _tokenId,
@@ -198,12 +198,10 @@ contract StakingV2 is
     }
 
     //_unlockWeeks 만큼 더 늘어남
-    //LTOS의 기간을 늘림
+    //LTOS와 sTOS의 기간을 늘림
+    //sTOS가 없을 경우 호출 하지 않음
     //기간이 끝나지 않았을때 늘리는 경우 -> 정상 작동
     //기간이 끝났을때 늘리는 경우 -> unstaking하고 다시 stake해준다. -> 기준 시간을 지금 시간으로 잡고 하면됨
-    //unlockTime이 현재 블록시간보다 크면 lockTOS를 늘려주고 아니면 늘리지 못한다.
-    //sTOS가 없을 경우 호출 하지 않음
-    //블록타임이 endTime보다 크면 increase를 호출 하지 못함
     function increasePeriodStake(
         address _to,
         uint256 _tokenId,
@@ -214,21 +212,37 @@ contract StakingV2 is
     {
         require(_tokenId != 0, "need the tokenId");
         require(_unlockWeeks > 0, "period should be non-zero");
+        
         uint256 sTOSid = connectId[_tokenId];
         require(sTOSid != 0, "need the have sTOS");
+        
         UserBalance memory userOld = stakingBalances[_to][_tokenId];
 
-        uint256 unlockTime = userOld.endTime.add(_unlockWeeks.mul(epochUnit));
-        require(block.timestamp < unlockTime, "need the more period");
+        uint256 unlockTime;
+        uint256 maxProfit;
 
         rebaseIndex();
-        _stake(_to,_tokenId,0,unlockTime);
-        
-        console.log("sTOSid : %s",sTOSid);
-        if(sTOSid != 0){
+
+         if(block.timestamp < userOld.endTime) {
+            //기간이 끝나기전 증가 시킴
+            unlockTime = userOld.endTime.add(_unlockWeeks.mul(epochUnit));
             lockTOS.increaseUnlockTimeByStaker(_to,sTOSid,_unlockWeeks);
+        } else {
+            //시간이 끝나고 증가 시킴
+            //기존 sTOS unstaking
+            lockTOS.withdrawByStaker(msg.sender,sTOSid);
+            delete connectId[_tokenId];
+            delete lockTOSId[sTOSid];
+
+            //새 sTOS staking
+            unlockTime = block.timestamp.add(_unlockWeeks.mul(epochUnit));
+            maxProfit = maxIndexProfit(userOld.deposit,unlockTime);
+            sTOSid = lockTOS.createLockByStaker(_to,maxProfit,_unlockWeeks);
+            connectId[_tokenId] = sTOSid;
+            lockTOSId[sTOSid] = _tokenId;
         }
-        
+
+        _stake(_to,_tokenId,0,unlockTime);        
     }
 
     //amount, period 둘다 늘릴때
@@ -249,16 +263,33 @@ contract StakingV2 is
         TOS.safeTransferFrom(_to, address(this), _amount);
         UserBalance memory userOld = stakingBalances[_to][_tokenId];
 
-        uint256 unlockTime = userOld.endTime.add(_unlockWeeks.mul(epochUnit));
+        uint256 unlockTime;
+        uint256 sTOSid = connectId[_tokenId];
+        uint256 maxProfit;
+        
+        rebaseIndex();
+
+        if(block.timestamp < userOld.endTime) {
+            //기간이 끝나기전 증가 시킴
+            unlockTime = userOld.endTime.add(_unlockWeeks.mul(epochUnit));
+            maxProfit = maxIndexProfit(_amount,unlockTime);
+            lockTOS.increaseAmountUnlockTimeByStaker(_to,sTOSid,maxProfit,unlockTime);
+        } else {
+            //시간이 끝나고 증가 시킴
+            //기존 sTOS unstaking
+            uint256 amount = userOld.deposit + _amount;
+            lockTOS.withdrawByStaker(msg.sender,sTOSid);
+            delete connectId[_tokenId];
+            delete lockTOSId[sTOSid];
+
+            unlockTime = block.timestamp.add(_unlockWeeks.mul(epochUnit));
+            maxProfit = maxIndexProfit(amount,unlockTime);
+            sTOSid = lockTOS.createLockByStaker(_to,maxProfit,_unlockWeeks);
+            connectId[_tokenId] = sTOSid;
+            lockTOSId[sTOSid] = _tokenId;
+        }
 
         _stake(_to,_tokenId,_amount,unlockTime);
-
-        uint256 sTOSid = connectId[_tokenId];
-        uint256 maxProfit = maxIndexProfit(_amount,userOld.endTime);
-
-        //lockTOS에서 둘다 증가하는 경우 해서 넣어야함
-
-        rebaseIndex();
     }
 
     /**
@@ -365,7 +396,6 @@ contract StakingV2 is
         public
     {
         console.log("msg.sender1 : %s",msg.sender);
-        
         for(uint256 i = 0; i < _stakeIds.length; i++) {
             unstakeId(_stakeIds[i]);
         }

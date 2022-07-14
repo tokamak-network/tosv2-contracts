@@ -41,12 +41,18 @@ contract Treasury is
      * @notice allow approved address to deposit an asset for TOS (token의 현재 시세에 맞게 입금하고 TOS를 받음)
      * @param _amount uint256
      * @param _token address
+     * @param _tosERC20Pool address
+     * @param _fee uint24
      * @param _profit uint256
      * @return send_ uint256
      */
+    //erc20토큰을 받고 TOS를 준다.
+    //amount = ? ERC20 ->  ?ERC20 * ?TOS/1ERC20 -> ??TOS
     function deposit(
         uint256 _amount,
         address _token,
+        address _tosERC20Pool,
+        uint24 _fee,
         uint256 _profit
     ) external override returns (uint256 send_) {
         if (permissions[STATUS.RESERVETOKEN][_token]) {
@@ -58,25 +64,37 @@ contract Treasury is
         }
 
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
-
-        uint256 value = tokenValue(_token, _amount);
+        
+        uint256 value = (_amount*ITOSValueCalculator(calculator).getTOSERC20PoolERC20Price(_token,_tosERC20Pool,_fee))/1e18;
+        
         // mint TOS needed and store amount of rewards for distribution
         send_ = value.sub(_profit);
         ITOS(address(TOS)).mint(msg.sender, send_);
 
+        //주었을때 backing에 미치는 영향은 무엇인가?
         totalReserves = totalReserves.add(value);
 
         emit Deposit(_token, _amount, value);
     }
 
     //자기가 보유하고 있는 TOS를 burn시키구 그가치에 해당하는 token의 amount를 가지고 간다.
-    function withdraw(uint256 _amount, address _token) external override {
+    //amount = ? TOS -> ?TOS * ?ERC20/1TOS -> ??ERC20
+    function withdraw(
+        uint256 _amount, 
+        address _token,
+        address _tosERC20Pool,
+        uint24 _fee
+    ) 
+        external 
+        override 
+    {
         require(permissions[STATUS.RESERVETOKEN][_token], notAccepted); // Only reserves can be used for redemptions
         require(permissions[STATUS.RESERVESPENDER][msg.sender], notApproved);
 
-        uint256 value = tokenValue(_token, _amount);
+        uint256 value = (_amount*ITOSValueCalculator(calculator).getTOSERC20PoolTOSPrice(_token,_tosERC20Pool,_fee))/1e18;
         ITOS(address(TOS)).burn(msg.sender, value);
-
+        
+        //뺏을때 backing에 미치는 영향은 무엇인가?
         totalReserves = totalReserves.sub(value);
 
         IERC20(_token).safeTransfer(msg.sender, _amount);
@@ -94,44 +112,17 @@ contract Treasury is
     /* ========== MANAGERIAL FUNCTIONS ========== */
 
     /**
-     * @notice takes inventory of all tracked assets
-     * @notice always consolidate to recognized reserves before audit
-     */
-    function auditReserves() external onlyPolicyOwner {
-        uint256 reserves;
-        address[] memory reserveToken = registry[STATUS.RESERVETOKEN];
-
-        for (uint256 i = 0; i < reserveToken.length; i++) {
-            if (permissions[STATUS.RESERVETOKEN][reserveToken[i]]) {
-                reserves = reserves.add(tokenValue(reserveToken[i], IERC20(reserveToken[i]).balanceOf(address(this))));
-            }
-        }
-
-        address[] memory liquidityToken = registry[STATUS.LIQUIDITYTOKEN];
-
-        for (uint256 i = 0; i < liquidityToken.length; i++) {
-            if (permissions[STATUS.LIQUIDITYTOKEN][liquidityToken[i]]) {
-                reserves = reserves.add(
-                    tokenValue(liquidityToken[i], IERC20(liquidityToken[i]).balanceOf(address(this)))
-                );
-            }
-        }
-
-        totalReserves = reserves;
-        emit ReservesAudited(reserves);
-    }
-
-    /**
      * @notice enable permission from queue
      * @param _status STATUS
      * @param _address address
-     * @param _calculator address
      */
     function enable(
         STATUS _status,
-        address _address,
-        address _calculator
-    ) external onlyPolicyOwner {
+        address _address
+    ) 
+        external
+        onlyPolicyOwner 
+    {
         permissions[_status][_address] = true;
 
         (bool registered, ) = indexInRegistry(_address, _status);
@@ -174,7 +165,7 @@ contract Treasury is
     }
 
     //지원하는 자산을 추가 시킴
-    function addbackingList(address _address,address _tosPooladdress, uint24 _fee) external onlyPolicyOwner {
+    function addbackingList(address _address,address _tosPooladdress, uint24 _fee) external override onlyPolicyOwner {
         uint256 amount = IERC20(_address).balanceOf(address(this));
         backingList[backings.length] = amount;
 
@@ -189,9 +180,21 @@ contract Treasury is
 
 
     //tokenId는 유동성만 증가 -> backingReserve에 들어가지않음
-    function addbackingIdList(uint256 _tokenId) external onlyPolicyOwner {
+    function addLiquidityIdList(uint256 _tokenId, address _tosPoolAddress) external override onlyPolicyOwner {
+        tokenIdList[listings.length] = _tokenId;
 
+        listings.push(
+            Listing({
+                tokenId: _tokenId,
+                tosPoolAddress: _tosPoolAddress
+            })
+        );
     }
+
+    function liquidityUpdate() public {
+        
+    }
+
 
     //현재 지원하는 자산을 최신으로 업데이트 시킴
     function backingUpdate() public override {
@@ -200,22 +203,6 @@ contract Treasury is
             uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));
             backingList[i] = amount;
         }
-    }
-
-    /**
-     * @notice returns TOS valuation of asset (해당 토큰의 amount만큼의 TOS amount return)
-     * @param _token address
-     * @param _amount uint256
-     * @return value_ uint256
-     */
-    function tokenValue(address _token, uint256 _amount) public override view returns (uint256 value_) {
-        value_ = _amount.mul(10**IERC20Metadata(address(TOS)).decimals()).div(10**IERC20Metadata(_token).decimals());
-
-        //erc20일때
-        // value_ = IBondingCalculator(bondCalculator[_token]).valuation(_token, _amount);
-        //uniswapV3일때
-        // value_ = IBondingCalculator(bondCalculator[_token]).valuation(_token, _amount);
-        // value_ = IBondingCalculator(address).valuation(address, uint256);
     }
 
     //eth, weth, market에서 받은 자산 다 체크해야함
@@ -228,7 +215,7 @@ contract Treasury is
         for(uint256 i = 0; i < backings.length; i++) {
             uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));
             uint256 tosERC20Price = ITOSValueCalculator(calculator).getTOSERC20PoolERC20Price(backings[i].erc20Address,backings[i].tosPoolAddress,backings[i].fee);
-            totalValue = totalValue + (amount * tosERC20Price * tosETHPrice);
+            totalValue = totalValue + ((amount * tosERC20Price * tosETHPrice)/1e18/1e18);
         }
         totalValue = totalValue + ETHbacking;
         return totalValue;

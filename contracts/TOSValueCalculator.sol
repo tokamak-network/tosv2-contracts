@@ -317,8 +317,10 @@ contract TOSValueCalculator is ITOSValueCalculator {
             ethValue = ethValue + (amount1*getWETHPoolTOSPrice()*getTOSERC20PoolERC20Price(token1,_poolAddress,fee)/1e18/1e18);
             console.log("ethValue2 : %s",ethValue);
         } else if (tosNum == 1){
-            ethValue = (amount1*getWETHPoolTOSPrice());
-            ethValue = ethValue + (amount0*getWETHPoolTOSPrice()*getTOSERC20PoolERC20Price(token0,_poolAddress,fee));
+            ethValue = (amount1*getWETHPoolTOSPrice())/1e18;
+            console.log("ethValue3 : %s",ethValue);
+            ethValue = ethValue + (amount0*getWETHPoolTOSPrice()*getTOSERC20PoolERC20Price(token0,_poolAddress,fee)/1e18/1e18);
+            console.log("ethValue4 : %s",ethValue);
         }
     }
 

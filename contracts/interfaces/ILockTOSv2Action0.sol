@@ -97,6 +97,10 @@ interface ILockTOSv2Action0 {
     /// @dev Increase
     function increaseUnlockTimeByStaker(address user, uint256 _lockId, uint256 unlockTime) external;
 
+
+    /// @dev Increase amount and UnlockTime
+    function increaseAmountUnlockTimeByStaker(address user, uint256 _lockId, uint256 _value, uint256 _unlockWeeks) external;
+
     /// @dev Withdraw all TOS
     function withdrawAllByStaker(address user) external;
 
