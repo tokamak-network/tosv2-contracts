@@ -117,9 +117,9 @@ contract StakingV2 is
         stakeId = stakingIdCounter;
         userStakings[_to].push(stakeId);
 
-        _stake(_to,stakeId,_amount,unlockTime);
-
         rebaseIndex();
+
+        _stake(_to,stakeId,_amount,unlockTime);
 
         //sTOS와 id같이 쓸려면 id별 mapping 따로 만들어서 관리해야함 (이 경우는 sTOS스테이킹하면서 동시에 LTOS를 구매할때)
         uint256 sTOSid;
@@ -166,6 +166,10 @@ contract StakingV2 is
 
     //사전에 TOS approve 필요
     //amount에 해당하는 maxProfit만큼 sTOS는 추가로 staking됨
+    //LTOS의 staking물량을 늘림
+    //사전에 sTOS를 스테이킹하지않은 경우 sTOS를 추가하지않음
+    //기간이 끝나기전에 늘리는 경우 -> sTOS 로직에서 그래도 늘려줌
+    //기간이 끝난후 늘리는 경우 -> sTOS 기존 껀 unstaking함 -> 새 staking 불가 (기간이 없어서)
     function increaseAmountStake(
         address _to,
         uint256 _tokenId,
@@ -179,18 +183,27 @@ contract StakingV2 is
         TOS.safeTransferFrom(_to, address(this), _amount);
         UserBalance memory userOld = stakingBalances[_to][_tokenId];
 
+        rebaseIndex();
+
         _stake(_to,_tokenId,_amount,0);
          
         uint256 sTOSid = connectId[_tokenId];
-
-        uint256 maxProfit = maxIndexProfit(_amount,userOld.endTime);
-
-        lockTOS.increaseAmountByStaker(_to,sTOSid,maxProfit);
-
-        rebaseIndex();
+        console.log("sTOSid : %s",sTOSid);
+        //lockTOS를 같이 스테이킹 하였을 경우 기간이 끝나기전에 수량을 늘릴 수는 있음
+        //기간이 끝나면 기간 연장이 아니라서 sTOS관련해서는 아무 작업이 없다.
+        if(sTOSid != 0 && block.timestamp < userOld.endTime) {
+            uint256 maxProfit = maxIndexProfit(_amount,userOld.endTime);
+            lockTOS.increaseAmountByStaker(_to,sTOSid,maxProfit);
+        }
     }
 
     //_unlockWeeks 만큼 더 늘어남
+    //LTOS의 기간을 늘림
+    //기간이 끝나지 않았을때 늘리는 경우 -> 정상 작동
+    //기간이 끝났을때 늘리는 경우 -> unstaking하고 다시 stake해준다. -> 기준 시간을 지금 시간으로 잡고 하면됨
+    //unlockTime이 현재 블록시간보다 크면 lockTOS를 늘려주고 아니면 늘리지 못한다.
+    //sTOS가 없을 경우 호출 하지 않음
+    //블록타임이 endTime보다 크면 increase를 호출 하지 못함
     function increasePeriodStake(
         address _to,
         uint256 _tokenId,
@@ -201,19 +214,26 @@ contract StakingV2 is
     {
         require(_tokenId != 0, "need the tokenId");
         require(_unlockWeeks > 0, "period should be non-zero");
+        uint256 sTOSid = connectId[_tokenId];
+        require(sTOSid != 0, "need the have sTOS");
         UserBalance memory userOld = stakingBalances[_to][_tokenId];
 
         uint256 unlockTime = userOld.endTime.add(_unlockWeeks.mul(epochUnit));
+        require(block.timestamp < unlockTime, "need the more period");
 
+        rebaseIndex();
         _stake(_to,_tokenId,0,unlockTime);
         
-        uint256 sTOSid = connectId[_tokenId];
-        lockTOS.increaseUnlockTimeByStaker(_to,sTOSid,_unlockWeeks);
+        console.log("sTOSid : %s",sTOSid);
+        if(sTOSid != 0){
+            lockTOS.increaseUnlockTimeByStaker(_to,sTOSid,_unlockWeeks);
+        }
         
-        rebaseIndex();
     }
 
     //amount, period 둘다 늘릴때
+    //LTOS의 기간,물량을 늘림
+    //sTOS가 없을 경우 호출 하지 않음
     function increaseAmountAndPeriodStake(
         address _to,
         uint256 _tokenId,
@@ -276,8 +296,11 @@ contract StakingV2 is
         }
         
         uint256 sTOSid = connectId[_stakeId];
+        console.log("sTOSid : %s",sTOSid);
         if(stakeInfo.withdraw == false) {
-            lockTOS.withdrawByStaker(msg.sender,sTOSid);
+            if(sTOSid != 0) {
+                lockTOS.withdrawByStaker(msg.sender,sTOSid);
+            }
             stakeInfo.withdraw == true;
         }
 
@@ -288,7 +311,6 @@ contract StakingV2 is
             delete connectId[_stakeId];
             delete lockTOSId[sTOSid];
             delete stakingBalances[msg.sender][_stakeId];
-            delete allStakings[_stakeId];
         }
 
         require(amount_ <= TOS.balanceOf(address(this)), "Insufficient TOS balance in contract");
@@ -304,35 +326,50 @@ contract StakingV2 is
     {
         console.log("msg.sender2 : %s",msg.sender);
         UserBalance storage stakeInfo = stakingBalances[msg.sender][_stakeId];
-        require(block.timestamp > stakeInfo.endTime, "need the endPeriod");
+        if(block.timestamp < stakeInfo.endTime) {
+            return amount_ = 0;
+        } else {
+            rebaseIndex();
 
-        rebaseIndex();
+            uint256 remainLTOS = stakeInfo.LTOS - stakeInfo.getLTOS;
 
-        uint256 remainLTOS = stakeInfo.LTOS - stakeInfo.getLTOS;
+            amount_ = ((remainLTOS*index_)/1e18);
 
-        amount_ = ((remainLTOS*index_)/1e18);
+            if(amount_ > stakeInfo.deposit) {
+                TOS.safeTransferFrom(address(ITreasury(treasury)),address(this),(amount_-stakeInfo.deposit));
+            }
+            
+            uint256 sTOSid = connectId[_stakeId];
+            if(stakeInfo.withdraw == false) {
+                if(sTOSid != 0) {
+                    lockTOS.withdrawByStaker(msg.sender,sTOSid);
+                }
+                stakeInfo.withdraw == true;
+            }
 
-        if(amount_ > stakeInfo.deposit) {
-            TOS.safeTransferFrom(address(ITreasury(treasury)),address(this),(amount_-stakeInfo.deposit));
+            stakeInfo.getLTOS = stakeInfo.getLTOS + remainLTOS;       //쓴 LTOS 기록
+            stakeInfo.rewardTOS = stakeInfo.rewardTOS + amount_;      //LTOS -> TOS로 바꾼 양 기록
+
+            delete stakingBalances[msg.sender][_stakeId];
+            delete connectId[_stakeId];
+            delete lockTOSId[sTOSid];
+
+            require(amount_ <= TOS.balanceOf(address(this)), "Insufficient TOS balance in contract");
+            TOS.safeTransfer(msg.sender, amount_);
         }
+    }
+
+    function arrayUnstakeId(
+        uint256[] calldata _stakeIds
+    ) 
+        public
+    {
+        console.log("msg.sender1 : %s",msg.sender);
         
-        uint256 sTOSid = connectId[_stakeId];
-        if(stakeInfo.withdraw == false) {
-            lockTOS.withdrawByStaker(msg.sender,sTOSid);
-            stakeInfo.withdraw == true;
+        for(uint256 i = 0; i < _stakeIds.length; i++) {
+            unstakeId(_stakeIds[i]);
         }
-
-        stakeInfo.getLTOS = stakeInfo.getLTOS + remainLTOS;       //쓴 LTOS 기록
-        stakeInfo.rewardTOS = stakeInfo.rewardTOS + amount_;      //LTOS -> TOS로 바꾼 양 기록
-
-        delete stakingBalances[msg.sender][_stakeId];
-        delete allStakings[_stakeId];
-        delete connectId[_stakeId];
-        delete lockTOSId[sTOSid];
-
-        require(amount_ <= TOS.balanceOf(address(this)), "Insufficient TOS balance in contract");
-        TOS.safeTransfer(msg.sender, amount_);
-    }   
+    }
 
     function allunStaking() external override {
         console.log("msg.sender1 : %s", msg.sender);
