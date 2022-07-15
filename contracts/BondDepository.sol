@@ -38,6 +38,8 @@ contract BondDepository is
      * @dev                
      * @param _check       ETH를 받을려면(true), token을 받으면(false)
      * @param _token       토큰 주소 
+     * @param _poolAddress 토큰과 ETH주소의 pool주소
+     * @param _fee         pool의 _fee
      * @param _market      [팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격, 한번에 구매 가능한 TOS물량]
      * @return id_         ID of new bond market
      */
@@ -45,6 +47,7 @@ contract BondDepository is
         bool _check,
         IERC20 _token,
         address _poolAddress,
+        uint24 _fee,
         uint256[5] calldata _market
     ) 
         external
@@ -73,6 +76,7 @@ contract BondDepository is
                     tokenPrice: _market[2],
                     tosPrice: _market[3],
                     totalSaleAmount: _market[0],
+                    fee: _fee,
                     ethMarket: true
                 })
             );
@@ -83,6 +87,7 @@ contract BondDepository is
                     tokenPrice: _market[2],
                     tosPrice: _market[3],
                     totalSaleAmount: _market[0],
+                    fee: _fee,
                     ethMarket: false
                 })
             );
@@ -125,7 +130,7 @@ contract BondDepository is
             uint256 index_
         )
     {
-        require(_time > 0 && _amount > 0, "Depository : need the amount");
+        require(_amount > 0, "Depository : need the amount");
         Market storage market = markets[_id];
         Metadata memory meta = metadata[_id];
         uint256 currentTime = uint256(block.timestamp);
@@ -160,7 +165,7 @@ contract BondDepository is
         //bonding에서 팔 token은 무조건 LP(TOS-TOKEN Pool)이 있어야한다.
         // TOKEN * ETH/TOKEN(TOS/TOKEN * ETH/TOS) * TOS/ETH(mintingRate) -> X
         // TOKEN * ETH/TOKEN(무조건 토큰 주소 있는걸로) * TOS/ETH(mintingRate) -> O
-        uint256 tokenAmount = _amount * ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
+        uint256 tokenAmount = (_amount * ITOSValueCalculator(calculator).getETHERC20PoolERC20Price(address(IERC20(market.quoteToken)),meta.poolAddress,meta.fee))/1e18*ITOSValueCalculator(calculator).getTOSWETHPoolETHPrice()/1e18;
         uint256 mrAmount = tokenAmount * mintRate;
         treasury.mint(address(this), mrAmount);        
 
@@ -171,7 +176,7 @@ contract BondDepository is
         treasury.backingUpdate();
 
         //tos staking route        
-        staking.stake(msg.sender,payout_,_time,true,_lockTOS);
+        staking.stake(msg.sender,payout_,_time,1,_lockTOS);
         
         //종료해야하는지 확인
         if (meta.totalSaleAmount <= (market.sold + 1e18)) {
@@ -195,6 +200,10 @@ contract BondDepository is
             uint256 index_
         )
     {
+        require(_amount > 0, "Depository : need the amount");
+        if(_lockTOS){
+            require(_time > 0, "Depository : sTOS need the time");
+        }
         Market storage market = markets[_id];
         Metadata memory meta = metadata[_id];
         uint256 currentTime = uint256(block.timestamp);
@@ -226,15 +235,18 @@ contract BondDepository is
             })
         );
 
-        //mintingRate는 1ETH당 TOS가 얼만큼 발행되는지 이다. (mintingRate = TOS/ETH)
+        uint256 amount = _amount;
+        uint256 time = _time;
+        uint256 marketId = _id;
+        bool lockTOS = _lockTOS;
+        //mintingRate는 1ETH당 TOS가 얼만큼 발행되는지 이다. (mintingRate = TOS/ETH)\
         uint256 mrAmount = _amount * mintRate;
         treasury.mint(address(this), mrAmount);       
-
         treasuryContract.transfer(msg.value);
 
-        uint256 transAmount = mrAmount - payout_;
         //transAmount는 treasury에 갈 Amount이다. 
         //payAmount는 transAmount물량 중 재단에 쌓이는 물량이다. 그래서 최종적으로 transAmount - payAmount가 treasury에 쌓인다
+        uint256 transAmount = mrAmount - payout_;
         uint256 payAmount = transferLogic(transAmount);
         console.log("transAmount : %s", transAmount);
         console.log("payAmount : %s", payAmount);
@@ -244,22 +256,24 @@ contract BondDepository is
         //update the backingData
         treasury.backingUpdate();
 
-        //tos staking route      
+        //tos staking route    
+        console.log("1");
+        //_amount = ETH amount , payout_ = tos Amount  
         staking.stake(
             msg.sender,
             payout_,
-            _time,
-            true,
-            _lockTOS
+            time,
+            marketId,
+            lockTOS
         );
         console.log("2");
 
-        emit Bond(_id, _amount, payout_);
+        emit Bond(marketId, amount, payout_);
 
         //종료해야하는지 확인
         if (meta.totalSaleAmount <= market.sold) {
            market.capacity = 0;
-           emit CloseMarket(_id);
+           emit CloseMarket(marketId);
         }
     }
 

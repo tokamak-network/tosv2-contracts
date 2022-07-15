@@ -109,7 +109,22 @@ contract TOSValueCalculator is ITOSValueCalculator {
 
     //WETH-TOS Pool에서 1TOS = ? ETH를 반환한다 (ether단위로 반환) -> ? ETH/1TOS
     function getWETHPoolTOSPrice() public override view returns (uint256 price) {
-        uint tosOrder = getTOStoken0(weth,3000);
+        uint wethOrder = getTOStoken0(weth,3000);
+        if(wethOrder == 2 && wethOrder == 3) {
+            return price = 0;
+        }
+        if(wethOrder == 0) {
+            return price = getPriceToken0(ethTosPool);
+        } else if (wethOrder == 1) {
+            return price = getPriceToken1(ethTosPool);
+        } else {
+            return price = 0;
+        }
+    }
+
+    //WETH-TOS Pool에서 1ETH = ? TOS를 반환한다 (ether단위로 반환) -> ? TOS/1ETH
+    function getTOSWETHPoolETHPrice() public override view returns (uint256 price) {
+        uint tosOrder = getTOStoken0(tos,3000);
         if(tosOrder == 2 && tosOrder == 3) {
             return price = 0;
         }
@@ -171,7 +186,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
 
     //1ETH = ? ERC20 -> ?ERC20/1ETH
     //ETH와 비율을 알고 싶은 erc20주소와 eth-ERC20_pool주소, fee를 입력함 1ETH = ? ERC20
-    function getETHERC20PoolETHPrice(address _erc20address, address _ethERC20Pool, uint24 fee) public view returns (uint256 price) {
+    function getETHERC20PoolETHPrice(address _erc20address, address _ethERC20Pool, uint24 fee) public override view returns (uint256 price) {
         uint ethOrder = getETHtoken0(_erc20address,fee);
         uint decimalCalcul;
         if(ethOrder == 2 && ethOrder == 3) {
@@ -195,7 +210,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
 
     // 1ERC20 = ?ETH -> ?ETH/1ERC20
     //ETH와 비율을 알고 싶은 erc20주소와 ETH-ERC20_Pool주소와 fee를 입력함 1ERC20 = ? ETH
-    function getETHERC20PoolERC20Price(address _erc20address, address _ethERC20Pool, uint24 fee) public view returns (uint256 price) {
+    function getETHERC20PoolERC20Price(address _erc20address, address _ethERC20Pool, uint24 fee) public override view returns (uint256 price) {
         uint ethOrder = getETHtoken0(_erc20address,fee);
         uint decimalCalcul;
         if(ethOrder == 2 && ethOrder == 3) {
@@ -238,7 +253,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
 
     //token0이 tos면 0을 리턴, token1이 tos면 1을 리턴, tos주소가 없으면 3을 리턴
     //tos와 pool인데 Pool주소를 알때
-    function getTOStoken(address _poolAddress) public view returns (uint) {
+    function getTOStoken(address _poolAddress) public override view returns (uint) {
         address token0Address = IIUniswapV3Pool(_poolAddress).token0();
         address token1Address = IIUniswapV3Pool(_poolAddress).token1();
         if(token0Address == address(tos)) {
@@ -251,7 +266,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
     }
 
     //token0이 Weth면 0을 리턴, token1이 weth면 1을 리턴, tokenPool 이없으면 2를 리턴, 3은 리턴하면 안됨.
-    function getETHtoken0(address _erc20Address, uint24 _fee) public view returns (uint){
+    function getETHtoken0(address _erc20Address, uint24 _fee) public override view returns (uint) {
         address getPool = UniswapV3Factory.getPool(address(weth), address(_erc20Address), _fee);
         if(getPool == address(0)) {
             return 2;
@@ -269,7 +284,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
     }
 
     //token0이 weth면 0을 리턴, token1이 weth면 1을 리턴, weth주소가 없으면 3을 리턴
-    function getETHtoken(address _poolAddress) public view returns (uint) {
+    function getETHtoken(address _poolAddress) public override view returns (uint) {
         address token0Address = IIUniswapV3Pool(_poolAddress).token0();
         address token1Address = IIUniswapV3Pool(_poolAddress).token1();
         if(token0Address == address(weth)) {
@@ -284,6 +299,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
     //tokenID의 amount0이랑 amount1의 갯수를 리턴한다.
     function getTokenIdAmount(address _poolAddress, uint256 _tokenId)
         public
+        override
         view
         returns (uint256 amount0, uint256 amount1) 
     {
@@ -297,6 +313,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
     //tosNum == 1이면 amount0 이 token양을 나타냄  token * (ETH/1TOS * TOS/1ERC20), amoun1은 tos * (?ETH/1TOS)
     function getTokenIdETHValue(address _poolAddress, uint256 _tokenId)
         public
+        override
         view
         returns (uint256 ethValue)
     {   

@@ -77,6 +77,12 @@ contract Treasury is
         emit Deposit(_token, _amount, value);
     }
 
+    function depositTokenId(
+
+    ) external {
+        
+    }
+
     //자기가 보유하고 있는 TOS를 burn시키구 그가치에 해당하는 token의 amount를 가지고 간다.
     //amount = ? TOS -> ?TOS * ?ERC20/1TOS -> ??ERC20
     function withdraw(

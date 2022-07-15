@@ -23,6 +23,7 @@ contract BondDepositoryStorage {
         uint256 tokenPrice;
         uint256 tosPrice;
         uint256 totalSaleAmount; //tos sales volume
+        uint24 fee;
         bool ethMarket;
     }
 

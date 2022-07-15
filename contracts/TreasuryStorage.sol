@@ -5,6 +5,18 @@ import "./interfaces/IERC20.sol";
 
 contract TreasuryStorage {
      /* ========== DATA STRUCTURES ========== */
+
+    enum STATUS {
+        RESERVEDEPOSITOR,
+        RESERVESPENDER,
+        RESERVETOKEN,
+        RESERVEMANAGER,
+        LIQUIDITYDEPOSITOR,
+        LIQUIDITYTOKEN,
+        LIQUIDITYMANAGER,
+        REWARDMANAGER
+    }
+
     struct Backing {
         address erc20Address;
         address tosPoolAddress;
