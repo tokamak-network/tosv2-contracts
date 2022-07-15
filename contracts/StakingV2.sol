@@ -373,14 +373,20 @@ contract StakingV2 is
             }
             stakeInfo.withdraw == true;
         }
+        
+        UserBalance storage allstake = allStakings[_stakeId];
 
         stakeInfo.getLTOS = stakeInfo.getLTOS + _amount;          //쓴 LTOS 기록
         stakeInfo.rewardTOS = stakeInfo.rewardTOS + amount_;      //LTOS -> TOS로 바꾼 양 기록
+
+        allstake.getLTOS = allstake.getLTOS + _amount;
+        allstake.rewardTOS = allstake.rewardTOS + amount_;
 
         if(balanceOfId(_stakeId) == 0) {
             delete connectId[_stakeId];
             delete lockTOSId[sTOSid];
             delete stakingBalances[msg.sender][_stakeId];
+            delete allStakings[_stakeId];
         }
 
         require(amount_ <= TOS.balanceOf(address(this)), "Insufficient TOS balance in contract");
@@ -402,6 +408,7 @@ contract StakingV2 is
             rebaseIndex();
 
             uint256 remainLTOS = stakeInfo.LTOS - stakeInfo.getLTOS;
+            console.log("remainLTOS : %s",remainLTOS);
 
             amount_ = ((remainLTOS*index_)/1e18);
 
@@ -418,11 +425,14 @@ contract StakingV2 is
             }
 
             stakeInfo.getLTOS = stakeInfo.getLTOS + remainLTOS;       //쓴 LTOS 기록
+            console.log("stakeInfo.getLTOS : %s",stakeInfo.getLTOS);
             stakeInfo.rewardTOS = stakeInfo.rewardTOS + amount_;      //LTOS -> TOS로 바꾼 양 기록
+            console.log("stakeInfo.rewardTOS : %s",stakeInfo.rewardTOS);
 
             delete stakingBalances[msg.sender][_stakeId];
             delete connectId[_stakeId];
             delete lockTOSId[sTOSid];
+            delete allStakings[_stakeId];
 
             require(amount_ <= TOS.balanceOf(address(this)), "Insufficient TOS balance in contract");
             TOS.safeTransfer(msg.sender, amount_);
@@ -488,7 +498,7 @@ contract StakingV2 is
         returns (uint256)
     {
         UserBalance memory stakeInfo = allStakings[_stakeId];
-        return stakeInfo.LTOS - stakeInfo.getLTOS;
+        return (stakeInfo.LTOS - stakeInfo.getLTOS);
     }
 
     //유저가 가진 총 LTOS 리턴

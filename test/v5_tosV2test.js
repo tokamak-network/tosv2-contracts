@@ -96,7 +96,7 @@ describe("price test", function () {
   let stakingBalanceLTOS;
   let totalLTOS;
 
-  let sellingTime = 120;
+  let sellingTime = 600;
 
   let sellTosAmount = ethers.utils.parseUnits("10000", 18); //1ETH = 1000TOS 라서 10ETH받으면 끝임
   let overdepositAmount = ethers.utils.parseUnits("5", 18);     //over deposit상황
@@ -858,6 +858,64 @@ describe("price test", function () {
 
       expect(beforeBalance).to.be.equal(afterBalance);
     }) 
+
+    it("#3-1-6. user1 can unstaking after basicBondPeriod", async () => {
+      let arrayCheck = await stakingProxylogic.stakinOf(user1.address);
+      let stakeInfo = await stakingProxylogic.stakingBalances(user1.address,Number(arrayCheck[1]))
+      
+      await ethers.provider.send('evm_setNextBlockTimestamp', [Number(stakeInfo.endTime) + 5]);
+      await ethers.provider.send('evm_mine');
+
+      let beforeBalance = await stakingProxylogic.balanceOfId(Number(arrayCheck[1]));
+      console.log("beforeBalance :", beforeBalance);
+
+      let beforeTOS = await tosContract.balanceOf(user1.address);
+      console.log("beforeTOS :", beforeTOS);
+      await stakingProxylogic.connect(user1).unstakeId(Number(arrayCheck[1]));
+
+      let newStakeInfo = await stakingProxylogic.allStakings(Number(arrayCheck[1]))
+      console.log("newStakeInfo.LTOS :",newStakeInfo.LTOS)
+      console.log("newStakeInfo.getLTOS :",newStakeInfo.getLTOS)
+
+      let afterBalance = await stakingProxylogic.balanceOfId(Number(arrayCheck[1]));
+      console.log(afterBalance);
+      let afterTOS = await tosContract.balanceOf(user1.address);
+
+      expect(beforeBalance).to.be.above(afterBalance);
+      expect(afterTOS).to.be.above(beforeTOS);
+    })
+
+    it("#3-1-7. user can't deposit 0 amount", async () => {
+      let marketlength = await bondDepositoryProxylogic.marketsLength();
+
+      await expect(
+        bondDepositoryProxylogic.connect(user2).ETHDeposit(
+          (marketlength-1),
+          0,
+          1,
+          true,
+          {value: 0}
+        )
+      ).to.be.revertedWith("Depository : need the amount");
+    })
+
+    it("#3-1-8. user can't input sametime lockTOS is true, time = 0", async () => {
+      let marketlength = await bondDepositoryProxylogic.marketsLength();
+
+      await expect(
+        bondDepositoryProxylogic.connect(user2).ETHDeposit(
+          (marketlength-1),
+          depositAmount2,
+          0,
+          true,
+          {value: depositAmount2}
+        )
+      ).to.be.revertedWith("Depository : sTOS need the time");
+    })
+
+    it("#3-1-9. user can't deposit after market sale Amount is over", async () => {
+
+    })
 
 
 
