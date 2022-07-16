@@ -218,7 +218,7 @@ contract BondDepository is
         payout_ = calculPayoutAmount(meta.tokenPrice,meta.tosPrice,_amount);
         console.log("payoutAmount : %s", payout_);
 
-        require(0 <= (market.capacity - payout_), "Depository : sold out");
+        require(payout_ <= market.capacity, "Depository : sold out");
 
         market.capacity -= payout_;
         market.sold += payout_;

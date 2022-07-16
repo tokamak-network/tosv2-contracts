@@ -466,12 +466,10 @@ contract StakingV2 is
             epoch.number = epoch.number + (epochNumber + 1);
             console.log("epoch.number : %s", epoch.number);
             
-
             //index를 epochNumber만큼 시킴
             //만약 treasury에 있는 TOS물량이 다음 index를 지원하면 index를 증가 시킨다.
             for(uint256 i = 0; i < (epochNumber + 1); i++) {
-                console.log("treasury.enableStaking() : %s", treasury.enableStaking());
-                console.log("nextLTOSinterest() : %s", nextLTOSinterest());
+                console.log("rebaseIndex() : %s", i);
                 if(treasury.enableStaking() > nextLTOSinterest()) {
                     index();
                 }

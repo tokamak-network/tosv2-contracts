@@ -133,6 +133,8 @@ describe("price test", function () {
   // let basicBondPeriod = 86400 * 5;
   let basicBondPeriod = 300;
 
+  let checkMarketLength;
+
   // rinkeby
   let uniswapInfo={
       poolfactory: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
@@ -154,7 +156,7 @@ describe("price test", function () {
   
   before(async () => {
     accounts = await ethers.getSigners();
-    [admin1, admin2, user1, user2, minter1, minter2, proxyAdmin, proxyAdmin2 ] = accounts;
+    [admin1, admin2, user1, user2, user3, user4, user5, user6 ] = accounts;
     console.log('admin1',admin1.address);    
 
     provider = ethers.provider;
@@ -168,6 +170,14 @@ describe("price test", function () {
 
     await hre.ethers.provider.send("hardhat_setBalance", [
       admin1.address,
+      "0x8ac7230489e80000",
+    ]);
+    await hre.ethers.provider.send("hardhat_setBalance", [
+      user1.address,
+      "0x8ac7230489e80000",
+    ]);
+    await hre.ethers.provider.send("hardhat_setBalance", [
+      user2.address,
       "0x8ac7230489e80000",
     ]);
 
@@ -913,7 +923,146 @@ describe("price test", function () {
       ).to.be.revertedWith("Depository : sTOS need the time");
     })
 
-    it("#3-1-9. user can't deposit after market sale Amount is over", async () => {
+    it("#3-1-9. user can't deposit over marketAmount", async () => {
+      let marketlength = await bondDepositoryProxylogic.marketsLength();
+      console.log("marketlength : ", marketlength);
+
+      await bondDepositoryProxylogic.connect(user1).ETHDeposit(
+        (marketlength-1),
+        depositAmount2,
+        0,
+        false,
+        {value: depositAmount2}
+      )
+
+      await expect(
+        bondDepositoryProxylogic.connect(user2).ETHDeposit(
+          (marketlength-1),
+          depositAmount2,
+          0,
+          false,
+          {value: depositAmount2}
+        )
+      ).to.be.revertedWith("Depository : sold out");
+    })
+
+    it("#3-1-10. user can't deposit after market sale Amount is over", async () => {
+      let marketlength = await bondDepositoryProxylogic.marketsLength();
+      console.log("marketlength : ", marketlength);
+
+      await bondDepositoryProxylogic.connect(user3).ETHDeposit(
+        (marketlength-1),
+        depositAmount,
+        0,
+        false,
+        {value: depositAmount}
+      )
+      
+      let marketInfo = await bondDepositoryProxylogic.markets((marketlength-1));
+      console.log(marketInfo.capacity);
+      expect(Number(marketInfo.capacity)).to.be.equal(0);
+
+      await expect(
+        bondDepositoryProxylogic.connect(user2).ETHDeposit(
+          (marketlength-1),
+          depositAmount2,
+          0,
+          false,
+          {value: depositAmount2}
+        )
+      ).to.be.revertedWith("Depository : sold out");
+    })
+
+    it("#3-1-11. user can't deposit after marketSaleTime is over", async () => {
+      const block = await ethers.provider.getBlock('latest')
+      let finishTime = block.timestamp + 10
+
+      await bondDepositoryProxylogic.connect(admin1).create(
+        true,
+        admin1.address,
+        uniswapInfo.tosethPool,
+        0,
+        [sellTosAmount,finishTime,ETHPrice,TOSPrice,onePayout]
+      )
+
+      await ethers.provider.send('evm_setNextBlockTimestamp', [Number(finishTime) + 5]);
+      await ethers.provider.send('evm_mine');
+
+      let marketlength = await bondDepositoryProxylogic.marketsLength();
+
+      await expect(
+        bondDepositoryProxylogic.connect(user2).ETHDeposit(
+          (marketlength-1),
+          depositAmount,
+          0,
+          false,
+          {value: depositAmount}
+        )
+      ).to.be.revertedWith("Depository : market end");
+
+    })
+
+    it("#3-1-12. user can't close the market", async () => {
+      const block = await ethers.provider.getBlock('latest')
+      let finishTime = block.timestamp + 30  //2분
+
+      await bondDepositoryProxylogic.connect(admin1).create(
+        true,
+        admin1.address,
+        uniswapInfo.tosethPool,
+        0,
+        [sellTosAmount,finishTime,ETHPrice,TOSPrice,onePayout]
+      )
+
+      checkMarketLength = await bondDepositoryProxylogic.marketsLength();
+      
+      await expect(
+        bondDepositoryProxylogic.connect(user1).close(
+          (checkMarketLength-1)
+        )
+      ).to.be.revertedWith("Accessible: Caller is not an policy admin");
+    })
+
+
+    it("#3-1-13. admin can close the market", async () => {
+      console.log(checkMarketLength);
+      await bondDepositoryProxylogic.connect(admin1).close(
+        (checkMarketLength-1)
+      )
+
+      let marketInfo = await bondDepositoryProxylogic.markets((checkMarketLength-1));
+      console.log(marketInfo.capacity);
+      expect(Number(marketInfo.capacity)).to.be.equal(0);
+    })
+
+    it("#3-1-14. user can't deposit to closed market", async () => {
+      await expect(
+        bondDepositoryProxylogic.connect(user2).ETHDeposit(
+          (checkMarketLength-1),
+          depositAmount,
+          0,
+          false,
+          {value: depositAmount}
+        )
+      ).to.be.revertedWith("Depository : market end");
+    })
+
+    it("#3-1-15. user can't create market", async () => {
+      const block = await ethers.provider.getBlock('latest')
+      let finishTime = block.timestamp + 30 
+
+      await expect(
+        bondDepositoryProxylogic.connect(user1).create(
+          true,
+          admin1.address,
+          uniswapInfo.tosethPool,
+          0,
+          [sellTosAmount,finishTime,ETHPrice,TOSPrice,onePayout]
+        )
+      ).to.be.revertedWith("Accessible: Caller is not an policy admin");
+    })
+
+    it("#3-1-16. user can Deposit for period without sTOSStaking", async () => {
 
     })
 
