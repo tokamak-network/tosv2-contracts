@@ -151,8 +151,6 @@ contract StakingV2 is
         _stake(_to,stakeId,_amount,unlockTime,_marketId);
         console.log("rebase3");
 
-        //rebaseIndex를 먼저하면 underFlow에러가 남 -> 
-
         //sTOS와 id같이 쓸려면 id별 mapping 따로 만들어서 관리해야함 (이 경우는 sTOS스테이킹하면서 동시에 LTOS를 구매할때)
         uint256 sTOSid;
         if(_lockTOS == true) {
@@ -219,7 +217,7 @@ contract StakingV2 is
     {
         require(_tokenId != 0, "need the tokenId");
         require(_amount > 0, "amount should be non-zero");
-        TOS.safeTransferFrom(_to, address(this), _amount);
+        TOS.safeTransferFrom(msg.sender, address(this), _amount);
         UserBalance memory userOld = stakingBalances[_to][_tokenId];
 
         rebaseIndex();
@@ -242,7 +240,6 @@ contract StakingV2 is
     //기간이 끝나지 않았을때 늘리는 경우 -> 정상 작동
     //기간이 끝났을때 늘리는 경우 -> unstaking하고 다시 stake해준다. -> 기준 시간을 지금 시간으로 잡고 하면됨
     function increasePeriodStake(
-        address _to,
         uint256 _tokenId,
         uint256 _unlockWeeks
     )
@@ -255,7 +252,7 @@ contract StakingV2 is
         uint256 sTOSid = connectId[_tokenId];
         require(sTOSid != 0, "need the have sTOS");
         
-        UserBalance memory userOld = stakingBalances[_to][_tokenId];
+        UserBalance memory userOld = stakingBalances[msg.sender][_tokenId];
 
         uint256 unlockTime;
         uint256 maxProfit;
@@ -265,7 +262,7 @@ contract StakingV2 is
          if(block.timestamp < userOld.endTime) {
             //기간이 끝나기전 증가 시킴
             unlockTime = userOld.endTime.add(_unlockWeeks.mul(epochUnit));
-            lockTOS.increaseUnlockTimeByStaker(_to,sTOSid,_unlockWeeks);
+            lockTOS.increaseUnlockTimeByStaker(msg.sender,sTOSid,_unlockWeeks);
         } else {
             //시간이 끝나고 증가 시킴
             //기존 sTOS unstaking
@@ -276,12 +273,12 @@ contract StakingV2 is
             //새 sTOS staking
             unlockTime = block.timestamp.add(_unlockWeeks.mul(epochUnit));
             maxProfit = maxIndexProfit(userOld.deposit,unlockTime);
-            sTOSid = lockTOS.createLockByStaker(_to,maxProfit,_unlockWeeks);
+            sTOSid = lockTOS.createLockByStaker(msg.sender,maxProfit,_unlockWeeks);
             connectId[_tokenId] = sTOSid;
             lockTOSId[sTOSid] = _tokenId;
         }
 
-        _stake(_to,_tokenId,0,unlockTime,0);        
+        _stake(msg.sender,_tokenId,0,unlockTime,0);        
     }
 
     //amount, period 둘다 늘릴때
@@ -298,12 +295,13 @@ contract StakingV2 is
         require(_tokenId != 0, "need the tokenId");
         require(_unlockWeeks > 0, "period should be non-zero");
         require(_amount > 0, "amount should be non-zero");
+        uint256 sTOSid = connectId[_tokenId];
+        require(sTOSid != 0, "need the have sTOS");
 
-        TOS.safeTransferFrom(_to, address(this), _amount);
+        TOS.safeTransferFrom(msg.sender, address(this), _amount);
         UserBalance memory userOld = stakingBalances[_to][_tokenId];
 
         uint256 unlockTime;
-        uint256 sTOSid = connectId[_tokenId];
         uint256 maxProfit;
         
         rebaseIndex();

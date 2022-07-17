@@ -37,7 +37,6 @@ interface IStaking {
     ) external;
 
     function increasePeriodStake(
-        address _to,
         uint256 _tokenId,
         uint256 _unlockWeeks
     ) external;
