@@ -303,17 +303,22 @@ contract StakingV2 is
 
         uint256 unlockTime;
         uint256 maxProfit;
+        console.log("increaseAmountPeriod1");
         
         rebaseIndex();
 
         if(block.timestamp < userOld.endTime) {
             //기간이 끝나기전 증가 시킴
+            console.log("increaseAmountPeriod2");
             unlockTime = userOld.endTime.add(_unlockWeeks.mul(epochUnit));
             maxProfit = maxIndexProfit(_amount,unlockTime);
+            console.log("increaseAmountPeriod5");
             lockTOS.increaseAmountUnlockTimeByStaker(_to,sTOSid,maxProfit,unlockTime);
+            console.log("increaseAmountPeriod6");
         } else {
             //시간이 끝나고 증가 시킴
             //기존 sTOS unstaking
+            console.log("increaseAmountPeriod3");
             uint256 amount = userOld.deposit + _amount;
             lockTOS.withdrawByStaker(msg.sender,sTOSid);
             delete connectId[_tokenId];
@@ -326,6 +331,7 @@ contract StakingV2 is
             lockTOSId[sTOSid] = _tokenId;
         }
 
+        console.log("increaseAmountPeriod4");
         _stake(_to,_tokenId,_amount,unlockTime,0);
     }
 
