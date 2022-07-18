@@ -96,6 +96,8 @@ contract BondDepository is
         emit CreateMarket(id_, _market[0], _market[1]);
     }
 
+    //admin이 market에서 수정해야할 것 들, capacity, saleTime, Price(2개)
+
     /**
      * @notice             disable existing market
      * @param _id          ID of market to close
@@ -165,7 +167,11 @@ contract BondDepository is
         //bonding에서 팔 token은 무조건 LP(TOS-TOKEN Pool)이 있어야한다.
         // TOKEN * ETH/TOKEN(TOS/TOKEN * ETH/TOS) * TOS/ETH(mintingRate) -> X
         // TOKEN * ETH/TOKEN(무조건 토큰 주소 있는걸로) * TOS/ETH(mintingRate) -> O
+        // DAI * ETH/DAI(무조건 토큰 주소 있는걸로) * TOS/ETH(mintingRate) -> O
+        // WTON * ETH/WTON(무조건 토큰 주소 있는걸로) * TOS/ETH(mintingRate) -> O
+        //mintingRate는 1ETH당 TOS가 얼만큼 발행되는지 이다. (mintingRate = TOS/ETH)
         uint256 tokenAmount = (_amount * ITOSValueCalculator(calculator).getETHERC20PoolERC20Price(address(IERC20(market.quoteToken)),meta.poolAddress,meta.fee))/1e18*ITOSValueCalculator(calculator).getTOSWETHPoolETHPrice()/1e18;
+        //mrAmount = 
         uint256 mrAmount = tokenAmount * mintRate;
         treasury.mint(address(this), mrAmount);        
 
@@ -239,7 +245,8 @@ contract BondDepository is
         uint256 time = _time;
         uint256 marketId = _id;
         bool lockTOS = _lockTOS;
-        //mintingRate는 1ETH당 TOS가 얼만큼 발행되는지 이다. (mintingRate = TOS/ETH)\
+        //mintingRate는 1ETH당 TOS가 얼만큼 발행되는지 이다. (mintingRate = TOS/ETH)
+        //mrAmount = ETH * TOS/ETH
         uint256 mrAmount = _amount * mintRate;
         treasury.mint(address(this), mrAmount);       
         treasuryContract.transfer(msg.value);

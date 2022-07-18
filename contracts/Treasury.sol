@@ -80,7 +80,7 @@ contract Treasury is
     function depositTokenId(
 
     ) external {
-        
+
     }
 
     //자기가 보유하고 있는 TOS를 burn시키구 그가치에 해당하는 token의 amount를 가지고 간다.
@@ -183,7 +183,8 @@ contract Treasury is
             })
         );
     }
-
+    
+    //erc20토큰 따로 있음
 
     //tokenId는 유동성만 증가 -> backingReserve에 들어가지않음
     function addLiquidityIdList(uint256 _tokenId, address _tosPoolAddress) external override onlyPolicyOwner {
@@ -200,6 +201,10 @@ contract Treasury is
     function liquidityUpdate() public {
         
     }
+
+    //tokenID를 받으면 token0 Amount, token1 amount return 해주는 View함수
+
+    //poolAddress를 받으면 token0, token1의 amount를 return 해주는 view함수 필요
 
 
     //현재 지원하는 자산을 최신으로 업데이트 시킴

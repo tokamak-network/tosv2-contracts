@@ -107,6 +107,7 @@ contract StakingV2 is
         }
         TOS.safeTransferFrom(msg.sender, address(this), _amount);
         uint256 unlockTime = block.timestamp.add(_periodWeeks.mul(epochUnit));
+        unlockTime = unlockTime.div(epochUnit).mul(epochUnit);
 
         //bonding으로 들어왔는데 기간을 정하지 않은 경우
         if(_marketId != 0 && _periodWeeks == 0) {
@@ -264,7 +265,7 @@ contract StakingV2 is
             unlockTime = userOld.endTime.add(_unlockWeeks.mul(epochUnit));
             lockTOS.increaseUnlockTimeByStaker(msg.sender,sTOSid,_unlockWeeks);
         } else {
-            //시간이 끝나고 증가 시킴
+            //기간이 끝나고 증가 시킴
             //기존 sTOS unstaking
             lockTOS.withdrawByStaker(msg.sender,sTOSid);
             delete connectId[_tokenId];
@@ -313,7 +314,7 @@ contract StakingV2 is
             unlockTime = userOld.endTime.add(_unlockWeeks.mul(epochUnit));
             maxProfit = maxIndexProfit(_amount,unlockTime);
             console.log("increaseAmountPeriod5");
-            lockTOS.increaseAmountUnlockTimeByStaker(_to,sTOSid,maxProfit,unlockTime);
+            lockTOS.increaseAmountUnlockTimeByStaker(_to,sTOSid,maxProfit,_unlockWeeks);
             console.log("increaseAmountPeriod6");
         } else {
             //시간이 끝나고 증가 시킴
@@ -467,6 +468,7 @@ contract StakingV2 is
             uint256 epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
             console.log("epochNumber : %s", epochNumber);
             epoch.end = epoch.end + (epoch.length_ * (epochNumber + 1));
+            console.log("epoch.end : %s", epoch.end);
             epoch.number = epoch.number + (epochNumber + 1);
             console.log("epoch.number : %s", epoch.number);
             
