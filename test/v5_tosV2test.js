@@ -131,18 +131,6 @@ describe("price test", function () {
   let lockTOSLogic2Address = "0x50b8Ee0cCc76f66fFA669aA56218B3964dae4E78"
   let lockTosAdminAddress = "0x5b6e72248b19F2c5b88A4511A6994AD101d0c287"
 
-  //============================================
-  // rinkeby
-  let lockTOS = "0x5adc7de3a0B4A4797f02C3E99265cd7391437568";
-  // mainnet
-  //let lockTOS = "0x69b4A202Fa4039B42ab23ADB725aA7b1e9EEBD79";
-
-  // let lockTosContract ;
-  // let LockTOSProxyABI = require("../abis/LockTOSProxy.json").abi;
-  // let LockTOSv2Logic0ABI = require("../abis/LockTOSv2Logic0.json").abi;
-  // let LockTOSv2ProxyABI = require("../abis/LockTOSv2Proxy.json").abi;
-  //=============================================
-
 
   let etherUint = ethers.utils.parseUnits("1", 18);
   // let wtonUint = ethers.utils.parseUnits("1", 27);
