@@ -1358,12 +1358,17 @@ describe("price test", function () {
       stakingBalanceLTOS = await stakingProxylogic.stakingBalances(user4.address,Number(stakeIdcheck[1]));
       console.log("endTime : ", stakingBalanceLTOS.endTime);
 
+      let getsTOSid = await stakingProxylogic.connectId(Number(stakeIdcheck[1]));
+
       await ethers.provider.send('evm_setNextBlockTimestamp', [Number(stakingBalanceLTOS.endTime) + 5]);
       await ethers.provider.send('evm_mine');
-
+      
       await tosContract.connect(user1).transfer(user4.address,user4TOSstaking);
-
+      
       await tosContract.connect(user4).approve(stakingProxylogic.address,user4TOSstaking);
+
+      let sTOSInfo = await lockTosContract.locksInfo(Number(getsTOSid));
+      console.log("sTOSInfo.amount :", sTOSInfo.amount);
 
       await stakingProxylogic.connect(user4).increaseAmountStake(
         user4.address,
@@ -1375,16 +1380,86 @@ describe("price test", function () {
       // console.log("LTOS2 : ", stakingBalanceLTOS2.LTOS);
       // console.log("endTime2 : ", stakingBalanceLTOS2.endTime);
 
+      let sTOSInfo2 = await lockTosContract.locksInfo(Number(getsTOSid));
+      console.log("sTOSInfo2.amount :", sTOSInfo2.amount);
+
+      expect(Number(sTOSInfo2.amount)).to.be.equal(Number(sTOSInfo.amount));
       expect(Number(stakingBalanceLTOS2.LTOS)).to.be.above(Number(stakingBalanceLTOS.LTOS));
       // expect(Number(stakingBalanceLTOS2.endTime)).to.be.above(Number(stakingBalanceLTOS.endTime))
     })
 
     it("#3-2-16. After the end of the lockup period, the period of StakeID can be increased. (Receive a new Stosid, the period of time increases based on the current time)", async () => {
+      stakingBalanceLTOS = await stakingProxylogic.stakingBalances(user4.address,Number(stakeIdcheck[1]));
+      console.log("endTime : ", stakingBalanceLTOS.endTime);
 
+      let getsTOSid = await stakingProxylogic.connectId(Number(stakeIdcheck[1]));
+      console.log("getsTOSid : ", Number(getsTOSid));
+
+      let sTOSInfo = await lockTosContract.locksInfo(Number(getsTOSid));
+      console.log("sTOSInfo.end :", sTOSInfo.end);
+
+      await stakingProxylogic.connect(user4).increasePeriodStake(
+        Number(stakeIdcheck[1]),
+        1
+      )
+
+      let stakingBalanceLTOS2 = await stakingProxylogic.stakingBalances(user4.address,Number(stakeIdcheck[1]));
+
+      let getsTOSid2 = await stakingProxylogic.connectId(Number(stakeIdcheck[1]));
+      console.log("getsTOSid2 : ",Number(getsTOSid2));
+
+      let sTOSInfo2 = await lockTosContract.locksInfo(Number(getsTOSid2));
+      console.log("sTOSInfo2.end :", sTOSInfo2.end);
+
+      expect(Number(stakingBalanceLTOS2.endTime)).to.be.above(Number(stakingBalanceLTOS.endTime))
+      expect(Number(sTOSInfo2.end)).to.be.above(Number(sTOSInfo.end))
+      expect(Number(getsTOSid2)).to.be.above(Number(getsTOSid));
     })
 
     it("#3-2-17. After the end of the lockup period, the amount and period of StakeID can be increased.", async () =>{
+      stakingBalanceLTOS = await stakingProxylogic.stakingBalances(user4.address,Number(stakeIdcheck[1]));
+      console.log("LTOS : ", stakingBalanceLTOS.LTOS);
+      console.log("endTime : ", stakingBalanceLTOS.endTime);
 
+      let getsTOSid = await stakingProxylogic.connectId(Number(stakeIdcheck[1]));
+      let sTOSInfo = await lockTosContract.locksInfo(Number(getsTOSid));
+      console.log("sTOSInfo.end :", sTOSInfo.end);
+
+      await ethers.provider.send('evm_setNextBlockTimestamp', [Number(stakingBalanceLTOS.endTime) + 5]);
+      await ethers.provider.send('evm_mine');
+
+      await tosContract.connect(user1).transfer(user4.address,user4TOSstaking);
+      await tosContract.connect(user4).approve(stakingProxylogic.address,user4TOSstaking);
+      
+      const block = await ethers.provider.getBlock('latest')
+      let endTime = Number(block.timestamp) + Number(epochUnit);
+      console.log("block.timestamp :", Number(block.timestamp));
+      console.log("epochUnit :", Number(epochUnit));
+      console.log("endTime :", Number(endTime));
+      let endTime2 = Math.floor(Number(endTime)/Number(epochUnit))
+      let endTime3 = Number(endTime2)*Number(epochUnit);
+      console.log("endTime2 :", Number(endTime2));
+      console.log("endTime3 :", Number(endTime3));
+
+      await stakingProxylogic.connect(user4).increaseAmountAndPeriodStake(
+        user4.address,
+        Number(stakeIdcheck[1]),
+        user4TOSstaking,
+        1
+      )
+
+      let stakingBalanceLTOS2 = await stakingProxylogic.stakingBalances(user4.address,Number(stakeIdcheck[1]));
+      console.log("LTOS2 : ", stakingBalanceLTOS2.LTOS);
+      console.log("endTime2 : ", stakingBalanceLTOS2.endTime);
+
+      getsTOSid = await stakingProxylogic.connectId(Number(stakeIdcheck[1]));
+      let sTOSInfo2 = await lockTosContract.locksInfo(Number(getsTOSid));
+      console.log("sTOSInfo2.end :", Number(sTOSInfo2.end));
+
+      expect(Number(endTime3)).to.be.equal(Number(sTOSInfo2.end));
+      expect(Number(stakingBalanceLTOS2.LTOS)).to.be.above(Number(stakingBalanceLTOS.LTOS));
+      expect(Number(stakingBalanceLTOS2.endTime)).to.be.above(Number(stakingBalanceLTOS.endTime))
+      expect(Number(sTOSInfo2.end)).to.be.above(Number(sTOSInfo.end))
     })
   })
 

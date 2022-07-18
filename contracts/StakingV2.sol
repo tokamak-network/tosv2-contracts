@@ -185,6 +185,7 @@ contract StakingV2 is
         console.log("index_ : %s", index_);
         uint256 LTOSamount = (_amount*1e18)/index_;
         console.log("LTOSamount : %s", LTOSamount);
+        console.log("getEndTime : %s", getEndTime);
 
         UserBalance memory userNew = UserBalance({
             deposit: userOld.deposit + _amount,
@@ -273,6 +274,7 @@ contract StakingV2 is
 
             //새 sTOS staking
             unlockTime = block.timestamp.add(_unlockWeeks.mul(epochUnit));
+            unlockTime = unlockTime.div(epochUnit).mul(epochUnit);
             maxProfit = maxIndexProfit(userOld.deposit,unlockTime);
             sTOSid = lockTOS.createLockByStaker(msg.sender,maxProfit,_unlockWeeks);
             connectId[_tokenId] = sTOSid;
@@ -313,9 +315,7 @@ contract StakingV2 is
             console.log("increaseAmountPeriod2");
             unlockTime = userOld.endTime.add(_unlockWeeks.mul(epochUnit));
             maxProfit = maxIndexProfit(_amount,unlockTime);
-            console.log("increaseAmountPeriod5");
             lockTOS.increaseAmountUnlockTimeByStaker(_to,sTOSid,maxProfit,_unlockWeeks);
-            console.log("increaseAmountPeriod6");
         } else {
             //시간이 끝나고 증가 시킴
             //기존 sTOS unstaking
@@ -326,12 +326,12 @@ contract StakingV2 is
             delete lockTOSId[sTOSid];
 
             unlockTime = block.timestamp.add(_unlockWeeks.mul(epochUnit));
+            unlockTime = unlockTime.div(epochUnit).mul(epochUnit);
             maxProfit = maxIndexProfit(amount,unlockTime);
             sTOSid = lockTOS.createLockByStaker(_to,maxProfit,_unlockWeeks);
             connectId[_tokenId] = sTOSid;
             lockTOSId[sTOSid] = _tokenId;
         }
-
         console.log("increaseAmountPeriod4");
         _stake(_to,_tokenId,_amount,unlockTime,0);
     }
