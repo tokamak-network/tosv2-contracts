@@ -28,6 +28,11 @@ contract TreasuryStorage {
         address tosPoolAddress;
     }
 
+    struct Minting {
+        address mintAddress;
+        uint256 mintPercents;
+    }
+
     /* ========== STATE VARIABLES ========== */
 
     IERC20 public TOS;
@@ -38,14 +43,25 @@ contract TreasuryStorage {
     mapping(STATUS => mapping(address => bool)) public permissions;
     mapping(address => address) public bondCalculator;
 
+    mapping(uint256 => address) public mintingList;
+
+
     uint256 public totalReserves;
     uint256 public ETHbacking;
     uint256 public tosBacking;
     uint256 public ETHliquidity;
 
+    uint256 public mintRate;
+    uint256 public totalPercents;
+
+
+
     Backing[] public backings;
 
     Listing[] public listings;
+
+    Minting[] public mintings;
+
 
     address[] public backingLists;
     uint256[] public tokenIdLists;

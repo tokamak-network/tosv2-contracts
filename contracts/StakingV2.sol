@@ -44,11 +44,11 @@ contract StakingV2 is
         basicBondPeriod = _period;
     }
 
-    //index는 ether단위이다. 
     /**
      * @notice returns the sOHM index, which tracks rebase growth
      * @return uint
      */
+    //index는 ether단위이다. 
     function index() internal returns (uint256) {
         index_ = (index_*(1 ether+rebasePerEpoch) / 1e18);
         return index_;
@@ -72,6 +72,10 @@ contract StakingV2 is
             maxindex = (maxindex *(1 ether+rebasePerEpoch)/ 1e18);
         }
         return maxindex;
+    }
+
+    function marketId() public override onlyOwner returns (uint256) {
+        return marketIdCounter++;
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -145,7 +149,6 @@ contract StakingV2 is
         }
 
         console.log("rebase1");
-
         rebaseIndex();
         console.log("rebase2");
     
@@ -211,22 +214,25 @@ contract StakingV2 is
     //기간이 끝난후 늘리는 경우 -> sTOS 기존 껀 unstaking함 -> 새 sTOS staking 불가 (기간이 없어서)
     function increaseAmountStake(
         address _to,
-        uint256 _tokenId,
+        uint256 _stakeId,
         uint256 _amount
     ) 
         external
         override 
     {
-        require(_tokenId != 0, "need the tokenId");
+        require(_stakeId != 0, "need the tokenId");
         require(_amount > 0, "amount should be non-zero");
         TOS.safeTransferFrom(msg.sender, address(this), _amount);
-        UserBalance memory userOld = stakingBalances[_to][_tokenId];
+        UserBalance memory userOld = stakingBalances[_to][_stakeId];
 
         rebaseIndex();
-
-        _stake(_to,_tokenId,_amount,0,0);
+        if(userOld.marketId == 0){
+            _stake(_to,_stakeId,_amount,0,0);
+        } else {
+            _stake(_to,_stakeId,_amount,0,userOld.marketId);
+        }
          
-        uint256 sTOSid = connectId[_tokenId];
+        uint256 sTOSid = connectId[_stakeId];
         console.log("sTOSid : %s",sTOSid);
         //lockTOS를 같이 스테이킹 하였을 경우 기간이 끝나기전에 수량을 늘릴 수는 있음
         //기간이 끝나면 기간 연장이 아니라서 sTOS관련해서는 아무 작업이 없다.
@@ -281,7 +287,11 @@ contract StakingV2 is
             lockTOSId[sTOSid] = _tokenId;
         }
 
-        _stake(msg.sender,_tokenId,0,unlockTime,0);        
+        if(userOld.marketId == 0){
+            _stake(msg.sender,_tokenId,0,unlockTime,0);
+        } else {
+            _stake(msg.sender,_tokenId,0,unlockTime,userOld.marketId);
+        }
     }
 
     //amount, period 둘다 늘릴때
@@ -289,20 +299,20 @@ contract StakingV2 is
     //sTOS가 없을 경우 호출 하지 않음
     function increaseAmountAndPeriodStake(
         address _to,
-        uint256 _tokenId,
+        uint256 _stakeId,
         uint256 _amount,
         uint256 _unlockWeeks
     ) 
         external
     {
-        require(_tokenId != 0, "need the tokenId");
+        require(_stakeId != 0, "need the tokenId");
         require(_unlockWeeks > 0, "period should be non-zero");
         require(_amount > 0, "amount should be non-zero");
-        uint256 sTOSid = connectId[_tokenId];
+        uint256 sTOSid = connectId[_stakeId];
         require(sTOSid != 0, "need the have sTOS");
 
         TOS.safeTransferFrom(msg.sender, address(this), _amount);
-        UserBalance memory userOld = stakingBalances[_to][_tokenId];
+        UserBalance memory userOld = stakingBalances[_to][_stakeId];
 
         uint256 unlockTime;
         uint256 maxProfit;
@@ -322,18 +332,23 @@ contract StakingV2 is
             console.log("increaseAmountPeriod3");
             uint256 amount = userOld.deposit + _amount;
             lockTOS.withdrawByStaker(msg.sender,sTOSid);
-            delete connectId[_tokenId];
+            delete connectId[_stakeId];
             delete lockTOSId[sTOSid];
 
             unlockTime = block.timestamp.add(_unlockWeeks.mul(epochUnit));
             unlockTime = unlockTime.div(epochUnit).mul(epochUnit);
             maxProfit = maxIndexProfit(amount,unlockTime);
             sTOSid = lockTOS.createLockByStaker(_to,maxProfit,_unlockWeeks);
-            connectId[_tokenId] = sTOSid;
-            lockTOSId[sTOSid] = _tokenId;
+            connectId[_stakeId] = sTOSid;
+            lockTOSId[sTOSid] = _stakeId;
         }
         console.log("increaseAmountPeriod4");
-        _stake(_to,_tokenId,_amount,unlockTime,0);
+
+        if(userOld.marketId == 0){
+            _stake(_to,_stakeId,_amount,unlockTime,0);
+        } else {
+            _stake(_to,_stakeId,_amount,unlockTime,userOld.marketId);
+        }
     }
 
     /**
@@ -459,7 +474,10 @@ contract StakingV2 is
         console.log("msg.sender1 : %s", msg.sender);
         uint256[] memory stakingId = stakinOf(msg.sender);
         for (uint256 i = 0; i < stakingId.length; i++) {
-            unstakeId(stakingId[i]);
+            if(i == 0 && stakingId[0] == 0){
+            } else {
+                unstakeId(stakingId[i]);
+            }
         }
     }
 

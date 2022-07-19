@@ -63,6 +63,7 @@ contract StakingV2Storage {
     uint256 public basicBondPeriod;
 
     uint256 public stakingIdCounter;
+    uint256 public marketIdCounter;
 
     mapping(address => uint256[]) public userStakings;
     mapping(uint256 => UserBalance) public allStakings;

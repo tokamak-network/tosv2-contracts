@@ -35,22 +35,12 @@ contract BondDepositoryStorage {
         uint256 dTOSuse;
     }
 
-    struct Minting {
-        address mintAddress;
-        uint256 mintPercents;
-    }
-
     /* ======== STATE VARIABLES ======== */
 
     Market[] public markets; // persistent market data
     Metadata[] public metadata; // extraneous market data
-    Minting[] public mintings;
 
     mapping(address => User[]) public users;
-
-    // address[] public mintingList;
-    mapping(uint256 => address) public mintingList;
-
 
     IERC20 public tos;
     IDTOS public dTOS;
@@ -59,9 +49,6 @@ contract BondDepositoryStorage {
 
     address public calculator;
     address payable treasuryContract;
-
-    uint256 public mintRate;
-    uint256 public totalPercents;
 
     modifier nonZero(uint256 tokenId) {
         require(tokenId != 0, "BondDepository: zero uint");

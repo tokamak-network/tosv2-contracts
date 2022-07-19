@@ -18,6 +18,8 @@ interface IStaking {
         uint256 _endTime
     ) external view returns (uint256 maxindex);
 
+    function marketId() external returns (uint256);
+
     function setindex(
         uint256 _index
     ) external;

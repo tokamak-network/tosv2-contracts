@@ -24,7 +24,17 @@ interface ITreasury {
 
     function addLiquidityIdList(uint256 _tokenId, address _tosPoolAddress) external;
 
+    function setMR(uint256 _mrRate) external;
+
+    function addTransfer(address _addr, uint256 _percents) external;
+
+    function transferChange(uint256 _id, address _addr, uint256 _percents) external;
+
+    function transferLogic(uint256 _transAmount) external returns (uint256 totalAmount);
+
     function backingUpdate() external;
 
     function enableStaking() external view returns (uint256);
+
+    function mintRateCall() external view returns (uint256);
 }

@@ -77,12 +77,6 @@ contract Treasury is
         emit Deposit(_token, _amount, value);
     }
 
-    function depositTokenId(
-
-    ) external {
-
-    }
-
     //자기가 보유하고 있는 TOS를 burn시키구 그가치에 해당하는 token의 amount를 가지고 간다.
     //amount = ? TOS -> ?TOS * ?ERC20/1TOS -> ??ERC20
     function withdraw(
@@ -183,8 +177,6 @@ contract Treasury is
             })
         );
     }
-    
-    //erc20토큰 따로 있음
 
     //tokenId는 유동성만 증가 -> backingReserve에 들어가지않음
     function addLiquidityIdList(uint256 _tokenId, address _tosPoolAddress) external override onlyPolicyOwner {
@@ -200,6 +192,49 @@ contract Treasury is
 
     function liquidityUpdate() public {
         
+    }
+
+    function setMR(uint256 _mrRate) external override onlyPolicyOwner {
+        mintRate = _mrRate;
+    }
+
+    function mintRateCall() external override view returns(uint256) {
+        return mintRate;
+    }
+
+    //TOS mint 
+    function addTransfer(address _addr, uint256 _percents) external override onlyPolicyOwner {
+        require(_percents > 0 && _percents < 100, "_percents setting err");
+        require(totalPercents + _percents < 100, "totalPercents need small 100");
+
+        mintingList[mintings.length] = _addr;
+        totalPercents = totalPercents + _percents;
+
+        mintings.push(
+            Minting({
+                mintAddress: _addr,
+                mintPercents: _percents
+            })
+        );
+    }
+
+    function transferChange(uint256 _id, address _addr, uint256 _percents) external override onlyPolicyOwner {
+        Minting storage info = mintings[_id];
+        totalPercents = totalPercents + _percents - info.mintPercents;
+        
+        info.mintAddress = _addr;
+        info.mintPercents = _percents;
+    }
+
+    function transferLogic(uint256 _transAmount) external override returns (uint256 totalAmount){
+        require(permissions[STATUS.REWARDMANAGER][msg.sender], notApproved);
+
+        for(uint256 i = 0; i < mintings.length; i++) {
+            uint256 eachAmount = _transAmount * mintings[i].mintPercents / 100;
+            totalAmount = totalAmount + eachAmount;
+            TOS.safeTransfer(mintings[i].mintAddress,eachAmount);
+        }
+        return totalAmount;
     }
 
     //tokenID를 받으면 token0 Amount, token1 amount return 해주는 View함수
@@ -226,7 +261,7 @@ contract Treasury is
         for(uint256 i = 0; i < backings.length; i++) {
             uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));
             uint256 tosERC20Price = ITOSValueCalculator(calculator).getTOSERC20PoolERC20Price(backings[i].erc20Address,backings[i].tosPoolAddress,backings[i].fee);
-            totalValue = totalValue + ((amount * tosERC20Price * tosETHPrice)/1e18/1e18);
+            totalValue = totalValue + ((amount * tosERC20Price * tosETHPrice/1e18)/1e18);
         }
         totalValue = totalValue + ETHbacking;
         return totalValue;

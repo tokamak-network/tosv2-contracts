@@ -498,6 +498,49 @@ describe("price test", function () {
   
           await treasuryProxylogic.connect(admin1).enable(7,stakingProxy.address);
       })
+
+      it("#1-1-6. user can't call setMR(mintRate)", async () => {
+        await expect(
+          treasuryProxylogic.connect(user1).setMR(mintRate)
+        ).to.be.revertedWith("Accessible: Caller is not an policy admin") 
+      })
+
+      it("#1-1-6. onlyPolicyAdmin can call setMR(mintRate)", async () => {
+        await treasuryProxylogic.connect(admin1).setMR(mintRate);
+
+        let checkMR = await treasuryProxylogic.mintRateCall();
+        expect(checkMR).to.be.equal(mintRate);
+      })
+
+      it("#1-1-7. user can't call addTranser", async () => {
+        await expect(
+          treasuryProxylogic.connect(user1).addTransfer(user1.address,3)
+        ).to.be.revertedWith("Accessible: Caller is not an policy admin") 
+      })
+
+      it("#1-1-7. onlyPolicyAdmin can call addTranser", async () => {
+        //3%
+        let inputPercent = 3
+        await treasuryProxylogic.connect(admin1).addTransfer(user1.address,inputPercent);
+        
+        let checkPercent = await treasuryProxylogic.totalPercents();
+        expect(checkPercent).to.be.equal(inputPercent);
+      })
+
+      it("#1-1-8. user can't call transferChange", async () => {
+        await expect(
+          treasuryProxylogic.connect(user1).transferChange(0,user2.address,5)
+        ).to.be.revertedWith("Accessible: Caller is not an policy admin") 
+      })
+
+      it("#1-1-8. onlyPolicyAdmin can call transferChange", async () => {
+        let inputPercent = 5
+        await treasuryProxylogic.connect(admin1).transferChange(0,user2.address,inputPercent);
+
+        let checkPercent = await treasuryProxylogic.totalPercents();
+        expect(checkPercent).to.be.equal(inputPercent);
+      })
+
     })
 
     describe("#1-2. Staking setting", async () => {
@@ -587,6 +630,17 @@ describe("price test", function () {
         expect((await stakingProxylogic.basicBondPeriod())).to.be.equal(basicBondPeriod);
       })
 
+      it("#1-2-6. user can't call addAdmin", async () => {
+        await expect(
+          stakingProxylogic.connect(user1).addAdmin(user1.address)
+        ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
+      })
+
+      it("#1-2-6. onlyProxyAdmin can call addAdmin", async () => {
+        await stakingProxylogic.connect(admin1).addAdmin(bondDepositoryProxylogic.address)
+        expect(await stakingProxylogic.isAdmin(bondDepositoryProxylogic.address)).to.be.equal(true);
+      })
+
     })
 
     describe("#1-3. BondDepository setting", async () => {
@@ -633,49 +687,7 @@ describe("price test", function () {
         expect(treasuryAddr).to.be.equal(treasuryProxy.address);
       })
 
-      it("#1-3-3. user can't call setMR(mintRate)", async () => {
-        await expect(
-          bondDepositoryProxylogic.connect(user1).setMR(mintRate)
-        ).to.be.revertedWith("Accessible: Caller is not an policy admin") 
-      })
-
-      it("#1-3-3. onlyPolicyAdmin can call setMR(mintRate)", async () => {
-        await bondDepositoryProxylogic.connect(admin1).setMR(mintRate);
-
-        let checkMR = await bondDepositoryProxylogic.mintRate();
-        expect(checkMR).to.be.equal(mintRate);
-      })
-
-      it("#1-3-4. user can't call addTranser", async () => {
-        await expect(
-          bondDepositoryProxylogic.connect(user1).addTransfer(user1.address,3)
-        ).to.be.revertedWith("Accessible: Caller is not an policy admin") 
-      })
-
-      it("#1-3-4. onlyPolicyAdmin can call addTranser", async () => {
-        //3%
-        let inputPercent = 3
-        await bondDepositoryProxylogic.connect(admin1).addTransfer(user1.address,inputPercent);
-        
-        let checkPercent = await bondDepositoryProxylogic.totalPercents();
-        expect(checkPercent).to.be.equal(inputPercent);
-      })
-
-      it("#1-3-5. user can't call transferChange", async () => {
-        await expect(
-          bondDepositoryProxylogic.connect(user1).transferChange(0,user2.address,5)
-        ).to.be.revertedWith("Accessible: Caller is not an policy admin") 
-      })
-
-      it("#1-3-5. onlyPolicyAdmin can call transferChange", async () => {
-        let inputPercent = 5
-        await bondDepositoryProxylogic.connect(admin1).transferChange(0,user2.address,inputPercent);
-
-        let checkPercent = await bondDepositoryProxylogic.totalPercents();
-        expect(checkPercent).to.be.equal(inputPercent);
-      })
-
-      it("#1-3-6. user can't call create", async () => {
+      it("#1-3-3. user can't call create", async () => {
         const block = await ethers.provider.getBlock('latest')
         let finishTime = block.timestamp + sellingTime  //2주
         await expect(
@@ -689,10 +701,11 @@ describe("price test", function () {
         ).to.be.revertedWith("Accessible: Caller is not an policy admin")
       })
 
-      it("#1-3-6. onlyPolicy can call create", async () => {
+      it("#1-3-3. onlyPolicy can call create", async () => {
         const block = await ethers.provider.getBlock('latest')
         let finishTime = block.timestamp + sellingTime  //2주
-        firstMarketlength = await bondDepositoryProxylogic.marketsLength();
+        firstMarketlength = await stakingProxylogic.marketIdCounter();
+        console.log("firstMarketlength :", firstMarketlength);
 
         await bondDepositoryProxylogic.connect(admin1).create(
             true,
@@ -701,21 +714,23 @@ describe("price test", function () {
             0,
             [sellTosAmount,finishTime,ETHPrice,TOSPrice,onePayout]
         )
+
+        let marketafter = await stakingProxylogic.marketIdCounter();
+        console.log("marketafter :", marketafter);
       })
 
-      it("#1-3-7. user can't call close", async () => {
+      it("#1-3-4. user can't call close", async () => {
         await expect(
           bondDepositoryProxylogic.connect(user1).close(firstMarketlength)
         ).to.be.revertedWith("Accessible: Caller is not an policy admin")
       })
 
-      it("#1-3-7. onlyPolicy can call close", async () => {
+      it("#1-3-4. onlyPolicy can call close", async () => {
         await bondDepositoryProxylogic.connect(admin1).close(firstMarketlength);
 
         let marketcapacity = await bondDepositoryProxylogic.markets(firstMarketlength);
         expect(marketcapacity.capacity).to.be.equal(0);
       })
-
 
     })
     
@@ -740,7 +755,7 @@ describe("price test", function () {
     it("#3-1-1. user don't create the ETH market", async () => {
       const block = await ethers.provider.getBlock('latest')
       let finishTime = block.timestamp + sellingTime  //2주
-      let marketbefore = await bondDepositoryProxylogic.marketsLength();
+      let marketbefore = await stakingProxylogic.marketIdCounter();
       console.log(marketbefore)
       await bondDepositoryProxylogic.connect(admin1).create(
           true,
@@ -749,7 +764,7 @@ describe("price test", function () {
           0,
           [sellTosAmount,finishTime,ETHPrice,TOSPrice,onePayout]
       )
-      let marketafter = await bondDepositoryProxylogic.marketsLength();
+      let marketafter = await stakingProxylogic.marketIdCounter();
       console.log(marketafter)
       expect(Number(marketbefore)+1).to.be.equal(marketafter);
     })
@@ -757,7 +772,7 @@ describe("price test", function () {
     it("#3-1-1. create the ETH market", async () => {
       const block = await ethers.provider.getBlock('latest')
       let finishTime = block.timestamp + sellingTime  //2주
-      let marketbefore = await bondDepositoryProxylogic.marketsLength();
+      let marketbefore = await stakingProxylogic.marketIdCounter();
       console.log(marketbefore)
       await bondDepositoryProxylogic.connect(admin1).create(
           true,
@@ -766,7 +781,7 @@ describe("price test", function () {
           0,
           [sellTosAmount,finishTime,ETHPrice,TOSPrice,onePayout]
       )
-      let marketafter = await bondDepositoryProxylogic.marketsLength();
+      let marketafter = await stakingProxylogic.marketIdCounter();
       console.log(marketafter)
       expect(Number(marketbefore)+1).to.be.equal(marketafter);
     })
@@ -778,7 +793,7 @@ describe("price test", function () {
       let beforetosTreasuryAmount = await tosContract.balanceOf(treasuryProxylogic.address)
       expect(beforetosTreasuryAmount).to.be.equal(0)
 
-      let marketlength = await bondDepositoryProxylogic.marketsLength();
+      let marketlength = await stakingProxylogic.marketIdCounter();
       
       await expect(
         bondDepositoryProxylogic.connect(admin1).ETHDeposit(
@@ -816,7 +831,7 @@ describe("price test", function () {
       let beforetosTreasuryAmount = await tosContract.balanceOf(treasuryProxylogic.address)
       let beforetosUser2Amount = await tosContract.balanceOf(user2.address)
 
-      let marketlength = await bondDepositoryProxylogic.marketsLength();
+      let marketlength = await await stakingProxylogic.marketIdCounter();
       console.log("marketlength : ", marketlength);
 
       expect(beforetosTreasuryAmount).to.be.equal(0)
@@ -846,7 +861,7 @@ describe("price test", function () {
     })
 
     it("#3-1-4. user can deposit without sTOS", async () => {
-      let marketlength = await bondDepositoryProxylogic.marketsLength();
+      let marketlength = await stakingProxylogic.marketIdCounter();
       console.log("marketlength : ", marketlength);
 
       const block = await ethers.provider.getBlock('latest')
@@ -912,7 +927,7 @@ describe("price test", function () {
     })
 
     it("#3-1-7. user can't deposit 0 amount", async () => {
-      let marketlength = await bondDepositoryProxylogic.marketsLength();
+      let marketlength = await stakingProxylogic.marketIdCounter();
 
       await expect(
         bondDepositoryProxylogic.connect(user2).ETHDeposit(
@@ -926,7 +941,7 @@ describe("price test", function () {
     })
 
     it("#3-1-8. user can't input sametime lockTOS is true, time = 0", async () => {
-      let marketlength = await bondDepositoryProxylogic.marketsLength();
+      let marketlength = await stakingProxylogic.marketIdCounter();
 
       await expect(
         bondDepositoryProxylogic.connect(user2).ETHDeposit(
@@ -940,7 +955,7 @@ describe("price test", function () {
     })
 
     it("#3-1-9. user can't deposit over marketAmount", async () => {
-      let marketlength = await bondDepositoryProxylogic.marketsLength();
+      let marketlength = await stakingProxylogic.marketIdCounter();
       console.log("marketlength : ", marketlength);
 
       await bondDepositoryProxylogic.connect(user1).ETHDeposit(
@@ -963,7 +978,7 @@ describe("price test", function () {
     })
 
     it("#3-1-10. user can't deposit after market sale Amount is over", async () => {
-      let marketlength = await bondDepositoryProxylogic.marketsLength();
+      let marketlength = await stakingProxylogic.marketIdCounter();
       console.log("marketlength : ", marketlength);
 
       await bondDepositoryProxylogic.connect(user3).ETHDeposit(
@@ -1004,7 +1019,7 @@ describe("price test", function () {
       await ethers.provider.send('evm_setNextBlockTimestamp', [Number(finishTime) + 5]);
       await ethers.provider.send('evm_mine');
 
-      let marketlength = await bondDepositoryProxylogic.marketsLength();
+      let marketlength = await stakingProxylogic.marketIdCounter();
 
       await expect(
         bondDepositoryProxylogic.connect(user2).ETHDeposit(
@@ -1030,7 +1045,7 @@ describe("price test", function () {
         [sellTosAmount,finishTime,ETHPrice,TOSPrice,onePayout]
       )
 
-      checkMarketLength = await bondDepositoryProxylogic.marketsLength();
+      checkMarketLength = await stakingProxylogic.marketIdCounter();
       
       await expect(
         bondDepositoryProxylogic.connect(user1).close(
@@ -1089,7 +1104,7 @@ describe("price test", function () {
         [sellTosAmount,finishTime,ETHPrice,TOSPrice,onePayout]
       )
 
-      let marketlength = await bondDepositoryProxylogic.marketsLength();
+      let marketlength = await stakingProxylogic.marketIdCounter();
       console.log("marketlength : ", marketlength);
 
       await bondDepositoryProxylogic.connect(user3).ETHDeposit(

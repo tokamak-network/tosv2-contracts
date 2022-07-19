@@ -14,17 +14,29 @@ interface IBondDepository {
 
     function close(uint256 _id) external;
 
-    function ERC20deposit(
+    function ETHDeposit(
         uint256 _id,
         uint256 _amount,
         uint256 _time,
-        bool _claim
-    )
+        bool _lockTOS
+    ) 
         external
+        payable
         returns (
             uint256 payout_,
             uint256 index_
         );
 
     function remainingAmount(uint256 _id) external view returns (uint256);
+
+    function calculPayoutAmount(
+        uint256 _tokenPrice,
+        uint256 _tosPrice, 
+        uint256 _amount    
+    )
+        external
+        pure
+        returns (uint256 payout); 
+
+    function marketMaxPayout(uint256 _id) external view returns (uint256 maxpayout_);
 }
