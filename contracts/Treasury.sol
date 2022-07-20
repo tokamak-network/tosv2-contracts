@@ -16,10 +16,10 @@ import "./interfaces/ITOSValueCalculator.sol";
 import "./common/ProxyAccessCommon.sol";
 
 
-contract Treasury is 
-    TreasuryStorage, 
-    ProxyAccessCommon, 
-    ITreasury 
+contract Treasury is
+    TreasuryStorage,
+    ProxyAccessCommon,
+    ITreasury
 {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -36,7 +36,7 @@ contract Treasury is
     //uniswapV3 LP token을 deposit할 수 있어야함
     //uniswapV3 LP token을 backing할 수 있어야함
     //uniswapV3 token을 manage할 수 있어야함, swap(TOS -> ETH) Treasury가 가지고 있는 물량 onlyPolicy , mint(treasury가 주인), increaseLiquidity(treasury물량을 씀) , collect(treasury가 받음), decreaseLiquidity(treasury한테 물량이 감)
-    
+
     /**
      * @notice allow approved address to deposit an asset for TOS (token의 현재 시세에 맞게 입금하고 TOS를 받음)
      * @param _amount uint256
@@ -64,9 +64,9 @@ contract Treasury is
         }
 
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
-        
+
         uint256 value = (_amount*ITOSValueCalculator(calculator).getTOSERC20PoolERC20Price(_token,_tosERC20Pool,_fee))/1e18;
-        
+
         // mint TOS needed and store amount of rewards for distribution
         send_ = value.sub(_profit);
         ITOS(address(TOS)).mint(msg.sender, send_);
@@ -80,20 +80,20 @@ contract Treasury is
     //자기가 보유하고 있는 TOS를 burn시키구 그가치에 해당하는 token의 amount를 가지고 간다.
     //amount = ? TOS -> ?TOS * ?ERC20/1TOS -> ??ERC20
     function withdraw(
-        uint256 _amount, 
+        uint256 _amount,
         address _token,
         address _tosERC20Pool,
         uint24 _fee
-    ) 
-        external 
-        override 
+    )
+        external
+        override
     {
         require(permissions[STATUS.RESERVETOKEN][_token], notAccepted); // Only reserves can be used for redemptions
         require(permissions[STATUS.RESERVESPENDER][msg.sender], notApproved);
 
         uint256 value = (_amount*ITOSValueCalculator(calculator).getTOSERC20PoolTOSPrice(_token,_tosERC20Pool,_fee))/1e18;
         ITOS(address(TOS)).burn(msg.sender, value);
-        
+
         //뺏을때 backing에 미치는 영향은 무엇인가?
         totalReserves = totalReserves.sub(value);
 
@@ -119,9 +119,9 @@ contract Treasury is
     function enable(
         STATUS _status,
         address _address
-    ) 
+    )
         external
-        onlyPolicyOwner 
+        onlyPolicyOwner
     {
         permissions[_status][_address] = true;
 
@@ -149,7 +149,7 @@ contract Treasury is
         permissions[_status][_toDisable] = false;
         emit Permissioned(_toDisable, _status, false);
     }
- 
+
     /**
      * @notice check if registry contains address
      * @return (bool, uint256)
@@ -191,7 +191,7 @@ contract Treasury is
     }
 
     function liquidityUpdate() public {
-        
+
     }
 
     function setMR(uint256 _mrRate) external override onlyPolicyOwner {
@@ -202,7 +202,7 @@ contract Treasury is
         return mintRate;
     }
 
-    //TOS mint 
+    //TOS mint
     function addTransfer(address _addr, uint256 _percents) external override onlyPolicyOwner {
         require(_percents > 0 && _percents < 100, "_percents setting err");
         require(totalPercents + _percents < 100, "totalPercents need small 100");
@@ -221,7 +221,7 @@ contract Treasury is
     function transferChange(uint256 _id, address _addr, uint256 _percents) external override onlyPolicyOwner {
         Minting storage info = mintings[_id];
         totalPercents = totalPercents + _percents - info.mintPercents;
-        
+
         info.mintAddress = _addr;
         info.mintPercents = _percents;
     }
@@ -236,6 +236,7 @@ contract Treasury is
         }
         return totalAmount;
     }
+
 
     //tokenID를 받으면 token0 Amount, token1 amount return 해주는 View함수
 
@@ -252,7 +253,7 @@ contract Treasury is
     }
 
     //eth, weth, market에서 받은 자산 다 체크해야함
-    //환산은 eth단위로 
+    //환산은 eth단위로
     //Treasury에 있는 자산을 ETH로 환산하여서 합하여 리턴함
     // token * (? ETH/1TOS * ?TOS/1ERC20) -> ? token * ( ? ETH/1token) -> ? ETH
     function backingReserve() public view returns (uint256) {
@@ -270,4 +271,5 @@ contract Treasury is
     function enableStaking() public override view returns (uint256) {
         return TOS.balanceOf(address(this));
     }
+
 }

@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "./BondDepositoryStorage.sol";
 import "./proxy/VaultProxy.sol";
 
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+//import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 
 contract BondDepositoryProxy is
@@ -13,20 +13,31 @@ contract BondDepositoryProxy is
 {
 
     function initialize(
-        IERC20 _tos,
-        IDTOS _dtos,
-        IStaking _staking,
-        ITreasury _treasury,
-        address _calculator
+        address _tos,
+        address _dtos,
+        address _staking,
+        address _treasury,
+        address _calculator,
+        address _uniswapV3Factory,
+        uint256 _defaultLockPeriod
     )
         external onlyProxyOwner
+        nonZeroAddress(_tos)
+        nonZeroAddress(_dtos)
+        nonZeroAddress(_staking)
+        nonZeroAddress(_treasury)
+        nonZeroAddress(_calculator)
+        nonZeroAddress(_uniswapV3Factory)
     {
-        tos = _tos;
-        dTOS = _dtos;
-        staking = _staking;
-        treasury = _treasury;
+        tos = IERC20(_tos);
+        dTOS = IDTOS(_dtos);
+        staking = IStaking(_staking);
+        treasury = ITreasury(_treasury);
         calculator = _calculator;
-        tos.approve(address(_staking), 1e45);
+        uniswapV3Factory = _uniswapV3Factory;
+        tos.approve(_staking, 1e45);
+
+        defaultLockPeriod = _defaultLockPeriod;
     }
 
 }

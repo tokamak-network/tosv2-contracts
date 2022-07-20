@@ -1,244 +1,373 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.4;
 
 import "./BondDepositoryStorage.sol";
+import "./common/ProxyAccessCommon.sol";
 
 import "./libraries/SafeERC20.sol";
 
-import "./interfaces/IERC20Metadata.sol";
-
-import "./interfaces/ITOSValueCalculator.sol";
-
 import "./interfaces/IBondDepository.sol";
+import "./interfaces/IBondDepositoryEvent.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+//import "hardhat/console.sol";
 
-import "./common/ProxyAccessCommon.sol";
 
-import "hardhat/console.sol"; 
+interface IUniswapV3Pool {
+    function token0() external view returns (address);
+    function token1() external view returns (address);
+}
 
-contract BondDepository is 
+contract BondDepository is
     BondDepositoryStorage,
     ProxyAccessCommon,
-    IBondDepository
+    ReentrancyGuard,
+    IBondDepository,
+    IBondDepositoryEvent
 {
     using SafeERC20 for IERC20;
 
-    /* ======== EVENTS ======== */
+    modifier nonEndMarket(uint256 id_) {
+        require( markets[id_].endSaleTime > 0 && markets[id_].endSaleTime < block.timestamp,
+            "BondDepository: closed market"
+        );
+        _;
+    }
 
-    event CreateMarket(uint256 indexed id, uint256 saleAmount, uint256 endTime);
-    event CloseMarket(uint256 indexed id);
-    event Bond(uint256 indexed id, uint256 amount, uint256 payout);
-    event Received(address, uint);
+    modifier isEthMarket(uint256 id_) {
+        require( metadata[id_].totalSaleAmount > 0 && metadata[id_].ethMarket,
+            "BondDepository: not ETH market"
+        );
+        _;
+    }
+
+    modifier nonEthMarket(uint256 id_) {
+        require(
+            markets[id_].quoteToken != address(0) && metadata[id_].totalSaleAmount > 0 && !metadata[id_].ethMarket,
+            "BondDepository: ETH market"
+        );
+        _;
+    }
 
     constructor() {
 
     }
 
-     /**
-     * @notice             creates a new market type
-     * @dev                
-     * @param _check       ETH를 받을려면(true), token을 받으면(false)
-     * @param _token       토큰 주소 
-     * @param _poolAddress 토큰과 ETH주소의 pool주소
-     * @param _fee         pool의 _fee
-     * @param _market      [팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격, 한번에 구매 가능한 TOS물량]
-     * @return id_         ID of new bond market
-     */
+    ///////////////////////////////////////
+    /// onlyPolicyOwner
+    //////////////////////////////////////
+
+    function tokenInUniswapV3Pool(address pool, address token0) public view returns (bool) {
+
+       if (IUniswapV3Pool(pool).token0() == token0 || IUniswapV3Pool(pool).token1() == token0 ) return true;
+       else return false;
+    }
+
+    /// @inheritdoc IBondDepository
     function create(
         bool _check,
-        IERC20 _token,
+        address _token,
         address _poolAddress,
         uint24 _fee,
-        uint256[5] calldata _market
-    ) 
+        uint256[5] memory _market
+    )
         external
-        override 
+        override
         onlyPolicyOwner
+        nonZero(_market[0])
+        nonZero(_market[2])
+        nonZero(_market[3])
+        nonZero(_market[4])
         returns (uint256 id_)
-    {   
-        console.log("1");
-        id_ = staking.marketId();
-        console.log("id_ : %s", id_);
+    {
+        id_ = staking.marketId();  // BondDepository는 staking의 오너로 등록이 되어야 함.
+
+        if (_check) require(_token == address(0), "when use eth, token must be zero address");
+        else require(_token != address(0), "zero address");
+
+        require(_market[1] > block.timestamp, "sale end time has passed.");
+        require(_fee > 0, "zero fee");
+
+        require(markets[id_].endSaleTime == 0 && metadata[id_].totalSaleAmount == 0, "already registered market and metadata");
+
+        if(!_check) require(tokenInUniswapV3Pool(_poolAddress, _token), "not token pair pool");
 
         //tokenPrice, tosPrice, capacity, totalSaleAmount는 관리자가 변경할 수 있게해야함 (capacity, totalSaleAmount는 한 변수 입력에 변경가능하게)
-        markets.push(
-            Market({
-                method: _check,
-                quoteToken: _token,
-                capacity: _market[0],
-                endSaleTime: _market[1],
-                sold: 0,
-                maxPayout: _market[4]
-            })
-        );
+        markets[id_] = LibBondDepository.Market({
+                            method: _check,
+                            quoteToken: _token,
+                            capacity: _market[0],
+                            endSaleTime: _market[1],
+                            sold: 0,
+                            maxPayout: _market[4]
+                        });
 
-        if(markets[id_].method) {
-            metadata.push(
-                Metadata({
+        metadata[id_] = LibBondDepository.Metadata({
                     poolAddress: _poolAddress,
                     tokenPrice: _market[2],
                     tosPrice: _market[3],
                     totalSaleAmount: _market[0],
                     fee: _fee,
-                    ethMarket: true
-                })
-            );
-        } else {
-            metadata.push(
-                Metadata({
-                    poolAddress: _poolAddress,
-                    tokenPrice: _market[2],
-                    tosPrice: _market[3],
-                    totalSaleAmount: _market[0],
-                    fee: _fee,
-                    ethMarket: false
-                })
-            );
-        }
+                    ethMarket: _check
+                });
 
-        emit CreateMarket(id_, _market[0], _market[1]);
+        emit CreatedMarket(id_, _check, _token, _poolAddress, _fee, _market);
     }
 
-    //admin이 market에서 수정해야할 것 들, capacity, saleTime, Price(2개)
-
-    /**
-     * @notice             disable existing market
-     * @param _id          ID of market to close
-     */
+    /// @inheritdoc IBondDepository
     function close(uint256 _id) external override onlyPolicyOwner {
-        markets[_id].endSaleTime = uint48(block.timestamp);
+        require(metadata[_id].fee > 0, "empty market");
+        require(markets[_id].endSaleTime > block.timestamp , "already end");
+        markets[_id].endSaleTime = block.timestamp;
         markets[_id].capacity = 0;
-        emit CloseMarket(_id);
+        emit ClosedMarket(_id);
     }
 
+    /// @inheritdoc IBondDepository
+    function setDefaultLockPeriod(uint256 _value) external override onlyPolicyOwner nonZero(_value) {
+        require(defaultLockPeriod != _value, "same value");
+        defaultLockPeriod = _value;
+    }
 
-    //eth deposit
-    //weth도 같이 받음 ex) 10ETH -> 5ETH, 5WETH
-    function ETHDeposit(
+    ///////////////////////////////////////
+    /// Anyone can use.
+    //////////////////////////////////////
+
+    /// @inheritdoc IBondDepository
+    function ERC20Deposit(
         uint256 _id,
-        uint256 _amount,
-        uint256 _time,
-        bool _lockTOS
-    ) 
-        public
-        payable
-        override
+        uint256 _amount
+    )
+        external override
+        nonEndMarket(_id)
+        nonEthMarket(_id)
+        nonZero(_amount)
         returns (
             uint256 payout_,
             uint256 index_
         )
     {
-        require(_amount > 0, "Depository : need the amount");
-        if(_lockTOS){
-            require(_time > 0, "Depository : sTOS need the time");
-        }
-        Market storage market = markets[_id];
-        Metadata memory meta = metadata[_id];
-        uint256 currentTime = uint256(block.timestamp);
+        address _token = markets[_id].quoteToken;
+        require(IERC20(_token).allowance(msg.sender, address(this)) >= _amount, "Depository : allowance is insufficient");
+        IERC20(_token).transfer(address(treasury), _amount);
 
-        require(currentTime < market.endSaleTime, "Depository : market end");
+        (payout_, index_) = _deposit(msg.sender, _token, _amount, _id, defaultLockPeriod, false);
+
+        reqiore(payout_ > 0, "zero TOS amount");
+        stake.stakeByBond(msg.sender, payout_, _id);
+
+        emit ERC20Deposited(msg.sender, _id, _token, _amount);
+    }
+
+    /// @inheritdoc IBondDepository
+    function ERC20DepositWithSTOS(
+        uint256 _id,
+        uint256 _amount,
+        uint256 _lockWeeks
+    )
+        external override
+        nonEndMarket(_id)
+        nonEthMarket(_id)
+        nonZero(_amount)
+        nonZero(_lockWeeks)
+        returns (
+            uint256 payout_,
+            uint256 index_
+        )
+    {
+        address _token = markets[_id].quoteToken;
+        require(IERC20(_token).allowance(msg.sender, address(this)) >= _amount, "Depository : allowance is insufficient");
+        IERC20(_token).transfer(address(treasury), _amount);
+
+        (payout_, index_) = _deposit(msg.sender, _token, _amount, _id, _lockWeeks, false);
+
+        reqiore(payout_ > 0, "zero TOS amount");
+        stake.stakeGetStosByBond(msg.sender, payout_, _id, _lockWeeks);
+
+        emit ERC20DepositedWithSTOS(msg.sender, _id, _token, _amount, _lockWeeks);
+    }
+
+    /// @inheritdoc IBondDepository
+    function ETHDeposit(
+        uint256 _id,
+        uint256 _amount
+    )
+        external payable override
+        nonEndMarket(_id)
+        isEthMarket(_id)
+        nonZero(_amount)
+        returns (
+            uint256 payout_,
+            uint256 index_
+        )
+    {
         require(msg.value == _amount, "Depository : ETH value not same");
-        require(meta.ethMarket, "Depository : not ETHMarket");
-        
-        uint256 _maxpayout = marketMaxPayout(_id);
-        require(_amount <= _maxpayout, "Depository : over maxPay");
 
-        payout_ = calculPayoutAmount(meta.tokenPrice,meta.tosPrice,_amount);
-        console.log("payoutAmount : %s", payout_);
+        (payout_, index_) = _deposit(msg.sender, address(0), _amount, _id, defaultLockPeriod, true);
 
-        require(payout_ <= market.capacity, "Depository : sold out");
+        reqiore(payout_ > 0, "zero TOS amount");
+        stake.stakeByBond(msg.sender, payout_, _id);
 
-        market.capacity -= payout_;
-        market.sold += payout_;
+        payable(address(treasury)).transfer(msg.value);
+
+        emit ETHDeposited(msg.sender, _id, _amount);
+    }
+
+    /// @inheritdoc IBondDepository
+    function ETHDepositWithSTOS(
+        uint256 _id,
+        uint256 _amount,
+        uint256 _lockWeeks
+    )
+        external payable override
+        nonEndMarket(_id)
+        isEthMarket(_id)
+        nonZero(_amount)
+        nonZero(_lockWeeks)
+        returns (
+            uint256 payout_,
+            uint256 index_
+        )
+    {
+        require(msg.value == _amount, "Depository : ETH value not same");
+
+        (payout_, index_) = _deposit(msg.sender, address(0), _amount, _id, _lockWeeks, true);
+
+        reqiore(payout_ > 0, "zero TOS amount");
+        stake.stakeGetStosByBond(msg.sender, payout_, _id, _lockWeeks);
+
+        payable(address(treasury)).transfer(msg.value);
+
+        emit ETHDepositedWithSTOS(msg.sender, _id, _amount, _lockWeeks);
+    }
+
+
+    function _deposit(
+        address user,
+        address tokenAddress,
+        uint256 _amount,
+        uint256 _marketId,
+        uint256 _lockWeeks,
+        bool _eth
+    ) internal nonReentrant returns (uint256 _payout, uint256 index_) {
+
+        require(_amount <= marketMaxPayout(_marketId), "Depository : over maxPay");
+
+        _payout = calculPayoutAmount(metadata[_marketId].tokenPrice, metadata[_marketId].tosPrice, _amount);
+       // console.log("payoutAmount : %s", _payout);
+
+        require(_payout > 0, "zero staking amount");
+
+        uint256 mrAmount = _amount * treasury.mintRateCall();
+        require(mrAmount >= _payout, "mintableAmount is less than staking amount.");
+
+        LibBondDepository.Market storage market = markets[_marketId];
+        require(_payout <= market.capacity, "Depository : sold out");
+
+        market.capacity -= _payout;
+        market.sold += _payout;
+
+        //check closing
+        if (metadata[_marketId].totalSaleAmount <= market.sold) {
+           market.capacity = 0;
+           emit ClosedMarket(_marketId);
+        }
 
         index_ = users[msg.sender].length;
-        //user정보 저장
-        users[msg.sender].push(
-            User({
+        users[user].push(
+            LibBondDepository.User({
                 tokenAmount: _amount,
-                tosAmount: payout_,
-                marketID: _id,
+                tosAmount: _payout,
+                marketID: _marketId,
                 endTime: market.endSaleTime,
                 dTOSuse: 0
             })
         );
 
-        uint256 amount = _amount;
-        uint256 time = _time;
-        uint256 marketId = _id;
-        bool lockTOS = _lockTOS;
-        //mintingRate는 1ETH당 TOS가 얼만큼 발행되는지 이다. (mintingRate = TOS/ETH)
-        //mrAmount = ETH * TOS/ETH
-        uint256 mrAmount = _amount * treasury.mintRateCall();
-        treasury.mint(address(this), mrAmount);       
-        treasuryContract.transfer(msg.value);
-
-        //transAmount는 treasury에 갈 Amount이다. 
-        //payAmount는 transAmount물량 중 재단에 쌓이는 물량이다. 그래서 최종적으로 transAmount - payAmount가 treasury에 쌓인다
-        uint256 transAmount = mrAmount - payout_;
-        tos.safeTransfer(address(ITreasury(treasury)),(transAmount));
-        treasury.transferLogic(transAmount);
-        console.log("transAmount : %s", transAmount);
+        _transferAsset(user, _marketId, _amount, mrAmount, _payout, _lockWeeks, tokenAddress, _eth);
 
         //update the backingData
         treasury.backingUpdate();
 
-        //tos staking route    
-        console.log("1");
-        //_amount = ETH amount , payout_ = tos Amount  
-        staking.stake(
-            msg.sender,
-            payout_,
-            time,
-            marketId,
-            lockTOS
-        );
-        console.log("2");
+        emit Deposited(user, _amount, _payout, _marketId, _eth);
+    }
 
-        emit Bond(marketId, amount, payout_);
+    function _transferAsset(
+            address user,
+            uint256 _marketId,
+            uint256 _amount,
+            uint256 mrAmount,
+            uint256 payout_,
+            uint256 _lockWeeks,
+            address _token,
+            bool _eth
+    ) internal {
+        // 트래저리에서 전체 민트를 하고, 스테이킹으로 토스를 보내도록 해야 한다.
+        require(
+            (_eth && _token == address(0)) || (!_eth && _token != address(0)),
+            "wrong token address");
 
-        //종료해야하는지 확인
-        if (meta.totalSaleAmount <= market.sold) {
-           market.capacity = 0;
-           emit CloseMarket(marketId);
+        if(mrAmount > 0) {
+            treasury.mint(address(this), mrAmount);
+
+            // 트래저리로 민트한것 일부 전송
+            if(payout_ <= mrAmount) {
+                uint256 transAmount = mrAmount - payout_;
+                if(transAmount > 0) {
+                    //treasury.mint(address(treasury), transAmount);
+                    tos.safeTransfer(address(treasury), transAmount);
+                    treasury.transferLogic(transAmount);
+                }
+            }
         }
     }
 
-    //이더리움(가격)을 기준으로만 mintingRate를 정한다. -> MR은 어떻게 정할까? admin이 세팅할 수 있고 비율은 나중에 알려줌 (admin이 정하게하면 됨) 
+
+    ///////////////////////////////////////
+    /// VIEW
+    //////////////////////////////////////
+
+    //이더리움(가격)을 기준으로만 mintingRate를 정한다. -> MR은 어떻게 정할까? admin이 세팅할 수 있고 비율은 나중에 알려줌 (admin이 정하게하면 됨)
     //admin과 policy가 있었으면 좋겠다. (admin이 하는 역할과 policy가 하는 역할은 다름)
-    //dTOS로직 
+    //dTOS로직
     //총 가지고 있는 ETH기반으로 minting할 수 있는지 없는지 정한다. -> ETH가 아니라 token이 들어왔을떄
     //본딩할때 트레저리에서 TOS를 발행할 수 있는지 물어봐야함
+
+    /// @inheritdoc IBondDepository
     function calculPayoutAmount(
         uint256 _tokenPrice,
-        uint256 _tosPrice, 
-        uint256 _amount    
+        uint256 _tosPrice,
+        uint256 _amount
     )
         public
         override
         pure
         returns (
             uint256 payout
-        ) 
+        )
     {
         return payout = ((((_tokenPrice * 1e10)/_tosPrice) * _amount) / 1e10);
     }
 
     //해당 마켓의 maxpayout양을 return한다.
+
+    /// @inheritdoc IBondDepository
     function marketMaxPayout(uint256 _id) public override view returns (uint256 maxpayout_) {
-        Market memory market = markets[_id];
-        maxpayout_ = (market.maxPayout*1e10)/tokenPrice(_id);
+        maxpayout_ = (markets[_id].maxPayout*1e10)/tokenPrice(_id);
         return maxpayout_;
     }
 
     // ?TOS/1ETH -> 나온값에 /1e10 해줘야함
-    function tokenPrice(uint256 _id) internal view returns (uint256 price) {
-        Metadata memory meta = metadata[_id];
-        return ((meta.tokenPrice * 1e10)/meta.tosPrice);
+
+    /// @inheritdoc IBondDepository
+    function tokenPrice(uint256 _id) public override view returns (uint256 price) {
+        return ((metadata[_id].tokenPrice * 1e10)/metadata[_id].tosPrice);
     }
 
     //market에서 tos를 최대로 구매할 수 있는 양
+
+    /// @inheritdoc IBondDepository
     function remainingAmount(uint256 _id) external override view returns (uint256 tokenAmount) {
-        Market memory market = markets[_id];
-        return ((market.capacity*1e10)/tokenPrice(_id));
+
+        return ((markets[_id].capacity*1e10)/tokenPrice(_id));
     }
 }

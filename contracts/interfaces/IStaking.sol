@@ -1,29 +1,74 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity >=0.7.5;
+pragma solidity > 0.8.4;
 
 interface IStaking {
-    /* ========== EVENTS ========== */
 
-    event WarmupSet(uint256 warmup);
+    ///////////////////////////////////////
+    /// onlyPolicyOwner
+    //////////////////////////////////////
 
-    /* ========== FUNCTIONS ========== */
+    function setAddressInfos(
+        address _tos,
+        address _lockTOS,
+        address _treasury
+    ) external;
 
+    /// @dev set RebasePerepoch
+    /// @param _rebasePerEpoch  the rate for rebase per epoch
+    ///                         If input the 0.9 -> 900000000000000000
     function setRebasePerepoch(
         uint256 _rebasePerEpoch
     ) external;
 
-    function nextIndex() external view returns (uint256);
 
-    function maxIndex(
-        uint256 _endTime
-    ) external view returns (uint256 maxindex);
-
-    function marketId() external returns (uint256);
-
+    /// @dev set index
+    /// @param _index  index ( eth unit)
     function setindex(
         uint256 _index
     ) external;
 
+    /// @dev set basic lock period
+    /// @param _period  _period (seconds)
+    function setBasicBondPeriod(uint256 _period) external ;
+
+
+    ///////////////////////////////////////
+    /// onlyOwner
+    //////////////////////////////////////
+
+     /// @dev Increment and return the market ID.
+    function marketId() external returns (uint256);
+
+
+    ///////////////////////////////////////
+    /// VIEW
+    //////////////////////////////////////
+
+    /// @dev Returns the index when rebase is executed once in the current index.
+    function nextIndex() external view returns (uint256);
+
+    /**
+     * @notice input the endTime get the exponent
+     * @param _endTime endTime
+     * @return maxindex uint256
+     */
+    function maxIndex(
+        uint256 _endTime
+    ) external view returns (uint256 maxindex);
+
+
+
+    /* ========== Anyone can execute ========== */
+
+    /**
+     * @notice stake OHM to enter warmup
+     * @param _to address
+     * @param _amount uint256 tosAmount
+     * @param _periodWeeks uint256 lockup하는 기간
+     * @param _marketId uint256 bonding으로 들어왔는지 확인
+     * @param _lockTOS bool
+     * @return stakeId uint256
+     */
     function stake(
         address _to,
         uint256 _amount,
@@ -74,7 +119,7 @@ interface IStaking {
     function maxIndexProfit(
         uint256 _amount,
         uint256 _endTime
-    ) 
+    )
         external
         view
         returns (uint256 amount_);

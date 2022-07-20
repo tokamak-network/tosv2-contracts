@@ -1,46 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "./libraries/LibBondDepository.sol";
+
 import "./interfaces/IERC20.sol";
 import "./interfaces/IDTOS.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/ITreasury.sol";
 
 contract BondDepositoryStorage {
-    // Info about each type of market
-    struct Market {
-        bool method;        //selling token kinds
-        IERC20 quoteToken;  //token to accept as payment
-        uint256 capacity;   //remain sale volume
-        uint256 endSaleTime;    //saleEndTime
-        uint256 sold;       // base tokens out
-        uint256 maxPayout;  // 한 tx에 살수 있는 물량
-    }
 
-    // Additional info about market.
-    struct Metadata {
-        address poolAddress;
-        uint256 tokenPrice;
-        uint256 tosPrice;
-        uint256 totalSaleAmount; //tos sales volume
-        uint24 fee;
-        bool ethMarket;
-    }
-
-    struct User {
-        uint256 tokenAmount;
-        uint256 tosAmount;
-        uint256 marketID;
-        uint256 endTime;
-        uint256 dTOSuse;
-    }
-
-    /* ======== STATE VARIABLES ======== */
-
-    Market[] public markets; // persistent market data
-    Metadata[] public metadata; // extraneous market data
-
-    mapping(address => User[]) public users;
+    mapping(uint256 => LibBondDepository.Market) public markets;
+    mapping(uint256 => LibBondDepository.Metadata) public metadata;
+    mapping(address => LibBondDepository.User[]) public users;
 
     IERC20 public tos;
     IDTOS public dTOS;
@@ -49,6 +21,13 @@ contract BondDepositoryStorage {
 
     address public calculator;
     address payable treasuryContract;
+    address public uniswapV3Factory;
+
+    uint256 public defaultLockPeriod;
+
+    uint256 private constant _NOT_ENTERED = 1;
+    uint256 private constant _ENTERED = 2;
+    uint256 private _status;
 
     modifier nonZero(uint256 tokenId) {
         require(tokenId != 0, "BondDepository: zero uint");
@@ -61,6 +40,20 @@ contract BondDepositoryStorage {
             "BondDepository:zero address"
         );
         _;
+    }
+
+    modifier nonReentrant() {
+        // On the first call to nonReentrant, _notEntered will be true
+        require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
+
+        // Any calls to nonReentrant after this point will fail
+        _status = _ENTERED;
+
+        _;
+
+        // By storing the original value once again, a refund is triggered (see
+        // https://eips.ethereum.org/EIPS/eip-2200)
+        _status = _NOT_ENTERED;
     }
 
 }

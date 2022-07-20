@@ -1,59 +1,461 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity ^0.8.0;
+pragma solidity > 0.8.4;
+
+import "./common/StakeProxyAccess.sol";
 
 import "./libraries/SafeMath.sol";
 import "./libraries/SafeERC20.sol";
+import "./libraries/ABDKMath64x64.sol";
+import {DSMath} from "./libraries/DSMath.sol";
 
 import "./StakingV2Storage.sol";
 
 import "./interfaces/IStaking.sol";
+import "./interfaces/IStakingEvent.sol";
 
-import "./common/ProxyAccessCommon.sol";
+import "hardhat/console.sol";
 
-import "hardhat/console.sol"; 
-
-contract StakingV2 is 
-    StakingV2Storage, 
-    ProxyAccessCommon,
-    IStaking 
+contract StakingV2 is
+    StakingV2Storage,
+    StakeProxyAccess,
+    DSMath,
+    IStaking,
+    IStakingEvent
 {
     /* ========== DEPENDENCIES ========== */
-
-    using SafeMath for uint256;
+    //using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     /* ========== CONSTRUCTOR ========== */
     constructor() {
     }
 
-    /* ========== SET VALUE ========== */
 
-    //epochRebase 
-    //If input the 0.9 -> 900000000000000000
-    function setRebasePerepoch(uint256 _rebasePerEpoch) external override onlyPolicyOwner {
+    /* ========== onlyPolicyOwner ========== */
+
+    /// @inheritdoc IStaking
+    function setAddressInfos(
+        address _tos,
+        address _lockTOS,
+        address _treasury
+    )
+        external override onlyPolicyOwner
+        nonZeroAddress(_tos)
+        nonZeroAddress(_lockTOS)
+        nonZeroAddress(_treasury)
+    {
+        require(address(TOS) != _tos || address(lockTOS) != _lockTOS || address(treasury) != _treasury, "same address");
+        TOS = IERC20(_tos);
+        lockTOS = ILockTOSv2Action0(_lockTOS);
+        treasury = ITreasury(_treasury);
+    }
+
+    /// @inheritdoc IStaking
+    function setRebasePerEpoch(uint256 _rebasePerEpoch) external override onlyPolicyOwner {
         rebasePerEpoch = _rebasePerEpoch;
     }
 
-    //모지랄때 owner가 정해서 늘리는게 맞는가? index는 ether단위이다.
-    function setindex(uint256 _index) external override onlyPolicyOwner {
+    /// @inheritdoc IStaking
+    function setIndex(uint256 _index) external override onlyPolicyOwner {
         index_ = _index;
     }
 
-    function setBasicBondPeriod(uint256 _period) external onlyPolicyOwner {
-        require(basicBondPeriod != _period && _period != 0,"period check need");
+    /// @inheritdoc IStaking
+    function setBasicBondPeriod(uint256 _period) external override onlyPolicyOwner nonZero(_value) {
+        require(basicBondPeriod != _period,"same period");
         basicBondPeriod = _period;
     }
+
+
+    /* ========== onlyBonder ========== */
+
+    /// @inheritdoc IStaking
+    function marketId() public override onlyBonder returns (uint256) {
+        return marketIdCounter++;
+    }
+
+    function stakeByBond(
+        address to,
+        uint256 _amount,
+        uint256 _marketId
+    )
+        public override onlyBonder
+        nonZeroAddress(to)
+        nonZero(_amount)
+        nonZero(_marketId)
+        returns (uint256 stakeId)
+    {
+        _checkStakeId(to);
+
+        stakeId = _addStakeId();
+        _addUserStakeId(to, stakeId);
+
+        rebaseIndex();
+
+        _createStakeInfo(to, stakeId, _amount, block.timestamp + basicBondPeriod, _marketId);
+    }
+
+    function stakeGetStosByBond(
+        address _to,
+        uint256 _amount,
+        uint256 _marketId,
+        uint256 _periodWeeks
+    )
+        public override onlyBonder
+        nonZeroAddress(_to)
+        nonZero(_amount)
+        nonZero(_periodWeeks)
+        nonZero(_marketId)
+        returns (uint256 stakeId)
+    {
+        uint256 sTosEpochUnit = lockTOS.epochUnit();
+        require (sTosEpochUnit > 0, "zero sTosEpochUnit");
+
+        uint256 unlockTime = _getUnlockTime(block.timestamp, _periodWeeks) ;
+
+        require (unlockTime > 0, "zero unlockTime");
+
+        _checkStakeId(to);
+        stakeId = _addStakeId();
+        _addUserStakeId(to, stakeId);
+
+        _createStakeInfo(to, stakeId, _amount, unlockTime, _marketId);
+
+        uint256 sTOSid = _createStos(_to, _amount, _periodWeeks, sTosEpochUnit);
+        connectId[stakeId] = sTOSid;
+        lockTOSId[sTOSid] = stakeId;
+    }
+
+    /* ========== Anyone can execute ========== */
+
+    function stake(
+        uint256 _amount
+    )   public override
+        nonZero(_amount)
+        returns (uint256 stakeId)
+    {
+        require (TOS.allowance(msg.sender, address(this)) >= _amount, "allowance is insufficient.");
+
+        TOS.safeTransferFrom(msg.sender, address(this), _amount);
+        address to = msg.sender;
+
+        _checkStakeId(to);
+        stakeId = userStakings[to][1]; // 0번은 더미, 1번은 기간없는 순수 스테이킹
+
+        rebaseIndex();
+        // 질문, 기본 스테이킹에 기본 락업기간이 반드시 존재 해야 하는가?
+        _createStakeInfo(to, stakeId, _amount, block.timestamp + basicBondPeriod, 0);
+
+    }
+
+    function stakeGetStos(
+        uint256 _amount,
+        uint256 _periodWeeks
+    )   public override
+        nonZero(_amount)
+        nonZero(_periodWeeks)
+        nonZero(rebasePerEpoch)
+        nonZero(epochUnit)
+        returns (uint256 stakeId)
+    {
+        require (TOS.allowance(msg.sender, address(this)) >= _amount, "allowance is insufficient.");
+
+        uint256 sTosEpochUnit = lockTOS.epochUnit();
+        require (sTosEpochUnit > 0, "zero sTosEpochUnit");
+
+        uint256 unlockTime = _getUnlockTime(block.timestamp, _periodWeeks) ;
+
+        require(unlockTime > 0, "zero unlockTime");
+
+        TOS.safeTransferFrom(msg.sender, address(this), _amount);
+
+        address to = msg.sender;
+        _checkStakeId(to);
+        stakeId = _addStakeId();
+        _addUserStakeId(to, stakeId);
+
+        rebaseIndex();
+        _createStakeInfo(to, stakeId, _amount, unlockTime, 0);
+
+        uint256 sTOSid = _createStos(to, _amount, _periodWeeks, sTosEpochUnit);
+        connectId[stakeId] = sTOSid;
+        lockTOSId[sTOSid] = stakeId;
+    }
+
+    //락업기간이 없는 경우,
+    function increaseAmountSimpleStake(
+        uint256 _stakeId,
+        uint256 _amount
+    )   external override
+        nonZero(_stakeId)
+        nonZero(_amount)
+    {
+        require(staker == msg.sender, "caller is not staker");
+        require(userStakingIndex[staker][_stakeId] == 1, "it's not simple staking product");
+
+        _increaseAmountAndPeriodStake(staker, _stakeId, _amount, 0);
+    }
+
+
+    // 락업 기간이 끝나서, 락토스를 모두 언스테이킹하고, 일부는 클래임하고, 일부는 다시 스테이킹을 하려고 한다.
+    // 다시 스테이킹할 때, 락업이 없을 수 있는가, 락업이 없다면 스테이크 아이디 1번에 다시 옮겨놓아야 하는가.
+    function resetStakeGetStos(
+        uint256 _stakeId,
+        uint256 _addAmount,
+        uint256 _claimAmount,
+        uint256 _periodWeeks
+    )
+        public override
+        nonZero(_periodWeeks)
+    {
+        uint256 lockId = connectId[_stakeId];
+        require(lockId > 0, "zero lockId");
+
+        LibStaking.UserBalance storage stakeInfo = allStakings[_stakeId];
+        address staker = stakeInfo.staker;
+        require(staker == msg.sender, "caller is not staker");
+
+        (uint256 start, uint256 end, uint256 amount) = lockTOS.locksInfo(lockId);
+        require(end < block.timestamp && stakeInfo.endTime < block.timestamp, "lock end time has not passed");
+
+        uint256 depositPlusAmount = getLtoToTos(stakeInfo.LTOS);
+        require(_claimAmount <= depositPlusAmount, "depositPlusAmount is insufficient");
+
+        lockTOS.withdrawByStaker(staker, lockId);
+        delete connectId[_stakeId];
+        delete lockTOSId[lockId];
+
+        if (_addAmount > 0) {
+            cummulatedStakingPrincipal += _addAmount;
+            cummulatedLTOS += getTosToLtos(_addAmount);
+            totalLTOS += getTosToLtos(_addAmount);
+
+            require (TOS.allowance(msg.sender, address(this)) >= _addAmount, "allowance is insufficient.");
+            TOS.safeTransferFrom(msg.sender, address(this), _addAmount);
+        }
+
+        if (_claimAmount > 0) {
+            cummulatedStakingPrincipal -= _claimAmount;
+            cummulatedLTOS -= getTosToLtos(_claimAmount);
+            totalLTOS -= getTosToLtos(_claimAmount);
+
+            TOS.safeTransferFrom(address(this), msg.sender, _claimAmount);
+            depositPlusAmount -= _claimAmount;
+        }
+
+        depositPlusAmount += _addAmount;
+
+        uint256 sTosEpochUnit = lockTOS.epochUnit();
+        uint256 unlockTime = 0;
+        if (_periodWeeks == 0) {
+            unlockTime = _getUnlockTime(block.timestamp, _periodWeeks) ;
+        } else {
+            unlockTime = block.timestamp + basicBondPeriod
+        }
+        require(unlockTime > 0, "zero unlockTime");
+        _checkStakeId(to);
+        rebaseIndex();
+
+        _updateStakeInfo(to, stakeId, depositPlusAmount, unlockTime);
+
+        if (_periodWeeks > 0) {
+            uint256 sTOSid = _createStos(to, depositPlusAmount, _periodWeeks, sTosEpochUnit);
+            connectId[stakeId] = sTOSid;
+            lockTOSId[sTOSid] = stakeId;
+        }
+
+    }
+
+
+    // 락업 기간이 끝나기 전에 수정 또는 락업기간이 없는경우,
+    function increaseAmountAndPeriodStake(
+        uint256 _stakeId,
+        uint256 _amount,
+        uint256 _unlockWeeks
+    )
+        external override
+        nonZero(_stakeId)
+    {
+        require(_amount > 0 || _unlockWeeks > 0, "zero _amount and _unlockWeeks");
+        address staker = allStakings[_stakeId].staker;
+        require(staker == msg.sender, "caller is not staker");
+
+        if(_unlockWeeks > 0) require(userStakingIndex[staker][_stakeId] > 1, "it's simple staking product, can't lock.");
+
+        // stake 반영
+        _increaseAmountAndPeriodStake(staker, _stakeId, _amount, _unlockWeeks);
+        uint256 sTosEpochUnit = lockTOS.epochUnit();
+        uint256 lockId = connectId[_stakeId];
+
+        if(userStakingIndex[staker][_stakeId] > 1 && lockId == 0 && _unlockWeeks > 0) {
+            // 마켓 상품이지만 락은 없었던 것. 락이 생길경우. amount 는 기존에 있던 금액에 추가되는 금액까지 고려해야 하는지.
+            uint256 remainLTOS = allStakings[_stakeId].LTOS - allStakings[_stakeId].getLTOS;
+            uint256 addAmount = _amount + getLtosToTos(remainLTOS);
+            uint256 sTOSid = _createStos(staker, addAmount, _unlockWeeks, sTosEpochUnit);
+            connectId[stakeId] = sTOSid;
+            lockTOSId[sTOSid] = stakeId;
+
+        } else if(userStakingIndex[staker][_stakeId] > 1 && lockId > 0) {
+            (uint256 start, uint256 end, uint256 amount) = lockTOS.locksInfo(lockId);
+            require(end > block.timestamp && allStakings[_stakeId].endTime > block.timestamp, "lock end time has passed");
+
+            if (_unlockWeeks == 0) { // 물량만 늘릴때 이자도 같이 늘린다.
+                uint256 n = (allStakings[_stakeId].endTime - block.timestamp) / epochUnit;
+                uint256 amountCompound = compound(_amount, rebasePerEpoch, n);
+                require (amountCompound > 0, "zero compounded amount");
+                lockTOS.increaseAmountByStaker(staker, lockId, amountCompound);
+
+            } else if(_unlockWeeks > 0) { // 기간만 들어날때는 물량도 같이 늘어난다고 본다. 이자때문에 .
+                uint256 amountCompound1 = 0; // 기간종료후 이자부분
+                uint256 amountCompound2 = 0; // 추가금액이 있을경우, 늘어나는 부분
+
+                uint256 n1 = (_unlockWeeks * sTosEpochUnit) / epochUnit;
+                amountCompound1 = compound(amount, rebasePerEpoch, n1);
+                amountCompound1 = amountCompound1 - amount;
+
+                if (_amount > 0) {
+                    uint256 n2 = (end - block.timestamp  + (_unlockWeeks * sTosEpochUnit)) / epochUnit;
+                    amountCompound2 = compound(_amount, rebasePerEpoch, n2);
+                }
+
+                lockTOS.increaseAmountUnlockTimeByStaker(staker, lockId, amountCompound1 + amountCompound2, _unlockWeeks);
+            }
+        }
+    }
+
+
+    /* ========== internal ========== */
+
+    function _getUnlockTime(uint256 start, uint256 _periodWeeks) internal returns (uint256 unlockTime) {
+        uint256 sTosEpochUnit = lockTOS.epochUnit();
+        unlockTime = start + (_periodWeeks * sTosEpochUnit);
+        unlockTime = unlockTime / sTosEpochUnit * sTosEpochUnit ;
+    }
+
+
+    function _increaseAmountAndPeriodStake(
+        address sender,
+        uint256 _stakeId,
+        uint256 _amount,
+        uint256 _unlockWeeks
+    )
+        internal
+    {
+        if (_amount > 0) {
+           require (TOS.allowance(sender, address(this)) >= _amount, "allowance is insufficient.");
+           TOS.safeTransferFrom(sender, address(this), _amount);
+        }
+
+        uint256 _periodSeconds = 0;
+        if (_unlockWeeks > 0) {
+            uint256 sTosEpochUnit = lockTOS.epochUnit();
+            require (sTosEpochUnit > 0, "zero sTosEpochUnit");
+
+            _periodSeconds = (_unlockWeeks * sTosEpochUnit);
+            _periodSeconds = _periodSeconds / sTosEpochUnit * sTosEpochUnit ;
+            require (_periodSeconds > 0, "zero unlockTime");
+        }
+         _addStakeInfo(stakeId, _amount, _periodSeconds);
+    }
+
+
+    function _createStos(_to, _amount, _periodWeeks, sTosEpochUnit) internal ifFree returns (uint256 sTOSid)  {
+        uint256 amountCompound = compound(_amount, rebasePerEpoch, (_periodWeeks * sTosEpochUnit / epochUnit));
+        require (amountCompound > 0, "zero compounded amount");
+
+        sTOSid = lockTOS.createLockByStaker(_to, amountCompound, _periodWeeks);
+        require(sTOSid > 0, "zero sTOSid");
+    }
+
+    function _createStakeInfo(
+        address _addr,
+        uint256 _stakeId,
+        uint256 _amount,
+        uint256 _unlockTime,
+        uint256 _marketId
+    ) internal ifFree {
+
+        require(allStakings[_stakeId].staker == address(0), "non-empty stakeInfo");
+
+        LibStaking.UserBalance storage stakeInfo = allStakings[_stakeId];
+
+        uint256 ltos = getTosToLtos(_amount);
+
+        stakeInfo = LibStaking.UserBalance({
+                staker: _addr,
+                deposit: _amount,
+                LTOS: ltos,
+                endTime: _unlockTime,
+                getLTOS: 0,
+                rewardTOS: 0,
+                marketId: _marketId,
+                withdraw: false
+            });
+
+        cummulatedStakingPrincipal += _amount;
+        cummulatedLTOS += ltos;
+        totalLTOS += ltos;
+    }
+
+    function _addStakeInfo(
+        uint256 _stakeId,
+        uint256 _amount,
+        uint256 _increaseSeconds
+    ) internal ifFree {
+        require(allStakings[_stakeId].staker == address(0), "non-empty stakeInfo");
+        require(_amount > 0 || _increaseSeconds > 0, "zero amount and _increaseSeconds");
+
+        LibStaking.UserBalance storage stakeInfo = allStakings[_stakeId];
+
+        if(_amount > 0) {
+            uint256 ltos = getTosToLtos(_amount);
+            stakeInfo.deposit += _amount;
+            stakeInfo.LTOS += ltos;
+
+            cummulatedStakingPrincipal += _amount;
+            cummulatedLTOS += ltos;
+            totalLTOS += ltos;
+        }
+
+        if(_increaseSeconds > 0) {
+            stakeInfo.endTime += _increaseSeconds;
+        }
+
+    }
+
+    function _addUserStakeId(address to, uint256 _id) internal {
+        userStakingIndex[to][_id] = userStakings[to].length;
+        userStakings[to].push(_id);
+    }
+
 
     /**
      * @notice returns the sOHM index, which tracks rebase growth
      * @return uint
      */
-    //index는 ether단위이다. 
+    //index는 ether단위이다.
     function index() internal returns (uint256) {
         index_ = (index_*(1 ether+rebasePerEpoch) / 1e18);
         return index_;
     }
 
+    function _checkStakeId(address to) internal {
+         if(userStakings[to].length == 0) {
+            stakingIdCounter++;
+            userStakings[to].push(0); // 0번때는 더미
+
+            userStakingIndex[to][stakingIdCounter] = 1; // 첫번째가 기간없는 순수 스테이킹용 .
+            userStakings[to].push(stakingIdCounter);
+        }
+    }
+
+    function _addStakeId() internal returns(uint256) {
+        return stakingIdCounter++;
+    }
+
+    /* ========== view ========== */
+
+    /// @inheritdoc IStaking
     function nextIndex() public view override returns (uint256) {
         uint256 newindex = (index_*(1 ether+rebasePerEpoch) / 1e18);
         return newindex;
@@ -74,225 +476,9 @@ contract StakingV2 is
         return maxindex;
     }
 
-    function marketId() public override onlyOwner returns (uint256) {
-        return marketIdCounter++;
-    }
 
-    /* ========== MUTATIVE FUNCTIONS ========== */
+    /* ========== Anyone can execute ========== */
 
-    /**
-     * @notice stake OHM to enter warmup
-     * @param _to address
-     * @param _amount uint256 tosAmount
-     * @param _periodWeeks uint256 lockup하는 기간
-     * @param _marketId uint256 bonding으로 들어왔는지 확인
-     * @param _lockTOS bool
-     * @return stakeId uint256
-     */
-    //그냥 staking을 할때는 lockup 기간이 없는 걸로 -> periodweeks가 0이면 lockup기간이 없음
-    //마이그레이션 할때 index가 설정되야함 rebaseIndex를 0으로 해줘야함 -> 변경됨 index도 설정되야함
-    //본딩 락업기간 범위: 5일 또는 1주일 단위(sTOS를 위해 락업할 경우) -> 5일(_periodweeks = 0, _bonding = true), 1주일 단위(_periodweeks > 0, _bonding = true)
-    //스테이킹 락업기간 범위: 0일 또는 1주일 단위(sTOS를 위해 락업할 경우) -> 0일인경우 periodWeeks = 0, lockTOS = false로 가능, 1주일 단위 
-    //LTOS만 스테이킹 했을 경우 (market이 0으로 저장된 경우)
-    function stake(
-        address _to,
-        uint256 _amount,
-        uint256 _periodWeeks,
-        uint256 _marketId,
-        bool _lockTOS
-    ) 
-        external 
-        override
-        returns (uint256 stakeId) 
-    {
-        require(_amount > 0, "amount should be non-zero");
-        if(_lockTOS == true) {
-            require(_periodWeeks > 0, "period should be non-zero");
-        }
-        TOS.safeTransferFrom(msg.sender, address(this), _amount);
-        uint256 unlockTime = block.timestamp.add(_periodWeeks.mul(epochUnit));
-        unlockTime = unlockTime.div(epochUnit).mul(epochUnit);
-
-        //bonding으로 들어왔는데 기간을 정하지 않은 경우
-        if(_marketId != 0 && _periodWeeks == 0) {
-            unlockTime = block.timestamp.add(basicBondPeriod);
-        }
-
-        stakingIdCounter = stakingIdCounter + 1;
-        stakeId = stakingIdCounter;
-        
-        //if -> 순수 스테이킹으로 들어 왔을 경우
-        //else -> lockTOS나 market이나 기간이 있을 경우
-        if(_lockTOS == false && _marketId == 0 && _periodWeeks == 0) {
-            if(userStakings[_to].length > 0) {
-                if(userStakings[_to][0] == 0) {
-                    //이미 먼저 순수 스테이킹을 하지 않은 유저가 순수 스테이킹을 한 경우 0번째 배열에 stakeId를 넣는다.
-                    userStakings[_to][0] = stakeId;
-                } else {
-                    //순수 스테이킹을 중복으로 하는 경우 같은 id에 추가한다.
-                    stakeId = userStakings[_to][0];
-                }
-            } else {
-                //제일 처음 스테이킹을 순수 스테이킹 한경우
-                console.log("user first only staking");
-                userStakings[_to].push(stakeId);
-            }
-        } else {
-            if(userStakings[_to].length == 0) {
-                //제일 처음 스테이킹을 순수 스테이킹을 하지 않은 경우
-                console.log("zero legnth add");
-                userStakings[_to].push(0);
-            }
-            //순수 스테이킹을 하지않은 경우
-            console.log("lockTOS, market, period exist staking");
-            userStakings[_to].push(stakeId);
-        }
-
-        console.log("rebase1");
-        rebaseIndex();
-        console.log("rebase2");
-    
-        _stake(_to,stakeId,_amount,unlockTime,_marketId);
-        console.log("rebase3");
-
-        //sTOS와 id같이 쓸려면 id별 mapping 따로 만들어서 관리해야함 (이 경우는 sTOS스테이킹하면서 동시에 LTOS를 구매할때)
-        uint256 sTOSid;
-        if(_lockTOS == true) {
-            uint256 maxProfit = maxIndexProfit(_amount,unlockTime);
-            sTOSid = lockTOS.createLockByStaker(_to,maxProfit,_periodWeeks);
-            connectId[stakeId] = sTOSid;
-            lockTOSId[sTOSid] = stakeId;
-        }
-
-        return stakeId;
-    }
-
-    function _stake(
-        address _addr,
-        uint256 _stakeId,
-        uint256 _amount,
-        uint256 _period,
-        uint256 _marketId
-    ) internal ifFree {
-        UserBalance memory userOld = stakingBalances[_addr][_stakeId];
-        
-        //그냥 스테이킹할때 && 기간을 늘릴때
-        uint256 getEndTime = _period;
-        //이전에 스테이킹한적이 있으면
-        if(userOld.deposit > 0 && _period == 0) {
-            //기간을 늘리지않고 수량만 늘릴때
-            getEndTime = userOld.endTime;
-        }
-        console.log("in stake");
-        console.log("_amount : %s", _amount);
-        console.log("index_ : %s", index_);
-        uint256 LTOSamount = (_amount*1e18)/index_;
-        console.log("LTOSamount : %s", LTOSamount);
-        console.log("getEndTime : %s", getEndTime);
-
-        UserBalance memory userNew = UserBalance({
-            deposit: userOld.deposit + _amount,
-            LTOS: userOld.LTOS + LTOSamount,
-            endTime: getEndTime,
-            getLTOS: userOld.getLTOS,
-            rewardTOS: userOld.rewardTOS,
-            marketId: _marketId,
-            withdraw: false
-        });
-
-        stakingBalances[_addr][_stakeId] = userNew;
-        allStakings[_stakeId] = userNew;
-
-        totalLTOS = totalLTOS + LTOSamount;
-    }
-
-    //사전에 TOS approve 필요
-    //amount에 해당하는 maxProfit만큼 sTOS는 추가로 staking됨
-    //LTOS의 staking물량을 늘림
-    //사전에 sTOS를 스테이킹하지않은 경우 sTOS를 추가하지않음
-    //기간이 끝나기전에 늘리는 경우 -> sTOS 로직에서 그래도 늘려줌
-    //기간이 끝난후 늘리는 경우 -> sTOS 기존 껀 unstaking함 -> 새 sTOS staking 불가 (기간이 없어서)
-    function increaseAmountStake(
-        address _to,
-        uint256 _stakeId,
-        uint256 _amount
-    ) 
-        external
-        override 
-    {
-        require(_stakeId != 0, "need the tokenId");
-        require(_amount > 0, "amount should be non-zero");
-        TOS.safeTransferFrom(msg.sender, address(this), _amount);
-        UserBalance memory userOld = stakingBalances[_to][_stakeId];
-
-        rebaseIndex();
-        if(userOld.marketId == 0){
-            _stake(_to,_stakeId,_amount,0,0);
-        } else {
-            _stake(_to,_stakeId,_amount,0,userOld.marketId);
-        }
-         
-        uint256 sTOSid = connectId[_stakeId];
-        console.log("sTOSid : %s",sTOSid);
-        //lockTOS를 같이 스테이킹 하였을 경우 기간이 끝나기전에 수량을 늘릴 수는 있음
-        //기간이 끝나면 기간 연장이 아니라서 sTOS관련해서는 아무 작업이 없다.
-        if(sTOSid != 0 && block.timestamp < userOld.endTime) {
-            uint256 maxProfit = maxIndexProfit(_amount,userOld.endTime);
-            lockTOS.increaseAmountByStaker(_to,sTOSid,maxProfit);
-        }
-    }
-
-    //_unlockWeeks 만큼 더 늘어남
-    //LTOS와 sTOS의 기간을 늘림
-    //sTOS가 없을 경우 호출 하지 않음
-    //기간이 끝나지 않았을때 늘리는 경우 -> 정상 작동
-    //기간이 끝났을때 늘리는 경우 -> unstaking하고 다시 stake해준다. -> 기준 시간을 지금 시간으로 잡고 하면됨
-    function increasePeriodStake(
-        uint256 _tokenId,
-        uint256 _unlockWeeks
-    )
-        external
-        override
-    {
-        require(_tokenId != 0, "need the tokenId");
-        require(_unlockWeeks > 0, "period should be non-zero");
-        
-        uint256 sTOSid = connectId[_tokenId];
-        require(sTOSid != 0, "need the have sTOS");
-        
-        UserBalance memory userOld = stakingBalances[msg.sender][_tokenId];
-
-        uint256 unlockTime;
-        uint256 maxProfit;
-
-        rebaseIndex();
-
-         if(block.timestamp < userOld.endTime) {
-            //기간이 끝나기전 증가 시킴
-            unlockTime = userOld.endTime.add(_unlockWeeks.mul(epochUnit));
-            lockTOS.increaseUnlockTimeByStaker(msg.sender,sTOSid,_unlockWeeks);
-        } else {
-            //기간이 끝나고 증가 시킴
-            //기존 sTOS unstaking
-            lockTOS.withdrawByStaker(msg.sender,sTOSid);
-            delete connectId[_tokenId];
-            delete lockTOSId[sTOSid];
-
-            //새 sTOS staking
-            unlockTime = block.timestamp.add(_unlockWeeks.mul(epochUnit));
-            unlockTime = unlockTime.div(epochUnit).mul(epochUnit);
-            maxProfit = maxIndexProfit(userOld.deposit,unlockTime);
-            sTOSid = lockTOS.createLockByStaker(msg.sender,maxProfit,_unlockWeeks);
-            connectId[_tokenId] = sTOSid;
-            lockTOSId[sTOSid] = _tokenId;
-        }
-
-        if(userOld.marketId == 0){
-            _stake(msg.sender,_tokenId,0,unlockTime,0);
-        } else {
-            _stake(msg.sender,_tokenId,0,unlockTime,userOld.marketId);
-        }
-    }
 
     //amount, period 둘다 늘릴때
     //LTOS의 기간,물량을 늘림
@@ -302,7 +488,7 @@ contract StakingV2 is
         uint256 _stakeId,
         uint256 _amount,
         uint256 _unlockWeeks
-    ) 
+    )
         external
     {
         require(_stakeId != 0, "need the tokenId");
@@ -317,7 +503,7 @@ contract StakingV2 is
         uint256 unlockTime;
         uint256 maxProfit;
         console.log("increaseAmountPeriod1");
-        
+
         rebaseIndex();
 
         if(block.timestamp < userOld.endTime) {
@@ -363,10 +549,10 @@ contract StakingV2 is
     function unstake(
         uint256 _stakeId,
         uint256 _amount
-    ) 
-        external 
-        override 
-        returns (uint256 amount_) 
+    )
+        external
+        override
+        returns (uint256 amount_)
     {
         UserBalance storage stakeInfo = stakingBalances[msg.sender][_stakeId];
         require(block.timestamp > stakeInfo.endTime, "need the endPeriod");
@@ -384,7 +570,7 @@ contract StakingV2 is
         if(amount_ > stakeInfo.deposit) {
             TOS.safeTransferFrom(address(ITreasury(treasury)),address(this),(amount_-stakeInfo.deposit));
         }
-        
+
         uint256 sTOSid = connectId[_stakeId];
         console.log("sTOSid : %s",sTOSid);
         if(stakeInfo.withdraw == false) {
@@ -393,7 +579,7 @@ contract StakingV2 is
             }
             stakeInfo.withdraw == true;
         }
-        
+
         UserBalance storage allstake = allStakings[_stakeId];
 
         stakeInfo.getLTOS = stakeInfo.getLTOS + _amount;          //쓴 LTOS 기록
@@ -415,10 +601,10 @@ contract StakingV2 is
 
     function unstakeId(
         uint256 _stakeId
-    ) 
-        public 
-        override 
-        returns (uint256 amount_) 
+    )
+        public
+        override
+        returns (uint256 amount_)
     {
         console.log("msg.sender2 : %s",msg.sender);
         UserBalance storage stakeInfo = stakingBalances[msg.sender][_stakeId];
@@ -435,7 +621,7 @@ contract StakingV2 is
             if(amount_ > stakeInfo.deposit) {
                 TOS.safeTransferFrom(address(ITreasury(treasury)),address(this),(amount_-stakeInfo.deposit));
             }
-            
+
             uint256 sTOSid = connectId[_stakeId];
             if(stakeInfo.withdraw == false) {
                 if(sTOSid != 0) {
@@ -461,7 +647,7 @@ contract StakingV2 is
 
     function arrayUnstakeId(
         uint256[] calldata _stakeIds
-    ) 
+    )
         public
     {
         console.log("msg.sender1 : %s",msg.sender);
@@ -489,7 +675,7 @@ contract StakingV2 is
             console.log("epoch.end : %s", epoch.end);
             epoch.number = epoch.number + (epochNumber + 1);
             console.log("epoch.number : %s", epoch.number);
-            
+
             //index를 epochNumber만큼 시킴
             //만약 treasury에 있는 TOS물량이 다음 index를 지원하면 index를 증가 시킨다.
             for(uint256 i = 0; i < (epochNumber + 1); i++) {
@@ -537,25 +723,6 @@ contract StakingV2 is
         }
     }
 
-    //sTOS의 양은 최대의 index를 계산하여서 LTOS -> TOS로 변경 -> TOS의 최대양을 return함
-    // 현재 TOS양과 끝나는 시간 입력 시 모든 경우에 index가 다 증가했을경우 staking이 끝난 후 바로 unstaking하면 최종적으로 받게될 TOS의 양을 return함
-    // ((스테이킹 끝나는 시간 - 다음 인덱스 증가 시간)/인덱스 rebase 시간) = 몇번 rebase가 일어나는지 나옴
-    // _amount = 현재 TOS 양, _endTime 스테이킹 끝나는 시간
-    function maxIndexProfit(
-        uint256 _amount,
-        uint256 _endTime
-    ) 
-        public
-        override
-        view
-        returns (uint256 amount_)
-    {   
-        uint256 nowLTOS = (_amount*1e18)/index_;
-        uint256 maxindex_ = maxIndex(_endTime);
-        amount_ = ((nowLTOS * maxindex_) / 1e18);
-        return amount_;
-    }
-        
 
     /**
      * @notice seconds until the next epoch begins
@@ -607,7 +774,7 @@ contract StakingV2 is
         returns (bool)
     {
         require(accounts.length == balances.length, "No balances same length");
-        
+
         uint256 stakeId;
 
         for (uint256 i = 0; i < accounts.length; i++ ) {
@@ -623,4 +790,40 @@ contract StakingV2 is
 
         return true;
     }
+
+
+
+    function pow (int128 x, uint n) public pure returns (int128 r) {
+        r = ABDKMath64x64.fromUInt (1);
+        while (n > 0) {
+            if (n % 2 == 1) {
+                r = ABDKMath64x64.mul (r, x);
+                n -= 1;
+            } else {
+                x = ABDKMath64x64.mul (x, x);
+                n /= 2;
+            }
+        }
+    }
+
+    function compound (uint principal, uint ratio, uint n) public pure returns (uint) {
+        return ABDKMath64x64.mulu (
+                pow (
+                ABDKMath64x64.add (
+                    ABDKMath64x64.fromUInt (1),
+                    ABDKMath64x64.divu (
+                    ratio,
+                    10**18)),
+                n),
+                principal);
+    }
+
+    function getTosToLtos(uint256 amount) public view returns (uint256) {
+        return (_amount * 1e18) / index_;
+    }
+
+    function getLtosToTos(uint256 ltos) public view returns (uint256) {
+        return (ltos * index_) / 1e18;
+    }
+
 }

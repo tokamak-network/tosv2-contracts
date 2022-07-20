@@ -4,39 +4,143 @@ pragma solidity >=0.7.5;
 import "./IERC20.sol";
 
 interface IBondDepository {
+
+    ///////////////////////////////////////
+    /// onlyPolicyOwner
+    //////////////////////////////////////
+
+    /**
+     * @notice             creates a new market type
+     * @dev
+     * @param _check       ETH를 받을려면(true), token을 받으면(false)
+     * @param _token       토큰 주소
+     * @param _poolAddress 토큰과 ETH주소의 pool주소
+     * @param _fee         pool의 _fee
+     * @param _market      [팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격, 한번에 구매 가능한 TOS물량]
+     * @return id_         ID of new bond market
+     */
     function create(
         bool _check,
-        IERC20 _token,
+        address _token,
         address _poolAddress,
         uint24 _fee,
         uint256[5] calldata _market
     ) external returns (uint256 id_);
 
+     /**
+     * @dev 이더
+     * @param _id  ID of market to close
+     */
     function close(uint256 _id) external;
 
-    function ETHDeposit(
+
+    /**
+     * @dev  set the default lockup period
+     * @param _value  the default lockup period (seconds)
+     */
+    function setDefaultLockPeriod(uint256 _value) external;
+
+
+    ///////////////////////////////////////
+    /// Anyone can use.
+    //////////////////////////////////////
+
+    /// @dev deposit with erc20 token
+    /// @param _id  the market id
+    /// @param _amount  the amount of deposit
+    /// @return payout_  the amount of staking
+    /// @return index_  the index of user's staking
+    function ERC20Deposit(
         uint256 _id,
-        uint256 _amount,
-        uint256 _time,
-        bool _lockTOS
-    ) 
-        external
-        payable
-        returns (
+        uint256 _amount
+    ) external returns (
             uint256 payout_,
             uint256 index_
         );
 
-    function remainingAmount(uint256 _id) external view returns (uint256);
 
+    /// @dev deposit with erc20 token
+    /// @param _id  the market id
+    /// @param _amount  the amount of deposit
+    /// @param _lockWeeks  the number of weeks for lock
+    /// @return payout_  the amount of staking
+    /// @return index_  the index of user's staking
+    function ERC20DepositWithSTOS(
+        uint256 _id,
+        uint256 _amount,
+        uint256 _lockWeeks
+    ) external returns (
+            uint256 payout_,
+            uint256 index_
+        );
+
+
+    /// @dev deposit with ether
+    /// @param _id  the market id
+    /// @param _amount  the amount of deposit
+    /// @return payout_  the amount of staking
+    /// @return index_  the index of user's staking
+    function ETHDeposit(
+        uint256 _id,
+        uint256 _amount
+    ) external payable returns (
+            uint256 payout_,
+            uint256 index_
+        );
+
+
+    /// @dev deposit with erc20 token
+    /// @param _id  the market id
+    /// @param _amount  the amount of deposit
+    /// @param _lockWeeks  the number of weeks for lock
+    /// @return payout_  the amount of staking
+    /// @return index_  the index of user's staking
+    function ETHDepositWithSTOS(
+        uint256 _id,
+        uint256 _amount,
+        uint256 _lockWeeks
+    ) external payable returns (
+            uint256 payout_,
+            uint256 index_
+        );
+
+
+    ///////////////////////////////////////
+    /// VIEW
+    //////////////////////////////////////
+
+
+    /// @dev How much tokens are valued as TOS
+    /// @param _tokenPrice  the token price
+    /// @param _tosPrice  the tos price
+    /// @param _amount the amount of input
+    /// @return payout  When the amount of tokens is putted, the amount evaluated as TOS
     function calculPayoutAmount(
         uint256 _tokenPrice,
-        uint256 _tosPrice, 
-        uint256 _amount    
+        uint256 _tosPrice,
+        uint256 _amount
     )
         external
         pure
-        returns (uint256 payout); 
+        returns (uint256 payout);
 
+
+    /// @dev  Total TOS allocation in the specific market
+    /// @param _id  the market id
+    /// @return maxpayout_  Total TOS allocation in the specific market
     function marketMaxPayout(uint256 _id) external view returns (uint256 maxpayout_);
+
+
+    /// @dev the token price is calculated by the token price / the tos price
+    /// @param _id  the market id
+    /// @return price  The amount calculated when the token is evaluated as TOS in a specific market
+    function tokenPrice(uint256 _id) external view returns (uint256 price);
+
+
+    /// @dev Amount of TOS currently available for purchase in a specific market
+    /// @param _id  the market id
+    /// @return tokenAmount Amount of TOS currently available for purchase in a specific market
+    function remainingAmount(uint256 _id) external view returns (uint256 tokenAmount);
+
+
 }
