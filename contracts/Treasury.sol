@@ -109,6 +109,12 @@ contract Treasury is
         emit Minted(msg.sender, _recipient, _amount);
     }
 
+    function approve(
+        address _addr
+    ) external override onlyPolicyOwner {
+        TOS.approve(_addr, 1e45);
+    }
+
     /* ========== MANAGERIAL FUNCTIONS ========== */
 
     /**
@@ -132,12 +138,6 @@ contract Treasury is
         }
 
         emit Permissioned(_address, _status, true);
-    }
-
-    function approve(
-        address _addr
-    ) external onlyPolicyOwner {
-        TOS.approve(_addr, 1e45);
     }
 
     /**
@@ -190,10 +190,6 @@ contract Treasury is
         );
     }
 
-    function liquidityUpdate() public {
-        
-    }
-
     function setMR(uint256 _mrRate) external override onlyPolicyOwner {
         mintRate = _mrRate;
     }
@@ -202,7 +198,6 @@ contract Treasury is
         return mintRate;
     }
 
-    //TOS mint 
     function addTransfer(address _addr, uint256 _percents) external override onlyPolicyOwner {
         require(_percents > 0 && _percents < 100, "_percents setting err");
         require(totalPercents + _percents < 100, "totalPercents need small 100");

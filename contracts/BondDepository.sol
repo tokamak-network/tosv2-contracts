@@ -55,9 +55,7 @@ contract BondDepository is
         onlyPolicyOwner
         returns (uint256 id_)
     {   
-        console.log("1");
         id_ = staking.marketId();
-        console.log("id_ : %s", id_);
 
         //tokenPrice, tosPrice, capacity, totalSaleAmount는 관리자가 변경할 수 있게해야함 (capacity, totalSaleAmount는 한 변수 입력에 변경가능하게)
         markets.push(
@@ -172,8 +170,7 @@ contract BondDepository is
         treasury.mint(address(this), mrAmount);       
         treasuryContract.transfer(msg.value);
 
-        //transAmount는 treasury에 갈 Amount이다. 
-        //payAmount는 transAmount물량 중 재단에 쌓이는 물량이다. 그래서 최종적으로 transAmount - payAmount가 treasury에 쌓인다
+        //transAmount는 treasury에 갈 Amount이다. (mintAmount - 스테이킹할 물량 = treasury로 들어가는 물량)
         uint256 transAmount = mrAmount - payout_;
         tos.safeTransfer(address(ITreasury(treasury)),(transAmount));
         treasury.transferLogic(transAmount);

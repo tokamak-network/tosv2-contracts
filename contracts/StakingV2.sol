@@ -28,8 +28,6 @@ contract StakingV2 is
 
     /* ========== SET VALUE ========== */
 
-    //epochRebase 
-    //If input the 0.9 -> 900000000000000000
     function setRebasePerepoch(uint256 _rebasePerEpoch) external override onlyPolicyOwner {
         rebasePerEpoch = _rebasePerEpoch;
     }
@@ -59,12 +57,6 @@ contract StakingV2 is
         return newindex;
     }
 
-    /**
-     * @notice input the endTime get the exponent
-     * @param _endTime endTime
-     * @return maxindex uint256
-     */
-    // ((스테이킹 끝나는 시간 - 다음 인덱스 증가 시간)/인덱스 rebase 시간) = 몇번 rebase가 일어나는지 나옴
     function maxIndex(uint256 _endTime) public view override returns (uint256 maxindex) {
         uint256 exponent = (_endTime - epoch.end) / epoch.length_ ;
         maxindex = index_;
@@ -80,15 +72,6 @@ contract StakingV2 is
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    /**
-     * @notice stake OHM to enter warmup
-     * @param _to address
-     * @param _amount uint256 tosAmount
-     * @param _periodWeeks uint256 lockup하는 기간
-     * @param _marketId uint256 bonding으로 들어왔는지 확인
-     * @param _lockTOS bool
-     * @return stakeId uint256
-     */
     //그냥 staking을 할때는 lockup 기간이 없는 걸로 -> periodweeks가 0이면 lockup기간이 없음
     //마이그레이션 할때 index가 설정되야함 rebaseIndex를 0으로 해줘야함 -> 변경됨 index도 설정되야함
     //본딩 락업기간 범위: 5일 또는 1주일 단위(sTOS를 위해 락업할 경우) -> 5일(_periodweeks = 0, _bonding = true), 1주일 단위(_periodweeks > 0, _bonding = true)
@@ -248,19 +231,19 @@ contract StakingV2 is
     //기간이 끝나지 않았을때 늘리는 경우 -> 정상 작동
     //기간이 끝났을때 늘리는 경우 -> unstaking하고 다시 stake해준다. -> 기준 시간을 지금 시간으로 잡고 하면됨
     function increasePeriodStake(
-        uint256 _tokenId,
+        uint256 _stakeId,
         uint256 _unlockWeeks
     )
         external
         override
     {
-        require(_tokenId != 0, "need the tokenId");
+        require(_stakeId != 0, "need the tokenId");
         require(_unlockWeeks > 0, "period should be non-zero");
         
-        uint256 sTOSid = connectId[_tokenId];
+        uint256 sTOSid = connectId[_stakeId];
         require(sTOSid != 0, "need the have sTOS");
         
-        UserBalance memory userOld = stakingBalances[msg.sender][_tokenId];
+        UserBalance memory userOld = stakingBalances[msg.sender][_stakeId];
 
         uint256 unlockTime;
         uint256 maxProfit;
@@ -275,7 +258,7 @@ contract StakingV2 is
             //기간이 끝나고 증가 시킴
             //기존 sTOS unstaking
             lockTOS.withdrawByStaker(msg.sender,sTOSid);
-            delete connectId[_tokenId];
+            delete connectId[_stakeId];
             delete lockTOSId[sTOSid];
 
             //새 sTOS staking
@@ -283,19 +266,17 @@ contract StakingV2 is
             unlockTime = unlockTime.div(epochUnit).mul(epochUnit);
             maxProfit = maxIndexProfit(userOld.deposit,unlockTime);
             sTOSid = lockTOS.createLockByStaker(msg.sender,maxProfit,_unlockWeeks);
-            connectId[_tokenId] = sTOSid;
-            lockTOSId[sTOSid] = _tokenId;
+            connectId[_stakeId] = sTOSid;
+            lockTOSId[sTOSid] = _stakeId;
         }
 
         if(userOld.marketId == 0){
-            _stake(msg.sender,_tokenId,0,unlockTime,0);
+            _stake(msg.sender,_stakeId,0,unlockTime,0);
         } else {
-            _stake(msg.sender,_tokenId,0,unlockTime,userOld.marketId);
+            _stake(msg.sender,_stakeId,0,unlockTime,userOld.marketId);
         }
     }
 
-    //amount, period 둘다 늘릴때
-    //LTOS의 기간,물량을 늘림
     //sTOS가 없을 경우 호출 하지 않음
     function increaseAmountAndPeriodStake(
         address _to,
@@ -304,6 +285,7 @@ contract StakingV2 is
         uint256 _unlockWeeks
     ) 
         external
+        override
     {
         require(_stakeId != 0, "need the tokenId");
         require(_unlockWeeks > 0, "period should be non-zero");
@@ -463,6 +445,7 @@ contract StakingV2 is
         uint256[] calldata _stakeIds
     ) 
         public
+        override
     {
         console.log("msg.sender1 : %s",msg.sender);
         for(uint256 i = 0; i < _stakeIds.length; i++) {
