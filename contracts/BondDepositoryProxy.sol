@@ -1,5 +1,5 @@
-//SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: AGPL-3.0-or-later
+pragma solidity ^0.8.4;
 
 import "./BondDepositoryStorage.sol";
 import "./proxy/VaultProxy.sol";
@@ -32,7 +32,7 @@ contract BondDepositoryProxy is
         tos = IERC20(_tos);
         dTOS = IDTOS(_dtos);
         staking = IStaking(_staking);
-        treasury = ITreasury(_treasury);
+        treasury = _treasury;
         calculator = _calculator;
         uniswapV3Factory = _uniswapV3Factory;
         tos.approve(_staking, 1e45);

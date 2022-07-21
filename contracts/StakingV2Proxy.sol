@@ -1,5 +1,5 @@
-//SPDX-License-Identifier: Unlicense
-pragma solidity > 0.8.4;
+// SPDX-License-Identifier: AGPL-3.0-or-later
+pragma solidity ^0.8.4;
 
 import "./StakingV2Storage.sol";
 import "./proxy/StakeBaseProxy.sol";
@@ -30,8 +30,8 @@ contract StakingV2Proxy is
         require(address(TOS) == address(0), "already initialized.");
 
         TOS = IERC20(_tos);
-        lockTOS = ILockTOSv2Action0(_lockTOS);
-        treasury = ITreasury(_treasury);
+        lockTOS = _lockTOS;
+        treasury = _treasury;
 
         epoch = LibStaking.Epoch({length_: _epoch[0], number: _epoch[1], end: _epoch[2]});
         epochUnit = _epoch[3];

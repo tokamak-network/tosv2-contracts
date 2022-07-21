@@ -95,9 +95,9 @@ contract TOSValueCalculator is ITOSValueCalculator {
         address _npm,
         address _basicpool,
         address _uniswapV3factory
-    ) 
+    )
         external
-        override 
+        override
     {
         tos = _tos;
         weth = _weth;
@@ -137,7 +137,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
-    //1TOS = ? ERC20 -> ?ERC20/1TOS 
+    //1TOS = ? ERC20 -> ?ERC20/1TOS
     //TOS와 비율을 알고 싶은 erc20주소와 TOS-ERC20_Pool주소 fee를 입력함 -> 1TOS = ? Token에서 ? 비율
     function getTOSERC20PoolTOSPrice(address _erc20address, address _tosERC20Pool, uint24 fee) public override view returns (uint256 price) {
         uint tosOrder = getTOStoken0(_erc20address,fee);
@@ -301,11 +301,11 @@ contract TOSValueCalculator is ITOSValueCalculator {
         public
         override
         view
-        returns (uint256 amount0, uint256 amount1) 
+        returns (uint256 amount0, uint256 amount1)
     {
         (amount0, amount1) = getAmounts(npm_,_poolAddress,_tokenId);
         return (amount0,amount1);
-    }  
+    }
 
     //tokenId의 ETHValue를 리턴
     //poolAddress는 tos - ? Pool 만 지원
@@ -316,12 +316,12 @@ contract TOSValueCalculator is ITOSValueCalculator {
         override
         view
         returns (uint256 ethValue)
-    {   
-        ( 
+    {
+        (
             , ,
             address token0,
             address token1,
-            uint24 fee, 
+            uint24 fee,
             , , , , , ,
         ) = IINonfungiblePositionManager(npm_).positions(_tokenId);
 
@@ -369,7 +369,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
 
         uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(tickLower);
         uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(tickUpper);
-        
+
         (amount0, amount1) = LiquidityAmounts.getAmountsForLiquidity(sqrtPriceX96, sqrtRatioAX96, sqrtRatioBX96, liquidity);
         console.log('amount0 %s ', amount0);
         console.log('amount1 %s ', amount1);

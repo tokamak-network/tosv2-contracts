@@ -8,7 +8,6 @@ import "./libraries/SafeERC20.sol";
 
 import "./interfaces/IBondDepository.sol";
 import "./interfaces/IBondDepositoryEvent.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 //import "hardhat/console.sol";
 
 
@@ -17,10 +16,16 @@ interface IUniswapV3Pool {
     function token1() external view returns (address);
 }
 
+interface IITreasury {
+    function mintRate() external view returns (uint256);
+    //function backingUpdate() external;
+    function requestMintAndTransfer(uint256 _mintAmount, address _recipient, uint256 _transferAmount) external ;
+}
+
+
 contract BondDepository is
     BondDepositoryStorage,
     ProxyAccessCommon,
-    ReentrancyGuard,
     IBondDepository,
     IBondDepositoryEvent
 {
@@ -150,10 +155,10 @@ contract BondDepository is
         require(IERC20(_token).allowance(msg.sender, address(this)) >= _amount, "Depository : allowance is insufficient");
         IERC20(_token).transfer(address(treasury), _amount);
 
-        (payout_, index_) = _deposit(msg.sender, _token, _amount, _id, defaultLockPeriod, false);
+        (payout_, index_) = _deposit(msg.sender, _amount, _id, false);
 
-        reqiore(payout_ > 0, "zero TOS amount");
-        stake.stakeByBond(msg.sender, payout_, _id);
+        require(payout_ > 0, "zero TOS amount");
+        staking.stakeByBond(msg.sender, payout_, _id);
 
         emit ERC20Deposited(msg.sender, _id, _token, _amount);
     }
@@ -178,10 +183,10 @@ contract BondDepository is
         require(IERC20(_token).allowance(msg.sender, address(this)) >= _amount, "Depository : allowance is insufficient");
         IERC20(_token).transfer(address(treasury), _amount);
 
-        (payout_, index_) = _deposit(msg.sender, _token, _amount, _id, _lockWeeks, false);
+        (payout_, index_) = _deposit(msg.sender, _amount, _id, false);
 
-        reqiore(payout_ > 0, "zero TOS amount");
-        stake.stakeGetStosByBond(msg.sender, payout_, _id, _lockWeeks);
+        require(payout_ > 0, "zero TOS amount");
+        staking.stakeGetStosByBond(msg.sender, payout_, _id, _lockWeeks);
 
         emit ERC20DepositedWithSTOS(msg.sender, _id, _token, _amount, _lockWeeks);
     }
@@ -202,10 +207,10 @@ contract BondDepository is
     {
         require(msg.value == _amount, "Depository : ETH value not same");
 
-        (payout_, index_) = _deposit(msg.sender, address(0), _amount, _id, defaultLockPeriod, true);
+        (payout_, index_) = _deposit(msg.sender, _amount, _id, true);
 
-        reqiore(payout_ > 0, "zero TOS amount");
-        stake.stakeByBond(msg.sender, payout_, _id);
+        require(payout_ > 0, "zero TOS amount");
+        staking.stakeByBond(msg.sender, payout_, _id);
 
         payable(address(treasury)).transfer(msg.value);
 
@@ -230,10 +235,10 @@ contract BondDepository is
     {
         require(msg.value == _amount, "Depository : ETH value not same");
 
-        (payout_, index_) = _deposit(msg.sender, address(0), _amount, _id, _lockWeeks, true);
+        (payout_, index_) = _deposit(msg.sender, _amount, _id, true);
 
-        reqiore(payout_ > 0, "zero TOS amount");
-        stake.stakeGetStosByBond(msg.sender, payout_, _id, _lockWeeks);
+        require(payout_ > 0, "zero TOS amount");
+        staking.stakeGetStosByBond(msg.sender, payout_, _id, _lockWeeks);
 
         payable(address(treasury)).transfer(msg.value);
 
@@ -243,10 +248,8 @@ contract BondDepository is
 
     function _deposit(
         address user,
-        address tokenAddress,
         uint256 _amount,
         uint256 _marketId,
-        uint256 _lockWeeks,
         bool _eth
     ) internal nonReentrant returns (uint256 _payout, uint256 index_) {
 
@@ -257,7 +260,7 @@ contract BondDepository is
 
         require(_payout > 0, "zero staking amount");
 
-        uint256 mrAmount = _amount * treasury.mintRateCall();
+        uint256 mrAmount = _amount * IITreasury(treasury).mintRate();
         require(mrAmount >= _payout, "mintableAmount is less than staking amount.");
 
         LibBondDepository.Market storage market = markets[_marketId];
@@ -283,44 +286,15 @@ contract BondDepository is
             })
         );
 
-        _transferAsset(user, _marketId, _amount, mrAmount, _payout, _lockWeeks, tokenAddress, _eth);
+        if(mrAmount > 0 && _payout <= mrAmount) {
+            IITreasury(treasury).requestMintAndTransfer(mrAmount, address(staking), _payout);
+        }
 
-        //update the backingData
-        treasury.backingUpdate();
+        // update the backingData
+        // treasury.backingUpdate();
 
         emit Deposited(user, _amount, _payout, _marketId, _eth);
     }
-
-    function _transferAsset(
-            address user,
-            uint256 _marketId,
-            uint256 _amount,
-            uint256 mrAmount,
-            uint256 payout_,
-            uint256 _lockWeeks,
-            address _token,
-            bool _eth
-    ) internal {
-        // 트래저리에서 전체 민트를 하고, 스테이킹으로 토스를 보내도록 해야 한다.
-        require(
-            (_eth && _token == address(0)) || (!_eth && _token != address(0)),
-            "wrong token address");
-
-        if(mrAmount > 0) {
-            treasury.mint(address(this), mrAmount);
-
-            // 트래저리로 민트한것 일부 전송
-            if(payout_ <= mrAmount) {
-                uint256 transAmount = mrAmount - payout_;
-                if(transAmount > 0) {
-                    //treasury.mint(address(treasury), transAmount);
-                    tos.safeTransfer(address(treasury), transAmount);
-                    treasury.transferLogic(transAmount);
-                }
-            }
-        }
-    }
-
 
     ///////////////////////////////////////
     /// VIEW

@@ -1,12 +1,11 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: AGPL-3.0-or-later
+pragma solidity ^0.8.4;
 
 import "./libraries/LibBondDepository.sol";
 
 import "./interfaces/IERC20.sol";
 import "./interfaces/IDTOS.sol";
 import "./interfaces/IStaking.sol";
-import "./interfaces/ITreasury.sol";
 
 contract BondDepositoryStorage {
 
@@ -17,10 +16,9 @@ contract BondDepositoryStorage {
     IERC20 public tos;
     IDTOS public dTOS;
     IStaking public staking;
-    ITreasury public treasury;
+    address public treasury;
 
     address public calculator;
-    address payable treasuryContract;
     address public uniswapV3Factory;
 
     uint256 public defaultLockPeriod;

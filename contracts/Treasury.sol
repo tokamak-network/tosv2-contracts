@@ -1,10 +1,11 @@
-// SPDX-License-Identifier: AGPL-3.0
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: AGPL-3.0-or-later
+pragma solidity ^0.8.4;
 
 import "./TreasuryStorage.sol";
 
 import "./libraries/SafeMath.sol";
 import "./libraries/SafeERC20.sol";
+import "./libraries/LibTreasury.sol";
 
 // import "./interfaces/IERC20.sol";
 
@@ -27,11 +28,126 @@ contract Treasury is
     event Deposit(address indexed token, uint256 amount, uint256 value);
     event Withdrawal(address indexed token, uint256 amount, uint256 value);
     event Minted(address indexed caller, address indexed recipient, uint256 amount);
-    event Permissioned(address addr, STATUS indexed status, bool result);
+    event Permissioned(address addr, LibTreasury.STATUS indexed status, bool result);
     event ReservesAudited(uint256 indexed totalReserves);
 
     constructor() {
     }
+
+
+    /* ========== onlyPolicyOwner ========== */
+
+    /**
+     * @notice enable permission from queue
+     * @param _status STATUS
+     * @param _address address
+     */
+    function enable(
+        LibTreasury.STATUS _status,
+        address _address
+    )
+        external override
+        onlyPolicyOwner
+    {
+        permissions[_status][_address] = true;
+
+        (bool registered, ) = indexInRegistry(_address, _status);
+
+        if (!registered) {
+            registry[_status].push(_address);
+        }
+
+        emit Permissioned(_address, _status, true);
+    }
+
+    function approve(
+        address _addr
+    ) external override onlyPolicyOwner {
+        TOS.approve(_addr, 1e45);
+    }
+
+    function setMR(uint256 _mrRate) external override onlyPolicyOwner {
+        mintRate = _mrRate;
+    }
+
+    /**
+     *  @notice disable permission from address
+     *  @param _status STATUS
+     *  @param _toDisable address
+     */
+    function disable(LibTreasury.STATUS _status, address _toDisable)
+        external override onlyPolicyOwner
+    {
+        permissions[_status][_toDisable] = false;
+        emit Permissioned(_toDisable, _status, false);
+    }
+
+
+    //지원하는 자산을 추가 시킴
+    function addbackingList(
+        address _address,
+        address _tosPooladdress,
+        uint24 _fee
+    )
+        external override onlyPolicyOwner
+    {
+        uint256 amount = IERC20(_address).balanceOf(address(this));
+        backingList[backings.length] = amount;
+
+        backings.push(
+            LibTreasury.Backing({
+                erc20Address: _address,
+                tosPoolAddress: _tosPooladdress,
+                fee: _fee
+            })
+        );
+    }
+
+    //tokenId는 유동성만 증가 -> backingReserve에 들어가지않음
+    function addLiquidityIdList(
+        uint256 _tokenId,
+        address _tosPoolAddress
+    )
+        external override onlyPolicyOwner
+    {
+        tokenIdList[listings.length] = _tokenId;
+
+        listings.push(
+            LibTreasury.Listing({
+                tokenId: _tokenId,
+                tosPoolAddress: _tosPoolAddress
+            })
+        );
+    }
+
+
+    //TOS mint
+    function addTransfer(address _addr, uint256 _percents) external override onlyPolicyOwner {
+        require(_percents > 0 && _percents < 100, "_percents setting err");
+        require(totalPercents + _percents < 100, "totalPercents need small 100");
+
+        mintingList[mintings.length] = _addr;
+        totalPercents = totalPercents + _percents;
+
+        mintings.push(
+            LibTreasury.Minting({
+                mintAddress: _addr,
+                mintPercents: _percents
+            })
+        );
+    }
+
+    function transferChange(uint256 _id, address _addr, uint256 _percents)
+        external override onlyPolicyOwner {
+        LibTreasury.Minting storage info = mintings[_id];
+        totalPercents = totalPercents + _percents - info.mintPercents;
+
+        info.mintAddress = _addr;
+        info.mintPercents = _percents;
+    }
+
+
+     /* ========== permissions : LibTreasury.STATUS.RESERVEDEPOSITOR ========== */
 
     //uniswapV3 LP token을 deposit할 수 있어야함
     //uniswapV3 LP token을 backing할 수 있어야함
@@ -55,10 +171,10 @@ contract Treasury is
         uint24 _fee,
         uint256 _profit
     ) external override returns (uint256 send_) {
-        if (permissions[STATUS.RESERVETOKEN][_token]) {
-            require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);
-        } else if (permissions[STATUS.LIQUIDITYTOKEN][_token]) {
-            require(permissions[STATUS.LIQUIDITYDEPOSITOR][msg.sender], notApproved);
+        if (permissions[LibTreasury.STATUS.RESERVETOKEN][_token]) {
+            require(permissions[LibTreasury.STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);
+        } else if (permissions[LibTreasury.STATUS.LIQUIDITYTOKEN][_token]) {
+            require(permissions[LibTreasury.STATUS.LIQUIDITYDEPOSITOR][msg.sender], notApproved);
         } else {
             revert(invalidToken);
         }
@@ -88,8 +204,8 @@ contract Treasury is
         external
         override
     {
-        require(permissions[STATUS.RESERVETOKEN][_token], notAccepted); // Only reserves can be used for redemptions
-        require(permissions[STATUS.RESERVESPENDER][msg.sender], notApproved);
+        require(permissions[LibTreasury.STATUS.RESERVETOKEN][_token], notAccepted); // Only reserves can be used for redemptions
+        require(permissions[LibTreasury.STATUS.RESERVESPENDER][msg.sender], notApproved);
 
         uint256 value = (_amount*ITOSValueCalculator(calculator).getTOSERC20PoolTOSPrice(_token,_tosERC20Pool,_fee))/1e18;
         ITOS(address(TOS)).burn(msg.sender, value);
@@ -104,57 +220,57 @@ contract Treasury is
 
     //TOS mint 권한 및 통제 설정 필요
     function mint(address _recipient, uint256 _amount) external override {
-        require(permissions[STATUS.REWARDMANAGER][msg.sender], notApproved);
+        require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender], notApproved);
         ITOS(address(TOS)).mint(_recipient, _amount);
         emit Minted(msg.sender, _recipient, _amount);
     }
 
-    /* ========== MANAGERIAL FUNCTIONS ========== */
-
-    /**
-     * @notice enable permission from queue
-     * @param _status STATUS
-     * @param _address address
-     */
-    function enable(
-        STATUS _status,
-        address _address
+    function requestMintAndTransfer(
+        uint256 _mintAmount,
+        address _recipient,
+        uint256 _transferAmount
     )
-        external
-        onlyPolicyOwner
+        external override
     {
-        permissions[_status][_address] = true;
+        require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender], notApproved);
+        require(_mintAmount > 0, "zero amount");
+        require(_mintAmount >= _transferAmount, "_mintAmount is less than _transferAmount");
+        TOS.mint(address(this), _mintAmount);
 
-        (bool registered, ) = indexInRegistry(_address, _status);
-
-        if (!registered) {
-            registry[_status].push(_address);
+        if (_transferAmount > 0) {
+            require(_recipient != address(0), "zero recipient");
+            TOS.safeTransfer(_recipient, _transferAmount);
         }
 
-        emit Permissioned(_address, _status, true);
+        uint256 remainedAmount = _mintAmount - _transferAmount;
+        if(remainedAmount > 0){
+            // distribute
+        }
     }
 
-    function approve(
-        address _addr
-    ) external onlyPolicyOwner {
-        TOS.approve(_addr, 1e45);
-    }
+    function requestTrasfer(
+        address _recipient,
+        uint256 _amount
+    ) external override {
+        require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender], notApproved);
+        require(_recipient != address(0), "zero recipient");
+        require(_amount > 0, "zero amount");
 
-    /**
-     *  @notice disable permission from address
-     *  @param _status STATUS
-     *  @param _toDisable address
-     */
-    function disable(STATUS _status, address _toDisable) external onlyPolicyOwner {
-        permissions[_status][_toDisable] = false;
-        emit Permissioned(_toDisable, _status, false);
+        require(TOS.balanceOf(address(this)) >= _amount, "treasury balance is insufficient");
+
+        TOS.safeTransfer(_recipient, _amount);
     }
 
     /**
      * @notice check if registry contains address
      * @return (bool, uint256)
      */
-    function indexInRegistry(address _address, STATUS _status) public view returns (bool, uint256) {
+    function indexInRegistry(
+        address _address,
+        LibTreasury.STATUS _status
+    )
+        public override view returns (bool, uint256)
+    {
         address[] memory entries = registry[_status];
         for (uint256 i = 0; i < entries.length; i++) {
             if (_address == entries[i]) {
@@ -164,70 +280,8 @@ contract Treasury is
         return (false, 0);
     }
 
-    //지원하는 자산을 추가 시킴
-    function addbackingList(address _address,address _tosPooladdress, uint24 _fee) external override onlyPolicyOwner {
-        uint256 amount = IERC20(_address).balanceOf(address(this));
-        backingList[backings.length] = amount;
-
-        backings.push(
-            Backing({
-                erc20Address: _address,
-                tosPoolAddress: _tosPooladdress,
-                fee: _fee
-            })
-        );
-    }
-
-    //tokenId는 유동성만 증가 -> backingReserve에 들어가지않음
-    function addLiquidityIdList(uint256 _tokenId, address _tosPoolAddress) external override onlyPolicyOwner {
-        tokenIdList[listings.length] = _tokenId;
-
-        listings.push(
-            Listing({
-                tokenId: _tokenId,
-                tosPoolAddress: _tosPoolAddress
-            })
-        );
-    }
-
-    function liquidityUpdate() public {
-
-    }
-
-    function setMR(uint256 _mrRate) external override onlyPolicyOwner {
-        mintRate = _mrRate;
-    }
-
-    function mintRateCall() external override view returns(uint256) {
-        return mintRate;
-    }
-
-    //TOS mint
-    function addTransfer(address _addr, uint256 _percents) external override onlyPolicyOwner {
-        require(_percents > 0 && _percents < 100, "_percents setting err");
-        require(totalPercents + _percents < 100, "totalPercents need small 100");
-
-        mintingList[mintings.length] = _addr;
-        totalPercents = totalPercents + _percents;
-
-        mintings.push(
-            Minting({
-                mintAddress: _addr,
-                mintPercents: _percents
-            })
-        );
-    }
-
-    function transferChange(uint256 _id, address _addr, uint256 _percents) external override onlyPolicyOwner {
-        Minting storage info = mintings[_id];
-        totalPercents = totalPercents + _percents - info.mintPercents;
-
-        info.mintAddress = _addr;
-        info.mintPercents = _percents;
-    }
-
     function transferLogic(uint256 _transAmount) external override returns (uint256 totalAmount){
-        require(permissions[STATUS.REWARDMANAGER][msg.sender], notApproved);
+        require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender], notApproved);
 
         for(uint256 i = 0; i < mintings.length; i++) {
             uint256 eachAmount = _transAmount * mintings[i].mintPercents / 100;
@@ -267,6 +321,8 @@ contract Treasury is
         totalValue = totalValue + ETHbacking;
         return totalValue;
     }
+
+    /* ========== VIEW ========== */
 
     function enableStaking() public override view returns (uint256) {
         return TOS.balanceOf(address(this));

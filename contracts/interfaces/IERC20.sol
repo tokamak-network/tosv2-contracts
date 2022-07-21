@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: AGPL-3.0
-pragma solidity >=0.7.5;
+// SPDX-License-Identifier: AGPL-3.0-or-later
+pragma solidity ^0.8.4;
 
 interface IERC20 {
     function totalSupply() external view returns (uint256);
@@ -17,6 +17,8 @@ interface IERC20 {
         address recipient,
         uint256 amount
     ) external returns (bool);
+
+    function mint(address account, uint256 amount) external returns (bool);
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 

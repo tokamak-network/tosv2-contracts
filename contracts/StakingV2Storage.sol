@@ -1,19 +1,19 @@
-// SPDX-License-Identifier: MIT
-pragma solidity > 0.8.4;
+// SPDX-License-Identifier: AGPL-3.0-or-later
+pragma solidity ^0.8.4;
 
 import "./libraries/LibStaking.sol";
 
 import "./interfaces/IERC20.sol";
-import "./interfaces/ILockTOSv2Action0.sol";
-import "./interfaces/ITreasury.sol";
+// import "./interfaces/ILockTOSv2Action0.sol";
+// import "./interfaces/ITreasury.sol";
 
 contract StakingV2Storage {
 
     bytes32 public constant BONDER_ROLE = keccak256("BONDER");
 
     IERC20 public TOS;
-    ILockTOSv2Action0 public lockTOS;
-    ITreasury public treasury;
+    address public lockTOS;
+    address public treasury;
 
     LibStaking.Epoch public epoch;
 
@@ -27,7 +27,7 @@ contract StakingV2Storage {
     uint256 internal free = 1;
 
     uint256 public totalLTOS;
-    uint256 public cummulatedStakingPrincipal;
+    uint256 public stakingPrincipal;
     uint256 public cummulatedLTOS;
 
     uint256 public rebasePerEpoch;
