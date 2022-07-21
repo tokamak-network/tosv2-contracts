@@ -58,7 +58,6 @@ interface IBondDepository {
             uint256 index_
         );
 
-
     /// @dev deposit with erc20 token
     /// @param _id  the market id
     /// @param _amount  the amount of deposit

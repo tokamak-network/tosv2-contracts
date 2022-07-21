@@ -153,7 +153,7 @@ contract BondDepository is
     {
         address _token = markets[_id].quoteToken;
         require(IERC20(_token).allowance(msg.sender, address(this)) >= _amount, "Depository : allowance is insufficient");
-        IERC20(_token).transfer(address(treasury), _amount);
+        IERC20(_token).transferFrom(msg.sender, address(treasury), _amount);
 
         (payout_, index_) = _deposit(msg.sender, _amount, _id, false);
 
@@ -181,7 +181,7 @@ contract BondDepository is
     {
         address _token = markets[_id].quoteToken;
         require(IERC20(_token).allowance(msg.sender, address(this)) >= _amount, "Depository : allowance is insufficient");
-        IERC20(_token).transfer(address(treasury), _amount);
+        IERC20(_token).transferFrom(msg.sender, address(treasury), _amount);
 
         (payout_, index_) = _deposit(msg.sender, _amount, _id, false);
 
@@ -212,7 +212,7 @@ contract BondDepository is
         require(payout_ > 0, "zero TOS amount");
         staking.stakeByBond(msg.sender, payout_, _id);
 
-        payable(address(treasury)).transfer(msg.value);
+        payable(treasury).transfer(msg.value);
 
         emit ETHDeposited(msg.sender, _id, _amount);
     }
@@ -240,7 +240,7 @@ contract BondDepository is
         require(payout_ > 0, "zero TOS amount");
         staking.stakeGetStosByBond(msg.sender, payout_, _id, _lockWeeks);
 
-        payable(address(treasury)).transfer(msg.value);
+        payable(treasury).transfer(msg.value);
 
         emit ETHDepositedWithSTOS(msg.sender, _id, _amount, _lockWeeks);
     }
@@ -289,9 +289,6 @@ contract BondDepository is
         if(mrAmount > 0 && _payout <= mrAmount) {
             IITreasury(treasury).requestMintAndTransfer(mrAmount, address(staking), _payout);
         }
-
-        // update the backingData
-        // treasury.backingUpdate();
 
         emit Deposited(user, _amount, _payout, _marketId, _eth);
     }

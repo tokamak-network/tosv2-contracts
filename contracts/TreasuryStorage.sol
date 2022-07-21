@@ -16,9 +16,6 @@ contract TreasuryStorage {
     mapping(LibTreasury.STATUS => mapping(address => bool)) public permissions;
     mapping(address => address) public bondCalculator;
 
-    mapping(uint256 => address) public mintingList;
-
-
     uint256 public totalReserves;
     uint256 public ETHbacking;
     uint256 public tosBacking;
@@ -28,16 +25,16 @@ contract TreasuryStorage {
     uint256 public totalPercents;
 
     LibTreasury.Backing[] public backings;
+    mapping(address => uint256) public backingsIndex;
 
     LibTreasury.Listing[] public listings;
-
     LibTreasury.Minting[] public mintings;
 
-    address[] public backingLists;
+    // address[] public backingLists;
     uint256[] public tokenIdLists;
 
     mapping(uint256 => uint256) public tokenIdList;
-    mapping(uint256 => uint256) public backingList;
+    // mapping(uint256 => uint256) public backingList;
 
     string internal notAccepted = "Treasury: not accepted";
     string internal notApproved = "Treasury: not approved";

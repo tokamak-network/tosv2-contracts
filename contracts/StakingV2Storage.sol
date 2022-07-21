@@ -9,7 +9,7 @@ import "./interfaces/IERC20.sol";
 
 contract StakingV2Storage {
 
-    bytes32 public constant BONDER_ROLE = keccak256("BONDER");
+    // bytes32 public constant BONDER_ROLE = keccak256("BONDER");
 
     IERC20 public TOS;
     address public lockTOS;

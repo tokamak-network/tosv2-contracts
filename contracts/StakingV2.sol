@@ -198,7 +198,6 @@ contract StakingV2 is
 
         rebaseIndex();
 
-        // zena.question : 기본 스테이킹에 기본 락업기간이 반드시 존재 해야 하는가? 없어도 되는가?
         _createStakeInfo(to, stakeId, _amount, block.timestamp + 1, 0);
 
     }
@@ -288,10 +287,6 @@ contract StakingV2 is
             TOS.safeTransferFrom(msg.sender, address(this), _addAmount);
         }
 
-        if (_claimAmount > 0) {
-            TOS.safeTransferFrom(address(this), msg.sender, _claimAmount);
-        }
-
         uint256 sTosEpochUnit = ILockTosV2(lockTOS).epochUnit();
         uint256 unlockTime = 0;
         if (_periodWeeks > 0) {
@@ -312,6 +307,10 @@ contract StakingV2 is
             uint256 sTOSid = _createStos(staker, depositPlusAmount, _periodWeeks, sTosEpochUnit);
             connectId[stakeId] = sTOSid;
             lockTOSId[sTOSid] = stakeId;
+        }
+
+        if (_claimAmount > 0) {
+            TOS.safeTransferFrom(address(this), msg.sender, _claimAmount);
         }
     }
 
@@ -337,14 +336,14 @@ contract StakingV2 is
 
         if(userStakingIndex[staker][_stakeId] > 1 && lockId == 0 && _unlockWeeks > 0) {
             // 마켓 상품이지만 락은 없었던 것. 락이 생길경우. amount 는 기존에 있던 금액에 추가되는 금액까지 고려해야 하는지.
-            uint256 remainLTOS = allStakings[_stakeId].LTOS - allStakings[_stakeId].getLTOS;
-            uint256 addAmount = _amount + getLtosToTos(remainLTOS);
+            //uint256 remainLTOS = remainedLTOS(_stakeId);  // allStakings[_stakeId].LTOS - allStakings[_stakeId].getLTOS;
+            uint256 addAmount = _amount + getLtosToTos(remainedLTOS(_stakeId));
             uint256 sTOSid = _createStos(staker, addAmount, _unlockWeeks, sTosEpochUnit);
             connectId[_stakeId] = sTOSid;
             lockTOSId[sTOSid] = _stakeId;
 
         } else if(userStakingIndex[staker][_stakeId] > 1 && lockId > 0) {
-            (, uint256 end, uint256 amount) = ILockTosV2(lockTOS).locksInfo(lockId);
+            (, uint256 end, uint256 principalsAmount) = ILockTosV2(lockTOS).locksInfo(lockId);
             require(end > block.timestamp && allStakings[_stakeId].endTime > block.timestamp, "lock end time has passed");
 
             if (_unlockWeeks == 0) { // 물량만 늘릴때 이자도 같이 늘린다.
@@ -358,8 +357,8 @@ contract StakingV2 is
                 uint256 amountCompound2 = 0; // 추가금액이 있을경우, 늘어나는 부분
 
                 uint256 n1 = (_unlockWeeks * sTosEpochUnit) / epochUnit;
-                amountCompound1 = compound(amount, rebasePerEpoch, n1);
-                amountCompound1 = amountCompound1 - amount;
+                amountCompound1 = compound(principalsAmount, rebasePerEpoch, n1);
+                amountCompound1 = amountCompound1 - principalsAmount;
 
                 if (_amount > 0) {
                     uint256 n2 = (end - block.timestamp  + (_unlockWeeks * sTosEpochUnit)) / epochUnit;

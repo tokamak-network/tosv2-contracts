@@ -7,23 +7,28 @@ interface ITreasury {
 
 
     /* ========== onlyPolicyOwner ========== */
-
-
+    // 주소에 권한설정
     function enable(LibTreasury.STATUS _status,  address _address) external ;
 
+    // 토큰 사용 승인, ( 스테이킹 컨트랙에 승인을 한다.)
     function approve(address _addr) external ;
 
+    //  민팅 비율
     function setMR(uint256 _mrRate) external;
 
+     // 주소에 권한설정
     function disable(LibTreasury.STATUS _status, address _toDisable) external;
 
-    function addbackingList(address _address, address _tosPooladdress, uint24 _fee) external ;
+    function addBackingList(address _address, address _tosPooladdress, uint24 _fee) external ;
+    function deleteBackingList(address _address) external;
 
-    function addLiquidityIdList(uint256 _tokenId, address _tosPoolAddress) external ;
+    // 토큰아이디 등록
+    // function addLiquidityIdList(uint256 _tokenId, address _tosPoolAddress) external ;
 
-    function addTransfer(address _addr, uint256 _percents) external ;
-
-    function transferChange(uint256 _id, address _addr, uint256 _percents) external ;
+    function setFoundationDistributeInfo(
+        address[] memory  _addr,
+        uint256[] memory _percents
+    ) external ;
 
 
     /* ========== onlyOwner ========== */
@@ -54,17 +59,37 @@ interface ITreasury {
         uint24 _fee
     ) external;
 
-    function mint(address _recipient, uint256 _amount) external;
+    // function mint(address _recipient, uint256 _amount) external;
 
-    function transferLogic(uint256 _transAmount) external returns (uint256 totalAmount);
-
-    function backingUpdate() external;
-
+    // function backingUpdate() external;
 
     /* ========== VIEW ========== */
 
     function indexInRegistry(address _address, LibTreasury.STATUS _status) external view returns (bool, uint256);
 
     function enableStaking() external view returns (uint256);
+    function backingReserve() external view returns (uint256) ;
+
+    function totalBacking() external view returns (uint256);
+
+    function viewBackingInfo(uint256 _index)
+        external view
+        returns (address erc20Address, address tosPoolAddress, uint24 fee);
+
+    function allBacking() external view returns (
+        address[] memory erc20Address,
+        address[] memory tosPoolAddress,
+        uint24[] memory fee
+    );
+
+    function totalMinting() external view returns(uint256) ;
+    function viewMintingInfo(uint256 _index)
+        external view returns(address mintAddress, uint256 mintPercents);
+
+    function allMintingg() external view
+        returns (
+            address[] memory mintAddress,
+            uint256[] memory mintPercents
+            );
 
 }

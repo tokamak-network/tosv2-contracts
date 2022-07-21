@@ -82,17 +82,63 @@ contract Treasury is
         emit Permissioned(_toDisable, _status, false);
     }
 
+    function totalBacking() public override view returns(uint256) {
+         return backings.length;
+    }
 
-    //지원하는 자산을 추가 시킴
-    function addbackingList(
+    function viewBackingInfo(uint256 _index)
+        public override view
+        returns (address erc20Address, address tosPoolAddress, uint24 fee)
+    {
+         return (
+                backings[_index].erc20Address,
+                backings[_index].tosPoolAddress,
+                backings[_index].fee
+            );
+    }
+
+    function allBacking() public override view
+        returns (
+            address[] memory erc20Address,
+            address[] memory tosPoolAddress,
+            uint24[] memory fee)
+    {
+        uint256 len = backings.length;
+        erc20Address = new address[](len);
+        tosPoolAddress = new address[](len);
+        fee = new uint24[](len);
+
+        for (uint256 i = 0; i < len; i++){
+            erc20Address[i] = backings[i].erc20Address;
+            tosPoolAddress[i] = backings[i].tosPoolAddress;
+            fee[i] = backings[i].fee;
+        }
+    }
+
+
+    function addBackingList(
         address _address,
         address _tosPooladdress,
         uint24 _fee
     )
         external override onlyPolicyOwner
+        nonZeroAddress(_address)
+        nonZeroAddress(_tosPooladdress)
     {
-        uint256 amount = IERC20(_address).balanceOf(address(this));
-        backingList[backings.length] = amount;
+
+        if(backings.length == 0) {
+            // add dummy
+            backings.push(
+                LibTreasury.Backing({
+                    erc20Address: address(0),
+                    tosPoolAddress: address(0),
+                    fee: 0
+                })
+            );
+        }
+        require(backingsIndex[_address] == 0, "already added");
+
+        backingsIndex[_address] = backings.length;
 
         backings.push(
             LibTreasury.Backing({
@@ -103,49 +149,84 @@ contract Treasury is
         );
     }
 
-    //tokenId는 유동성만 증가 -> backingReserve에 들어가지않음
-    function addLiquidityIdList(
-        uint256 _tokenId,
-        address _tosPoolAddress
+
+    function deleteBackingList(
+        address _address
+    )
+        external override onlyPolicyOwner
+        nonZeroAddress(_address)
+    {
+        require(backingsIndex[_address] > 0, "not registered");
+
+        uint256 curIndex = backingsIndex[_address];
+        if (curIndex < backings.length-1) {
+            LibTreasury.Backing storage info = backings[curIndex];
+            info.erc20Address = backings[backings.length-1].erc20Address;
+            info.tosPoolAddress = backings[backings.length-1].tosPoolAddress;
+            info.fee = backings[backings.length-1].fee;
+
+            backingsIndex[info.erc20Address] = curIndex;
+        }
+        backingsIndex[_address] = 0;
+        backings.pop();
+    }
+
+    function totalMinting() public override view returns(uint256) {
+         return mintings.length;
+    }
+
+    function viewMintingInfo(uint256 _index)
+        public override view returns(address mintAddress, uint256 mintPercents)
+    {
+         return (mintings[_index].mintAddress, mintings[_index].mintPercents);
+    }
+
+    function allMintingg() public override view
+        returns (
+            address[] memory mintAddress,
+            uint256[] memory mintPercents
+            )
+    {
+        uint256 len = mintings.length;
+        mintAddress = new address[](len);
+        mintPercents = new uint256[](len);
+
+        for (uint256 i = 0; i < len; i++){
+            mintAddress[i] = mintings[i].mintAddress;
+            mintPercents[i] = mintings[i].mintPercents;
+        }
+    }
+
+    //TOS mint
+    function setFoundationDistributeInfo(
+        address[] memory  _addr,
+        uint256[] memory _percents
     )
         external override onlyPolicyOwner
     {
-        tokenIdList[listings.length] = _tokenId;
+        uint256 total = 0;
+        require(_addr.length > 0, "zero length");
+        require(_addr.length == _percents.length, "wrong length");
 
-        listings.push(
-            LibTreasury.Listing({
-                tokenId: _tokenId,
-                tosPoolAddress: _tosPoolAddress
-            })
-        );
+        uint256 len = _addr.length;
+        for (uint256 i = 0; i< len ; i++){
+            require(_addr[i] != address(0), "zero address");
+            require(_percents[i] > 0, "zero _percents");
+            total += _percents[i];
+        }
+        require(total < 100, "wrong _percents");
+
+        delete mintings;
+
+        for (uint256 i = 0; i< len ; i++) {
+            mintings.push(
+                LibTreasury.Minting({
+                    mintAddress: _addr[i],
+                    mintPercents: _percents[i]
+                })
+            );
+        }
     }
-
-
-    //TOS mint
-    function addTransfer(address _addr, uint256 _percents) external override onlyPolicyOwner {
-        require(_percents > 0 && _percents < 100, "_percents setting err");
-        require(totalPercents + _percents < 100, "totalPercents need small 100");
-
-        mintingList[mintings.length] = _addr;
-        totalPercents = totalPercents + _percents;
-
-        mintings.push(
-            LibTreasury.Minting({
-                mintAddress: _addr,
-                mintPercents: _percents
-            })
-        );
-    }
-
-    function transferChange(uint256 _id, address _addr, uint256 _percents)
-        external override onlyPolicyOwner {
-        LibTreasury.Minting storage info = mintings[_id];
-        totalPercents = totalPercents + _percents - info.mintPercents;
-
-        info.mintAddress = _addr;
-        info.mintPercents = _percents;
-    }
-
 
      /* ========== permissions : LibTreasury.STATUS.RESERVEDEPOSITOR ========== */
 
@@ -218,12 +299,15 @@ contract Treasury is
         emit Withdrawal(_token, _amount, value);
     }
 
-    //TOS mint 권한 및 통제 설정 필요
+    /*
+    // TOS mint 권한 및 통제 설정 필요
+    // 자신받아야 하지 않나???
     function mint(address _recipient, uint256 _amount) external override {
         require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender], notApproved);
         ITOS(address(TOS)).mint(_recipient, _amount);
         emit Minted(msg.sender, _recipient, _amount);
     }
+    */
 
     function requestMintAndTransfer(
         uint256 _mintAmount,
@@ -243,8 +327,16 @@ contract Treasury is
         }
 
         uint256 remainedAmount = _mintAmount - _transferAmount;
-        if(remainedAmount > 0){
-            // distribute
+        if(remainedAmount > 0) _foundationDistribute(remainedAmount);
+    }
+
+    function _foundationDistribute(uint256 remainedAmount) internal {
+        if (mintings.length > 0) {
+            for (uint256 i = 0; i < mintings.length ; i++) {
+                TOS.safeTransfer(
+                    mintings[i].mintAddress, remainedAmount *  mintings[i].mintPercents / 100
+                );
+            }
         }
     }
 
@@ -280,37 +372,16 @@ contract Treasury is
         return (false, 0);
     }
 
-    function transferLogic(uint256 _transAmount) external override returns (uint256 totalAmount){
-        require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender], notApproved);
-
-        for(uint256 i = 0; i < mintings.length; i++) {
-            uint256 eachAmount = _transAmount * mintings[i].mintPercents / 100;
-            totalAmount = totalAmount + eachAmount;
-            TOS.safeTransfer(mintings[i].mintAddress,eachAmount);
-        }
-        return totalAmount;
-    }
-
 
     //tokenID를 받으면 token0 Amount, token1 amount return 해주는 View함수
 
     //poolAddress를 받으면 token0, token1의 amount를 return 해주는 view함수 필요
 
-
-    //현재 지원하는 자산을 최신으로 업데이트 시킴
-    function backingUpdate() public override {
-        ETHbacking = address(this).balance;
-        for (uint256 i = 0; i < backings.length; i++) {
-            uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));
-            backingList[i] = amount;
-        }
-    }
-
     //eth, weth, market에서 받은 자산 다 체크해야함
     //환산은 eth단위로
     //Treasury에 있는 자산을 ETH로 환산하여서 합하여 리턴함
     // token * (? ETH/1TOS * ?TOS/1ERC20) -> ? token * ( ? ETH/1token) -> ? ETH
-    function backingReserve() public view returns (uint256) {
+    function backingReserve() public override view returns (uint256) {
         uint256 totalValue;
         uint256 tosETHPrice = ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
         for(uint256 i = 0; i < backings.length; i++) {
