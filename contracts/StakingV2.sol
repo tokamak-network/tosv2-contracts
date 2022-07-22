@@ -511,31 +511,13 @@ contract StakingV2 is
             epoch.number = epoch.number + (epochNumber + 1);
             console.log("epoch.number : %s", epoch.number);
 
-            /*
             // 1. try to apply epochNumber
-
-            // 2. find  posible epoch number
-
-
-            //
-            for(uint256 i = epochNumber; i > 0; i--) {
-                uint256 amount = coumpound(totalLtos, rebaserate, epochNumber)
-                if(IITreasury(treasury).enableStaking() >= amount) {
-
-                     break;
-                }
+            uint256 newIndex = compound(index_, rebasePerEpoch, epochNumber);
+            if (totalLTOS * newIndex < circulatingSupply()) {
+                index_ =  newIndex;
+            } else {
+                // 2. find  posible epoch number
             }
-
-            //index를 epochNumber만큼 시킴
-            //만약 treasury에 있는 TOS물량이 다음 index를 지원하면 index를 증가 시킨다.
-            for(uint256 i = 0; i < (epochNumber + 1); i++) {
-                console.log("rebaseIndex() : %s", i);
-                if(IITreasury(treasury).enableStaking() > nextLTOSinterest()) {
-                    index();
-                }
-            }
-
-            */
         }
     }
 
@@ -578,8 +560,6 @@ contract StakingV2 is
     function secondsToNextEpoch() external override view returns (uint256) {
         return (epoch.end - block.timestamp);
     }
-
-    // circulatingSupply 유통량 물량 .
 
     // LTOS를 TOS로 보상해주고 남은 TOS 물량
     /// @inheritdoc IStaking
