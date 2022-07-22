@@ -475,9 +475,11 @@ contract StakingV2 is
             */
 
             // 1. use epochNumber
-            uint256 newIndex = compound(index_, rebasePerEpoch, epochNumber);
+            uint256 newIndex = index_;
+            if(epochNumber > 1) newIndex = compound(index_, rebasePerEpoch, epochNumber) ;
+            else if(epochNumber == 1)  newIndex = nextIndex();
 
-            if ((totalLTOS * newIndex / 1e18) < circulatingSupply()) {
+            if ((totalLTOS * newIndex / 1e18) < runwayTOS()) {
                 index_ = newIndex;
 
             } else {
@@ -485,7 +487,7 @@ contract StakingV2 is
                 uint256 _possibleEpochNumber = possibleEpochNumber();
                 if (_possibleEpochNumber < epochNumber) {
                     newIndex = compound(index_, rebasePerEpoch, _possibleEpochNumber);
-                    if (totalLTOS * newIndex < circulatingSupply()) {
+                    if (totalLTOS * newIndex / 1e18 < runwayTOS()) {
                         index_ =  newIndex;
                     }
                 }
@@ -528,28 +530,25 @@ contract StakingV2 is
         else return 0;
     }
 
-
     /// @inheritdoc IStaking
     function nextIndex() public view override returns (uint256) {
-        uint256 newindex = (index_*(1 ether+rebasePerEpoch) / 1e18);
-        return newindex;
+        return (index_*(1 ether+rebasePerEpoch) / 1e18);
     }
-
 
     function possibleEpochNumber() public view returns (uint256 ){
 
-        int128 _circulatingSupply = ABDKMath64x64.fromUInt(circulatingSupply());
-        int128 totalTOS = ABDKMath64x64.fromUInt(getLtosToTos(totalLTOS));
+        int128 _runwayTOS = ABDKMath64x64.fromUInt(runwayTOS());
+        int128 _totalTOS = ABDKMath64x64.fromUInt(getLtosToTos(totalLTOS));
 
         int128 maxNum =
                     ABDKMath64x64.div(
                         ABDKMath64x64.ln(
                             ABDKMath64x64.div(
                                 ABDKMath64x64.add(
-                                    _circulatingSupply,
-                                    totalTOS
+                                    _runwayTOS,
+                                    _totalTOS
                                 ),
-                                totalTOS
+                                _totalTOS
                             )
                         ),
                         ABDKMath64x64.ln(
@@ -614,7 +613,7 @@ contract StakingV2 is
 
     // LTOS를 TOS로 보상해주고 남은 TOS 물량
     /// @inheritdoc IStaking
-    function circulatingSupply() public override view returns (uint256) {
+    function runwayTOS() public override view returns (uint256) {
         uint256 treasuryAmount = IITreasury(treasury).enableStaking() ;
         uint256 balanceTos =  totalDepositTOS();
         uint256 debtTos =  getLtosToTos(totalLTOS);

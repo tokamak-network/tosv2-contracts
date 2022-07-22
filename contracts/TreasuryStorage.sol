@@ -6,8 +6,6 @@ import "./interfaces/IERC20.sol";
 
 contract TreasuryStorage {
 
-    /* ========== STATE VARIABLES ========== */
-
     IERC20 public TOS;
 
     address public calculator;
@@ -31,11 +29,9 @@ contract TreasuryStorage {
     LibTreasury.Listing[] public listings;
     LibTreasury.Minting[] public mintings;
 
-    // address[] public backingLists;
     uint256[] public tokenIdLists;
 
     mapping(uint256 => uint256) public tokenIdList;
-    // mapping(uint256 => uint256) public backingList;
 
     string internal notAccepted = "Treasury: not accepted";
     string internal notApproved = "Treasury: not approved";
