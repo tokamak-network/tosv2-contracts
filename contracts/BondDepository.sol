@@ -127,12 +127,6 @@ contract BondDepository is
         emit ClosedMarket(_id);
     }
 
-    /// @inheritdoc IBondDepository
-    function setDefaultLockPeriod(uint256 _value) external override onlyPolicyOwner nonZero(_value) {
-        require(defaultLockPeriod != _value, "same value");
-        defaultLockPeriod = _value;
-    }
-
     ///////////////////////////////////////
     /// Anyone can use.
     //////////////////////////////////////
