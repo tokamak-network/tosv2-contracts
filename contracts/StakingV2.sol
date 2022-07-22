@@ -462,18 +462,24 @@ contract StakingV2 is
     /// @inheritdoc IStaking
     function rebaseIndex() public override {
         if(epoch.end <= block.timestamp) {
+
             uint256 epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
             console.log("epochNumber : %s", epochNumber);
-            epoch.end = epoch.end + (epoch.length_ * (epochNumber + 1));
+
+            epoch.end += (epoch.length_ * (epochNumber + 1));
+            /*
+             epoch.end = epoch.end + (epoch.length_ * (epochNumber + 1));
             console.log("epoch.end : %s", epoch.end);
             epoch.number = epoch.number + (epochNumber + 1);
             console.log("epoch.number : %s", epoch.number);
+            */
 
             // 1. use epochNumber
             uint256 newIndex = compound(index_, rebasePerEpoch, epochNumber);
-            if (totalLTOS * newIndex < circulatingSupply()) {
+
+            if ((totalLTOS * newIndex / 1e18) < circulatingSupply()) {
                 index_ = newIndex;
-                epoch.end += (epoch.length_ * epochNumber);
+
             } else {
                 // 2. find posible epoch number
                 uint256 _possibleEpochNumber = possibleEpochNumber();
@@ -481,8 +487,6 @@ contract StakingV2 is
                     newIndex = compound(index_, rebasePerEpoch, _possibleEpochNumber);
                     if (totalLTOS * newIndex < circulatingSupply()) {
                         index_ =  newIndex;
-                        //  epoch.end += (epoch.length_ * _possibleEpochNumber);
-                        epoch.end += (epoch.length_ * epochNumber);
                     }
                 }
             }
@@ -596,8 +600,17 @@ contract StakingV2 is
 
     /// @inheritdoc IStaking
     function secondsToNextEpoch() external override view returns (uint256) {
-        return (epoch.end - block.timestamp);
+        if (epoch.end < block.timestamp) return 0;
+        else return (epoch.end - block.timestamp);
     }
+
+    /*
+    /// @inheritdoc IStaking
+    function secondsToNextEpoch() external override view returns (uint256) {
+        return ((block.timestamp - startEpochTime / epoch.length_)  + epoch.length_);
+    }
+    */
+
 
     // LTOS를 TOS로 보상해주고 남은 TOS 물량
     /// @inheritdoc IStaking

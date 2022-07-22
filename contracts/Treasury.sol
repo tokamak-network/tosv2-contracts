@@ -94,9 +94,19 @@ contract Treasury is
     }
 
     function setMR(uint256 _mrRate) external override onlyPolicyOwner {
+
+        require(calculateNeedTOS(_mrRate), "non-available mintRate");
         mintRate = _mrRate;
     }
 
+    function calculateNeedTOS (uint256 _checkMintRate) public view returns (bool) {
+
+        if (TOS.totalSupply() <= _checkMintRate * backingReserve() ) {
+             return true;
+        } else {
+            return false;
+        }
+    }
 
     function totalBacking() public override view returns(uint256) {
          return backings.length;
@@ -404,14 +414,21 @@ contract Treasury is
         uint256 tosETHPrice = ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
         for(uint256 i = 0; i < backings.length; i++) {
             uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));
-            uint256 tosERC20Price = ITOSValueCalculator(calculator).getTOSERC20PoolERC20Price(backings[i].erc20Address,backings[i].tosPoolAddress,backings[i].fee);
-            totalValue = totalValue + ((amount * tosERC20Price * tosETHPrice/1e18)/1e18);
+
+            if (wethAddress != backings[i].erc20Address)  {
+                uint256 tosERC20Price = ITOSValueCalculator(calculator).getTOSERC20PoolERC20Price(backings[i].erc20Address,backings[i].tosPoolAddress,backings[i].fee);
+                totalValue += ((amount * tosERC20Price * tosETHPrice/1e18)/1e18);
+            } else {
+                totalValue += amount;
+            }
         }
-        totalValue = totalValue + ETHbacking;
+        totalValue += address(this).balance;
         return totalValue;
     }
 
-
+    function backingRateETHPerTOS() public override view returns (uint256) {
+        return (backingReserve() / TOS.totalSupply()) ;
+    }
 
     function enableStaking() public override view returns (uint256) {
         return TOS.balanceOf(address(this));

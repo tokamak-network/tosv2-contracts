@@ -15,6 +15,7 @@ contract TreasuryStorage {
     mapping(LibTreasury.STATUS => address[]) public registry;
     mapping(LibTreasury.STATUS => mapping(address => bool)) public permissions;
     mapping(address => address) public bondCalculator;
+    address public wethAddress;
 
     uint256 public totalReserves;
     uint256 public ETHbacking;

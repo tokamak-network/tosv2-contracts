@@ -37,6 +37,7 @@ contract StakingV2Proxy is
         epochUnit = _epoch[3];
 
         basicBondPeriod = _basicBondPeriod;
+        startEpochTime = block.timestamp;
     }
 
 }

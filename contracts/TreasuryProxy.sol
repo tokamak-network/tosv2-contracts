@@ -15,14 +15,19 @@ contract TreasuryProxy is
      /* ========== CONSTRUCTOR ========== */
     function initialize(
         address _tos,
-        address _calculator
+        address _calculator,
+        address _wethAddress
     )
+        nonZeroAddress(_tos)
+        nonZeroAddress(_calculator)
+        nonZeroAddress(_wethAddress)
         external onlyProxyOwner
     {
-        require(_tos != address(0), "Zero address: TOS");
+        require(address(TOS) == address(0), "already initialized");
 
         TOS = IERC20(_tos);
         calculator = _calculator;
+        wethAddress = _wethAddress;
     }
 
 }
