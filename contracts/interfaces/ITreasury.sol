@@ -10,20 +10,21 @@ interface ITreasury {
     // 주소에 권한설정
     function enable(uint _status,  address _address) external ;
 
+    // 주소에 권한설정
+    function disable(uint _status, address _toDisable) external;
+
     // 토큰 사용 승인, ( 스테이킹 컨트랙에 승인을 한다.)
     function approve(address _addr) external ;
 
     //  민팅 비율
-    function setMR(uint256 _mrRate) external;
-
-     // 주소에 권한설정
-    function disable(uint _status, address _toDisable) external;
+    function setMR(uint256 _mrRate, uint256 amount) external;
 
     function addBackingList(address _address, address _tosPooladdress, uint24 _fee) external ;
     function deleteBackingList(address _address) external;
 
     // 토큰아이디 등록
     // function addLiquidityIdList(uint256 _tokenId, address _tosPoolAddress) external ;
+
 
     function setFoundationDistributeInfo(
         address[] memory  _addr,
@@ -33,10 +34,7 @@ interface ITreasury {
 
     /* ========== onlyOwner ========== */
 
-
-    /* ========== onlyBonder ========== */
-
-    function requestMintAndTransfer(uint256 _mintAmount, address _recipient, uint256 _transferAmount) external ;
+    function requestMintAndTransfer(uint256 _mintAmount, address _recipient, uint256 _transferAmount, bool _distribute) external ;
 
     /* ========== onlyStaker ========== */
 
@@ -64,6 +62,7 @@ interface ITreasury {
     // function backingUpdate() external;
 
     /* ========== VIEW ========== */
+    function backingRateETHPerTOS() external view returns (uint256);
 
     function indexInRegistry(address _address, LibTreasury.STATUS _status) external view returns (bool, uint256);
 

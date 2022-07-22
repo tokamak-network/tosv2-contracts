@@ -10,7 +10,6 @@ import "./interfaces/IBondDepository.sol";
 import "./interfaces/IBondDepositoryEvent.sol";
 //import "hardhat/console.sol";
 
-
 interface IUniswapV3Pool {
     function token0() external view returns (address);
     function token1() external view returns (address);
@@ -18,10 +17,9 @@ interface IUniswapV3Pool {
 
 interface IITreasury {
     function mintRate() external view returns (uint256);
-    //function backingUpdate() external;
-    function requestMintAndTransfer(uint256 _mintAmount, address _recipient, uint256 _transferAmount) external ;
+    function requestMintAndTransfer(
+        uint256 _mintAmount, address _recipient, uint256 _transferAmount, bool _distribute) external ;
 }
-
 
 contract BondDepository is
     BondDepositoryStorage,
@@ -281,7 +279,7 @@ contract BondDepository is
         );
 
         if(mrAmount > 0 && _payout <= mrAmount) {
-            IITreasury(treasury).requestMintAndTransfer(mrAmount, address(staking), _payout);
+            IITreasury(treasury).requestMintAndTransfer(mrAmount, address(staking), _payout, true);
         }
 
         emit Deposited(user, _amount, _payout, _marketId, _eth);

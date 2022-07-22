@@ -93,19 +93,13 @@ contract Treasury is
         TOS.approve(_addr, 1e45);
     }
 
-    function setMR(uint256 _mrRate) external override onlyPolicyOwner {
+    function setMR(uint256 _mrRate, uint256 amount) external override onlyPolicyOwner {
 
-        require(calculateNeedTOS(_mrRate), "non-available mintRate");
-        mintRate = _mrRate;
-    }
+        require(mintRate != _mrRate || amount > 0, "check input value");
+        require(calculateNeedTOS(_mrRate, amount), "non-available mintRate");
 
-    function calculateNeedTOS (uint256 _checkMintRate) public view returns (bool) {
-
-        if (TOS.totalSupply() <= _checkMintRate * backingReserve() ) {
-             return true;
-        } else {
-            return false;
-        }
+        if (mintRate != _mrRate) mintRate = _mrRate;
+        if (amount > 0) TOS.mint(address(this), amount);
     }
 
     function totalBacking() public override view returns(uint256) {
@@ -338,13 +332,17 @@ contract Treasury is
     function requestMintAndTransfer(
         uint256 _mintAmount,
         address _recipient,
-        uint256 _transferAmount
+        uint256 _transferAmount,
+        bool _distribute
     )
         external override
     {
         require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender], notApproved);
         require(_mintAmount > 0, "zero amount");
         require(_mintAmount >= _transferAmount, "_mintAmount is less than _transferAmount");
+
+        require(calculateNeedTOS(mintRate, _mintAmount), "non-available mintRate");
+
         TOS.mint(address(this), _mintAmount);
 
         if (_transferAmount > 0) {
@@ -353,7 +351,7 @@ contract Treasury is
         }
 
         uint256 remainedAmount = _mintAmount - _transferAmount;
-        if(remainedAmount > 0) _foundationDistribute(remainedAmount);
+        if(remainedAmount > 0 && _distribute) _foundationDistribute(remainedAmount);
     }
 
     function _foundationDistribute(uint256 remainedAmount) internal {
@@ -399,6 +397,15 @@ contract Treasury is
     }
 
     /* ========== VIEW ========== */
+
+    function calculateNeedTOS (uint256 _checkMintRate, uint256 amount) public view returns (bool) {
+
+        if (TOS.totalSupply() + amount <= _checkMintRate * backingReserve() ) {
+             return true;
+        } else {
+            return false;
+        }
+    }
 
 
     //tokenID를 받으면 token0 Amount, token1 amount return 해주는 View함수
