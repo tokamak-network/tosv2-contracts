@@ -459,7 +459,34 @@ contract StakingV2 is
         }
     }
 
-     /* ========== VIEW ========== */
+    /// @inheritdoc IStaking
+    function rebaseIndex() public override {
+        if(epoch.end <= block.timestamp) {
+            uint256 epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
+            console.log("epochNumber : %s", epochNumber);
+            epoch.end = epoch.end + (epoch.length_ * (epochNumber + 1));
+            console.log("epoch.end : %s", epoch.end);
+            epoch.number = epoch.number + (epochNumber + 1);
+            console.log("epoch.number : %s", epoch.number);
+
+            // 1. use epochNumber
+            uint256 newIndex = compound(index_, rebasePerEpoch, epochNumber);
+            if (totalLTOS * newIndex < circulatingSupply()) {
+                index_ =  newIndex;
+            } else {
+                // 2. find posible epoch number
+                uint256 _possibleEpochNumber = possibleEpochNumber();
+                if (_possibleEpochNumber < epochNumber) {
+                    newIndex = compound(index_, rebasePerEpoch, _possibleEpochNumber);
+                    if (totalLTOS * newIndex < circulatingSupply()) {
+                        index_ =  newIndex;
+                    }
+                }
+            }
+        }
+    }
+
+    /* ========== VIEW ========== */
 
 
     /// @inheritdoc IStaking
@@ -501,24 +528,32 @@ contract StakingV2 is
         return newindex;
     }
 
-    /// @inheritdoc IStaking
-    function rebaseIndex() public override {
-        if(epoch.end <= block.timestamp) {
-            uint256 epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
-            console.log("epochNumber : %s", epochNumber);
-            epoch.end = epoch.end + (epoch.length_ * (epochNumber + 1));
-            console.log("epoch.end : %s", epoch.end);
-            epoch.number = epoch.number + (epochNumber + 1);
-            console.log("epoch.number : %s", epoch.number);
 
-            // 1. try to apply epochNumber
-            uint256 newIndex = compound(index_, rebasePerEpoch, epochNumber);
-            if (totalLTOS * newIndex < circulatingSupply()) {
-                index_ =  newIndex;
-            } else {
-                // 2. find  posible epoch number
-            }
-        }
+    function possibleEpochNumber() public view returns (uint256 ){
+
+        int128 _circulatingSupply = ABDKMath64x64.fromUInt(circulatingSupply());
+        int128 totalTOS = ABDKMath64x64.fromUInt(getLtosToTos(totalLTOS));
+
+        int128 maxNum =
+                    ABDKMath64x64.div(
+                        ABDKMath64x64.ln(
+                            ABDKMath64x64.div(
+                                ABDKMath64x64.add(
+                                    _circulatingSupply,
+                                    totalTOS
+                                ),
+                                totalTOS
+                            )
+                        ),
+                        ABDKMath64x64.ln(
+                            ABDKMath64x64.add(
+                                ABDKMath64x64.fromUInt(1),
+                                ABDKMath64x64.fromUInt(rebasePerEpoch)
+                            )
+                        )
+                    );
+
+        return uint256(uint128(maxNum));
     }
 
     /// @inheritdoc IStaking
