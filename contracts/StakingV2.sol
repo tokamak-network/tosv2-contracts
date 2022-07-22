@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.4;
 
+import "./StakingV2Storage.sol";
 import "./common/StakeProxyAccess.sol";
 
 import "./libraries/SafeMath.sol";
@@ -8,7 +9,7 @@ import "./libraries/SafeERC20.sol";
 import "./libraries/ABDKMath64x64.sol";
 import {DSMath} from "./libraries/DSMath.sol";
 
-import "./StakingV2Storage.sol";
+import "./libraries/LibTreasury.sol";
 
 import "./interfaces/IStaking.sol";
 import "./interfaces/IStakingEvent.sol";
@@ -38,6 +39,7 @@ interface IITreasury {
 
     function enableStaking() external view returns (uint256);
     function requestTrasfer(address _recipient, uint256 _amount)  external;
+    function hasPermission(LibTreasury.STATUS role, address account) external view returns (bool);
 }
 
 contract StakingV2 is
@@ -50,6 +52,13 @@ contract StakingV2 is
     /* ========== DEPENDENCIES ========== */
     //using SafeMath for uint256;
     using SafeERC20 for IERC20;
+
+
+    /// @dev Check if a function is used or not
+    modifier onlyBonder() {
+        require(IITreasury(treasury).hasPermission(LibTreasury.STATUS.BONDER, msg.sender), "sender is not a bonder");
+        _;
+    }
 
     /* ========== CONSTRUCTOR ========== */
     constructor() {
@@ -417,8 +426,8 @@ contract StakingV2 is
             delete lockTOSId[sTOSid];
         }
 
-        _deleteUserStakeId(staker, _stakeId);
-        _deleteStakeId(_stakeId) ;
+        uint256 userStakeIdIndex  = _deleteUserStakeId(staker, _stakeId);
+        _deleteStakeId(_stakeId, userStakeIdIndex) ;
 
         if (addProfitRemainedTos > principal) {
             IITreasury(treasury).requestTrasfer(address(this), addProfitRemainedTos - principal);
@@ -502,6 +511,21 @@ contract StakingV2 is
             epoch.number = epoch.number + (epochNumber + 1);
             console.log("epoch.number : %s", epoch.number);
 
+            /*
+            // 1. try to apply epochNumber
+
+            // 2. find  posible epoch number
+
+
+            //
+            for(uint256 i = epochNumber; i > 0; i--) {
+                uint256 amount = coumpound(totalLtos, rebaserate, epochNumber)
+                if(IITreasury(treasury).enableStaking() >= amount) {
+
+                     break;
+                }
+            }
+
             //index를 epochNumber만큼 시킴
             //만약 treasury에 있는 TOS물량이 다음 index를 지원하면 index를 증가 시킨다.
             for(uint256 i = 0; i < (epochNumber + 1); i++) {
@@ -510,6 +534,8 @@ contract StakingV2 is
                     index();
                 }
             }
+
+            */
         }
     }
 
@@ -553,6 +579,7 @@ contract StakingV2 is
         return (epoch.end - block.timestamp);
     }
 
+    // circulatingSupply 유통량 물량 .
 
     // LTOS를 TOS로 보상해주고 남은 TOS 물량
     /// @inheritdoc IStaking
@@ -712,8 +739,20 @@ contract StakingV2 is
         totalLTOS += ltos;
     }
 
-    function _deleteStakeId(uint256 _stakeId) internal {
-        delete allStakings[_stakeId];
+    function _deleteStakeId(uint256 _stakeId, uint256 userStakeIdIndex) internal {
+        if(userStakeIdIndex > 1)  delete allStakings[_stakeId];
+        else  {
+            // 초기화
+            LibStaking.UserBalance storage stakeInfo = allStakings[_stakeId];
+            stakeInfo.staker = address(0);
+            stakeInfo.deposit = 0;
+            stakeInfo.LTOS = 0;
+            stakeInfo.endTime = 0;
+            stakeInfo.getLTOS = 0;
+            stakeInfo.rewardTOS = 0;
+            stakeInfo.marketId = 0;
+            stakeInfo.withdraw = false;
+        }
     }
 
     function _addStakeInfo(
@@ -787,16 +826,19 @@ contract StakingV2 is
     }
 
 
-    function _deleteUserStakeId(address to, uint256 _id) internal {
+    function _deleteUserStakeId(address to, uint256 _id) internal  returns (uint256 curIndex){
 
-        uint256 curIndex = userStakingIndex[to][_id];
-        if (curIndex < userStakings[to].length-1){
-            uint256 lastId = userStakings[to][userStakings[to].length-1];
-            userStakings[to][curIndex] = lastId;
-            userStakingIndex[to][lastId] = curIndex;
+        curIndex = userStakingIndex[to][_id];
+
+        if (curIndex > 1 ) {
+            if (curIndex < userStakings[to].length-1){
+                uint256 lastId = userStakings[to][userStakings[to].length-1];
+                userStakings[to][curIndex] = lastId;
+                userStakingIndex[to][lastId] = curIndex;
+            }
+            userStakingIndex[to][_id] = 0;
+            userStakings[to].pop();
         }
-        userStakingIndex[to][_id] = 0;
-        userStakings[to].pop();
     }
 
     /**
@@ -823,4 +865,7 @@ contract StakingV2 is
         return stakingIdCounter++;
     }
 
+    function isBonder(address account) public view virtual returns (bool) {
+        return IITreasury(treasury).hasPermission(LibTreasury.STATUS.BONDER, account);
+    }
 }

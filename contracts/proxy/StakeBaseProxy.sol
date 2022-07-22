@@ -19,10 +19,8 @@ contract StakeBaseProxy is StakeProxyAccess, StakeBaseStorage, IProxyEvent, IPro
      */
     constructor () {
         _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
-        _setRoleAdmin(BONDER, BONDER);
         _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _setupRole(BONDER, msg.sender);
     }
 
     /// @inheritdoc IProxyAction

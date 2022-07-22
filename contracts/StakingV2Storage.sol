@@ -9,16 +9,11 @@ import "./interfaces/IERC20.sol";
 
 contract StakingV2Storage {
 
-    // bytes32 public constant BONDER_ROLE = keccak256("BONDER");
-
     IERC20 public TOS;
     address public lockTOS;
     address public treasury;
 
     LibStaking.Epoch public epoch;
-
-    // mapping(address => Claim) public warmupInfo;
-    // mapping(address => Users) public userInfo;
 
     uint256 public epochUnit;
 
@@ -43,9 +38,6 @@ contract StakingV2Storage {
     mapping(address => mapping(uint256 => uint256)) public userStakingIndex;
 
     mapping(uint256 => LibStaking.UserBalance) public allStakings;
-
-    //mapping(address => mapping(uint256 => LibStaking.UserBalance)) public stakingBalances;
-
 
     // stakeId -sTOSid
     mapping(uint256 => uint256) public connectId;

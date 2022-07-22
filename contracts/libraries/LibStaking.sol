@@ -4,7 +4,6 @@ pragma solidity ^0.8.4;
 /// @title LibStaking
 library LibStaking
 {
-
     struct Epoch {
         uint256 length_; // in seconds
         uint256 number; // since inception

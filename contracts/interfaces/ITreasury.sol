@@ -8,7 +8,7 @@ interface ITreasury {
 
     /* ========== onlyPolicyOwner ========== */
     // 주소에 권한설정
-    function enable(LibTreasury.STATUS _status,  address _address) external ;
+    function enable(uint _status,  address _address) external ;
 
     // 토큰 사용 승인, ( 스테이킹 컨트랙에 승인을 한다.)
     function approve(address _addr) external ;
@@ -17,7 +17,7 @@ interface ITreasury {
     function setMR(uint256 _mrRate) external;
 
      // 주소에 권한설정
-    function disable(LibTreasury.STATUS _status, address _toDisable) external;
+    function disable(uint _status, address _toDisable) external;
 
     function addBackingList(address _address, address _tosPooladdress, uint24 _fee) external ;
     function deleteBackingList(address _address) external;
@@ -91,5 +91,8 @@ interface ITreasury {
             address[] memory mintAddress,
             uint256[] memory mintPercents
             );
+
+    function hasPermission(LibTreasury.STATUS role, address account) external view returns (bool);
+    function hasPermission(uint role, address account) external view returns (bool);
 
 }

@@ -20,11 +20,6 @@ contract StakeProxyAccess is StakeAccessRole, AccessControl {
         _;
     }
 
-    modifier onlyBonder() {
-        require(isBonder(msg.sender), "Accessible: Caller is not a bonder");
-        _;
-    }
-
     function addProxyAdmin(address _owner)
         external
         onlyProxyOwner
@@ -104,8 +99,5 @@ contract StakeProxyAccess is StakeAccessRole, AccessControl {
         return hasRole(POLICY_ROLE, account);
     }
 
-    function isBonder(address account) public view virtual returns (bool) {
-        return hasRole(BONDER, account);
-    }
 
 }

@@ -39,25 +39,52 @@ contract Treasury is
 
     /**
      * @notice enable permission from queue
-     * @param _status STATUS
+     * @param _status uint(STATUS)
      * @param _address address
      */
     function enable(
-        LibTreasury.STATUS _status,
+        uint _status,
         address _address
     )
         external override
         onlyPolicyOwner
     {
-        permissions[_status][_address] = true;
+        LibTreasury.STATUS role = LibTreasury.getSatatus(_status);
+        require(role != LibTreasury.STATUS.NONE, "NONE permission");
+        require(permissions[role][_address] == false, "already set");
 
-        (bool registered, ) = indexInRegistry(_address, _status);
+        permissions[role][_address] = true;
+
+        (bool registered, ) = indexInRegistry(_address, role);
 
         if (!registered) {
-            registry[_status].push(_address);
+            registry[role].push(_address);
         }
 
-        emit Permissioned(_address, _status, true);
+        emit Permissioned(_address, role, true);
+    }
+
+    /**
+     *  @notice disable permission from address
+     *  @param _status uint(STATUS)
+     *  @param _toDisable address
+     */
+    function disable(uint _status, address _toDisable)
+        external override onlyPolicyOwner
+    {
+        LibTreasury.STATUS role = LibTreasury.getSatatus(_status);
+        require(role != LibTreasury.STATUS.NONE, "NONE permission");
+        require(permissions[role][_toDisable] == true, "hasn't permissions");
+
+        permissions[role][_toDisable] = false;
+
+        (bool registered, uint256 _index) = indexInRegistry(_toDisable, role);
+        if (registered && registry[role].length > 0) {
+            if (_index < registry[role].length-1) registry[role][_index] = registry[role][registry[role].length-1];
+            registry[role].pop();
+        }
+
+        emit Permissioned(_toDisable, role, false);
     }
 
     function approve(
@@ -70,17 +97,6 @@ contract Treasury is
         mintRate = _mrRate;
     }
 
-    /**
-     *  @notice disable permission from address
-     *  @param _status STATUS
-     *  @param _toDisable address
-     */
-    function disable(LibTreasury.STATUS _status, address _toDisable)
-        external override onlyPolicyOwner
-    {
-        permissions[_status][_toDisable] = false;
-        emit Permissioned(_toDisable, _status, false);
-    }
 
     function totalBacking() public override view returns(uint256) {
          return backings.length;
@@ -372,6 +388,8 @@ contract Treasury is
         return (false, 0);
     }
 
+    /* ========== VIEW ========== */
+
 
     //tokenID를 받으면 token0 Amount, token1 amount return 해주는 View함수
 
@@ -393,10 +411,26 @@ contract Treasury is
         return totalValue;
     }
 
-    /* ========== VIEW ========== */
+
 
     function enableStaking() public override view returns (uint256) {
         return TOS.balanceOf(address(this));
+    }
+
+    function hasPermission(LibTreasury.STATUS role, address account) public override view returns (bool) {
+        return permissions[role][account];
+    }
+
+    function hasPermission(uint role, address account) public override view returns (bool) {
+        return permissions[LibTreasury.getSatatus(role)][account];
+    }
+
+    function isBonder(address account) public view virtual returns (bool) {
+        return hasPermission(LibTreasury.STATUS.BONDER, account);
+    }
+
+    function isStaker(address account) public view virtual returns (bool) {
+        return hasPermission(LibTreasury.STATUS.STAKER, account);
     }
 
 }

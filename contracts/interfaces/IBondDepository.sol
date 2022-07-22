@@ -34,13 +34,6 @@ interface IBondDepository {
     function close(uint256 _id) external;
 
 
-    /**
-     * @dev  set the default lockup period
-     * @param _value  the default lockup period (seconds)
-     */
-    function setDefaultLockPeriod(uint256 _value) external;
-
-
     ///////////////////////////////////////
     /// Anyone can use.
     //////////////////////////////////////
