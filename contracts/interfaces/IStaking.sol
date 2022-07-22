@@ -223,7 +223,7 @@ interface IStaking {
 
     /// @dev  treasury가지고 있는 TOS  - staking 이자 빼기
     /// @return
-    function circulatingSupply() external view returns (uint256);
+    function runwayTOS() external view returns (uint256);
 
     /// @dev LTOS에 대한 현재 이자
     /// @return

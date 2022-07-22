@@ -19,6 +19,9 @@ interface ITreasury {
     //  민팅 비율
     function setMR(uint256 _mrRate, uint256 amount) external;
 
+    // 특정 ERC20 자산에 대한 mintRate이 있을 가능성이 있다.
+    function setMROfAddress(address _asset, uint256 _mrRate) external;
+
     function addBackingList(address _address, address _tosPooladdress, uint24 _fee) external ;
     function deleteBackingList(address _address) external;
 

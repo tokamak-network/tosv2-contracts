@@ -15,7 +15,7 @@ contract StakingV2Storage {
 
     LibStaking.Epoch public epoch;
 
-    uint256 public epochUnit;
+    //uint256 public epochUnit;
     uint256 public startEpochTime;
 
     uint256 public index_;

@@ -4,7 +4,6 @@ pragma solidity ^0.8.4;
 import "./libraries/LibBondDepository.sol";
 
 import "./interfaces/IERC20.sol";
-import "./interfaces/IDTOS.sol";
 import "./interfaces/IStaking.sol";
 
 contract BondDepositoryStorage {
@@ -14,14 +13,12 @@ contract BondDepositoryStorage {
     mapping(address => LibBondDepository.User[]) public users;
 
     IERC20 public tos;
-    IDTOS public dTOS;
+    address public dTOS;
     IStaking public staking;
     address public treasury;
 
     address public calculator;
     address public uniswapV3Factory;
-
-    uint256 public defaultLockPeriod;
 
     uint256 private constant _NOT_ENTERED = 1;
     uint256 private constant _ENTERED = 2;

@@ -16,7 +16,9 @@ interface IUniswapV3Pool {
 }
 
 interface IITreasury {
-    function mintRate() external view returns (uint256);
+    function getMintRate(address _asset) external view returns (uint256);
+    function mintRateDenominator() external view returns (uint256);
+
     function requestMintAndTransfer(
         uint256 _mintAmount, address _recipient, uint256 _transferAmount, bool _distribute) external ;
 }
@@ -58,6 +60,14 @@ contract BondDepository is
     ///////////////////////////////////////
     /// onlyPolicyOwner
     //////////////////////////////////////
+
+    function setDtos(address _dtos)
+        external onlyPolicyOwner
+        nonZeroAddress(_dtos)
+    {
+        require(dTOS != _dtos, "same address");
+        dTOS = _dtos;
+    }
 
     function tokenInUniswapV3Pool(address pool, address token0) public view returns (bool) {
 
@@ -252,7 +262,7 @@ contract BondDepository is
 
         require(_payout > 0, "zero staking amount");
 
-        uint256 mrAmount = _amount * IITreasury(treasury).mintRate();
+        uint256 mrAmount = _amount * IITreasury(treasury).getMintRate(markets[_marketId].quoteToken) / IITreasury(treasury).mintRateDenominator() ;
         require(mrAmount >= _payout, "mintableAmount is less than staking amount.");
 
         LibBondDepository.Market storage market = markets[_marketId];
@@ -315,7 +325,7 @@ contract BondDepository is
 
     /// @inheritdoc IBondDepository
     function marketMaxPayout(uint256 _id) public override view returns (uint256 maxpayout_) {
-        maxpayout_ = (markets[_id].maxPayout*1e10)/tokenPrice(_id);
+        maxpayout_ = (markets[_id].maxPayout * 1e10) / tokenPrice(_id);
         return maxpayout_;
     }
 

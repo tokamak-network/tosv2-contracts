@@ -2,11 +2,11 @@
 pragma solidity ^0.8.4;
 
 import "./TreasuryStorage.sol";
-import "./proxy/VaultProxy.sol";
+import "./proxy/TreasuryVaultProxy.sol";
 
 contract TreasuryProxy is
     TreasuryStorage,
-    VaultProxy
+    TreasuryVaultProxy
 {
     function initialize(
         address _tos,
@@ -23,6 +23,8 @@ contract TreasuryProxy is
         TOS = IERC20(_tos);
         calculator = _calculator;
         wethAddress = _wethAddress;
+
+        mintRateDenominator = 1;
     }
 
 }

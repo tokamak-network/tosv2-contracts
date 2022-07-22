@@ -17,6 +17,9 @@ import "./interfaces/ITOSValueCalculator.sol";
 import "./common/ProxyAccessCommon.sol";
 
 
+import "hardhat/console.sol";
+
+
 contract Treasury is
     TreasuryStorage,
     ProxyAccessCommon,
@@ -93,13 +96,27 @@ contract Treasury is
         TOS.approve(_addr, 1e45);
     }
 
+    function setMintRateDenominator(uint256 _mintRateDenominator) external onlyPolicyOwner {
+
+        require(mintRateDenominator != _mintRateDenominator && _mintRateDenominator > 0, "check input value");
+
+        mintRateDenominator = _mintRateDenominator;
+    }
+
     function setMR(uint256 _mrRate, uint256 amount) external override onlyPolicyOwner {
 
         require(mintRate != _mrRate || amount > 0, "check input value");
-        require(calculateNeedTOS(_mrRate, amount), "non-available mintRate");
+
+        require(calculateNeedTOS(_mrRate, amount), "unavailable mintRate");
 
         if (mintRate != _mrRate) mintRate = _mrRate;
         if (amount > 0) TOS.mint(address(this), amount);
+    }
+
+    function setMROfAddress(address _asset, uint256 _mrRate) external override onlyPolicyOwner {
+
+        require(mintingRateOfAddress[_asset] != _mrRate, "same value");
+        mintingRateOfAddress[_asset] = _mrRate;
     }
 
     function totalBacking() public override view returns(uint256) {
@@ -398,9 +415,14 @@ contract Treasury is
 
     /* ========== VIEW ========== */
 
+    function getMintRate(address _asset) public view returns (uint256) {
+        if(_asset == address(0)) return mintRate;
+        else return mintingRateOfAddress[_asset];
+    }
+
     function calculateNeedTOS (uint256 _checkMintRate, uint256 amount) public view returns (bool) {
 
-        if (TOS.totalSupply() + amount <= _checkMintRate * backingReserve() ) {
+        if (TOS.totalSupply() + amount <= _checkMintRate * backingReserve() / mintRateDenominator ) {
              return true;
         } else {
             return false;

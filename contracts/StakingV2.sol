@@ -220,7 +220,6 @@ contract StakingV2 is
         nonZero(_amount)
         nonZero(_periodWeeks)
         nonZero(rebasePerEpoch)
-        nonZero(epochUnit)
         returns (uint256 stakeId)
     {
         require (TOS.allowance(msg.sender, address(this)) >= _amount, "allowance is insufficient.");
@@ -356,7 +355,7 @@ contract StakingV2 is
             require(end > block.timestamp && allStakings[_stakeId].endTime > block.timestamp, "lock end time has passed");
 
             if (_unlockWeeks == 0) { // 물량만 늘릴때 이자도 같이 늘린다.
-                uint256 n = (allStakings[_stakeId].endTime - block.timestamp) / epochUnit;
+                uint256 n = (allStakings[_stakeId].endTime - block.timestamp) / epoch.length_;
                 uint256 amountCompound = compound(_amount, rebasePerEpoch, n);
                 require (amountCompound > 0, "zero compounded amount");
                 ILockTosV2(lockTOS).increaseAmountByStaker(staker, lockId, amountCompound);
@@ -365,12 +364,12 @@ contract StakingV2 is
                 uint256 amountCompound1 = 0; // 기간종료후 이자부분
                 uint256 amountCompound2 = 0; // 추가금액이 있을경우, 늘어나는 부분
 
-                uint256 n1 = (_unlockWeeks * sTosEpochUnit) / epochUnit;
+                uint256 n1 = (_unlockWeeks * sTosEpochUnit) / epoch.length_;
                 amountCompound1 = compound(principalsAmount, rebasePerEpoch, n1);
                 amountCompound1 = amountCompound1 - principalsAmount;
 
                 if (_amount > 0) {
-                    uint256 n2 = (end - block.timestamp  + (_unlockWeeks * sTosEpochUnit)) / epochUnit;
+                    uint256 n2 = (end - block.timestamp  + (_unlockWeeks * sTosEpochUnit)) / epoch.length_;
                     amountCompound2 = compound(_amount, rebasePerEpoch, n2);
                 }
 
@@ -482,7 +481,7 @@ contract StakingV2 is
             if ((totalLTOS * newIndex / 1e18) < runwayTOS()) {
                 index_ = newIndex;
 
-            } else {
+            } else if (epochNumber > 1) {
                 // 2. find posible epoch number
                 uint256 _possibleEpochNumber = possibleEpochNumber();
                 if (_possibleEpochNumber < epochNumber) {
@@ -732,7 +731,7 @@ contract StakingV2 is
     function _createStos(address _to, uint256 _amount, uint256 _periodWeeks, uint256 sTosEpochUnit)
          internal ifFree returns (uint256 sTOSid)
     {
-        uint256 amountCompound = compound(_amount, rebasePerEpoch, (_periodWeeks * sTosEpochUnit / epochUnit));
+        uint256 amountCompound = compound(_amount, rebasePerEpoch, (_periodWeeks * sTosEpochUnit / epoch.length_));
         require (amountCompound > 0, "zero compounded amount");
 
         sTOSid = ILockTosV2(lockTOS).createLockByStaker(_to, amountCompound, _periodWeeks);

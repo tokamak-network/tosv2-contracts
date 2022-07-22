@@ -21,6 +21,10 @@ contract TreasuryStorage {
     uint256 public ETHliquidity;
 
     uint256 public mintRate;
+    uint256 public mintRateDenominator;
+    // 어떤 자산이냐에 따라 mintRate 이 달라진다.
+    mapping(address => uint256) public mintingRateOfAddress;
+
     uint256 public totalPercents;
 
     LibTreasury.Backing[] public backings;
