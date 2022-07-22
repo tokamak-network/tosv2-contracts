@@ -472,7 +472,8 @@ contract StakingV2 is
             // 1. use epochNumber
             uint256 newIndex = compound(index_, rebasePerEpoch, epochNumber);
             if (totalLTOS * newIndex < circulatingSupply()) {
-                index_ =  newIndex;
+                index_ = newIndex;
+                epoch.end += (epoch.length_ * epochNumber);
             } else {
                 // 2. find posible epoch number
                 uint256 _possibleEpochNumber = possibleEpochNumber();
@@ -480,6 +481,8 @@ contract StakingV2 is
                     newIndex = compound(index_, rebasePerEpoch, _possibleEpochNumber);
                     if (totalLTOS * newIndex < circulatingSupply()) {
                         index_ =  newIndex;
+                        //  epoch.end += (epoch.length_ * _possibleEpochNumber);
+                        epoch.end += (epoch.length_ * epochNumber);
                     }
                 }
             }
