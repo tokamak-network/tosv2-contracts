@@ -492,7 +492,7 @@ contract Treasury is
                 applyTOS = true;
 
             } else if (backings[i].erc20Address == wethAddress)  {
-                totalValue += IERC20(wethAddress).balanceOf(address(this)) * tosPricePerETH / 1e18;
+                totalValue += (IERC20(wethAddress).balanceOf(address(this)) * tosPricePerETH / 1e18);
                 applyWTON = true;
 
             } else if (backings[i].erc20Address != address(0) )  {
