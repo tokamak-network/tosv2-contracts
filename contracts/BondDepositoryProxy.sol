@@ -29,8 +29,7 @@ contract BondDepositoryProxy is
         treasury = _treasury;
         calculator = _calculator;
         uniswapV3Factory = _uniswapV3Factory;
-        tos.approve(_staking, 1e45);
-
+        // tos.approve(_staking, 1e45);
     }
 
 }

@@ -82,4 +82,8 @@ interface ITOSValueCalculator {
     function computePoolAddress(address tokenA, address tokenB, uint24 _fee)
         external view returns (address pool, address token0, address token1);
 
+    function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
+        external view
+        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmmount);
+
 }

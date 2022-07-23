@@ -867,7 +867,6 @@ describe("TOSv2 Phase1", function () {
         ).to.be.equal(true)
       })
 
-
       it("#1-3-3. onlyPolicy can call create", async () => {
           const block = await ethers.provider.getBlock('latest')
           let finishTime = block.timestamp + sellingTime  //2주

@@ -508,4 +508,35 @@ contract TOSValueCalculator is ITOSValueCalculator {
 
     }
 
+
+    function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
+        public override view
+        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmmount)
+    {
+        (bool isWeth, , address pool, address token0, address token1) = existPool(_asset, weth, 3000);
+
+        if (isWeth) {
+            existedWethPool = true;
+            if (token0 == _asset) priceWethOrTosPerAsset = getPriceToken0(pool);
+            else if(token1 == _asset) priceWethOrTosPerAsset = getPriceToken1(pool);
+
+            if(priceWethOrTosPerAsset > 0) {
+                convertedAmmount = _amount * priceWethOrTosPerAsset / 1e18;
+            }
+
+        } else {
+            (, bool isTos, address poolt, address token0t, address token1t) = existPool(_asset, tos, 3000);
+            if (isTos){
+                existedTosPool = true;
+                if (token0t == _asset) priceWethOrTosPerAsset = getPriceToken0(poolt);
+                else if(token1t == _asset) priceWethOrTosPerAsset = getPriceToken1(poolt);
+
+                if(priceWethOrTosPerAsset > 0) {
+                    convertedAmmount = _amount * priceWethOrTosPerAsset / 1e18;
+                }
+            }
+        }
+    }
+
+
 }

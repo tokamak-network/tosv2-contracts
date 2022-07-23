@@ -764,7 +764,7 @@ contract StakingV2 is
             });
 
         stakingPrincipal += _amount;
-        cummulatedLTOS += ltos;
+        // cummulatedLTOS += ltos;
         totalLTOS += ltos;
     }
 
@@ -800,7 +800,7 @@ contract StakingV2 is
             stakeInfo.LTOS += ltos;
 
             stakingPrincipal += _amount;
-            cummulatedLTOS += ltos;
+            // cummulatedLTOS += ltos;
             totalLTOS += ltos;
         }
 
@@ -838,7 +838,7 @@ contract StakingV2 is
         stakingPrincipal += _addAmount;
         stakingPrincipal -= _claimAmount;
 
-        cummulatedLTOS += addLtos;
+        // cummulatedLTOS += addLtos;
         totalLTOS += addLtos;
         totalLTOS -= subLtos;
 

@@ -117,10 +117,23 @@ interface IBondDepository {
         returns (uint256 payout);
 
 
-    /// @dev  Total TOS allocation in the specific market
+    /// @dev How much tokens are valued as TOS
     /// @param _id  the market id
-    /// @return maxpayout_  Total TOS allocation in the specific market
-    function marketMaxPayout(uint256 _id) external view returns (uint256 maxpayout_);
+    /// @param _amount the amount of asset
+    /// @return payout  the amount evaluated as TOS
+    function calculateTosAmountForAsset(
+        uint256 _id,
+        uint256 _amount
+    )
+        external
+        view
+        returns (uint256 payout);
+
+
+    /// @dev purchasable TOS amount At One Time
+    /// @param _id  the market id
+    /// @return maxpayout_  tos amount
+    function purchasableTOSAmountAtOneTime(uint256 _id) external view returns (uint256 maxpayout_);
 
 
     /// @dev the token price is calculated by the token price / the tos price
@@ -134,5 +147,42 @@ interface IBondDepository {
     /// @return tokenAmount Amount of TOS currently available for purchase in a specific market
     function remainingAmount(uint256 _id) external view returns (uint256 tokenAmount);
 
+    function getMarketList() external view returns (uint256[] memory) ;
+    function totalMarketCount() external view returns (uint256) ;
+    function viewMarket(uint256 _index) external view
+        returns (
+            bool method,
+            address quoteToken,
+            uint256 capacity,
+            uint256 endSaleTime,
+            uint256 sold,
+            uint256 maxPayout
+            );
 
+    function getMetadataList() external view returns (uint256[] memory);
+    function totalMetadataCount() external view returns (uint256);
+    function viewMetadata(uint256 _index) external view
+        returns
+        (
+            address poolAddress,
+            uint256 tokenPrice,
+            uint256 tosPrice,
+            uint256 totalSaleAmount,
+            uint24 fee,
+            bool ethMarket
+            );
+
+    function getDepositList(address account) external view returns (
+        uint256[] memory _marketIds,
+        uint256[] memory _stakeIds
+    );
+
+    function totalDepositCountOfAddress(address account) external view returns (uint256);
+
+    function viewDeposit(address account, uint256 _index) external view
+        returns
+            (
+            uint256 marketId,
+            uint256 stakeId
+            );
 }

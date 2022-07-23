@@ -24,6 +24,7 @@ library LibBondDepository
         bool ethMarket;
     }
 
+    /*
     struct User {
         uint256 tokenAmount;
         uint256 tosAmount;
@@ -31,6 +32,10 @@ library LibBondDepository
         uint256 endTime;
         uint256 dTOSuse;
     }
-
+    */
+    struct Deposit {
+        uint256 marketId;
+        uint256 stakeId;
+    }
 
 }

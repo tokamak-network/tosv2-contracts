@@ -19,10 +19,6 @@ import "./common/ProxyAccessCommon.sol";
 
 import "hardhat/console.sol";
 
-interface IIIERC20 {
-    function decimals() external view returns (uint256);
-}
-
 interface IUniswapV3Pool {
     function token0() external view returns (address);
     function token1() external view returns (address);
@@ -115,7 +111,7 @@ contract Treasury is
 
         require(mintRate != _mrRate || amount > 0, "check input value");
 
-        require(calculateNeedTOS(_mrRate, amount), "unavailable mintRate");
+        require(isTreasuryHealthyAfterTOSMint(_mrRate, amount), "unavailable mintRate");
 
         if (mintRate != _mrRate) mintRate = _mrRate;
         if (amount > 0) TOS.mint(address(this), amount);
@@ -372,7 +368,7 @@ contract Treasury is
         require(_mintAmount > 0, "zero amount");
         require(_mintAmount >= _transferAmount, "_mintAmount is less than _transferAmount");
 
-        require(calculateNeedTOS(mintRate, _mintAmount), "non-available mintRate");
+        require(isTreasuryHealthyAfterTOSMint(mintRate, _mintAmount), "non-available mintRate");
 
         TOS.mint(address(this), _mintAmount);
 
@@ -434,7 +430,9 @@ contract Treasury is
         else return mintingRateOfAddress[_asset];
     }
 
-    function calculateNeedTOS (uint256 _checkMintRate, uint256 amount) public view returns (bool) {
+    function isTreasuryHealthyAfterTOSMint(uint256 _checkMintRate, uint256 amount)
+        public override view returns (bool)
+    {
         /*
         if (TOS.totalSupply() + amount <= _checkMintRate * backingReserve() / mintRateDenominator ) {
              return true;
@@ -483,7 +481,8 @@ contract Treasury is
 
             } else if (backings[i].erc20Address != address(0) )  {
 
-                (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) = convertAssetBalanceToWethOrTos(backings[i].erc20Address);
+                (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount)
+                    = ITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(backings[i].erc20Address, IERC20(backings[i].erc20Address).balanceOf(address(this)));
 
                 if (existedTosPool) totalValue += convertedAmmount;
                 else if (existedWethPool) totalValue += (convertedAmmount * tosPricePerETH / 1e18);
@@ -523,7 +522,8 @@ contract Treasury is
 
             } else if (backings[i].erc20Address != address(0) )  {
 
-                (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) = convertAssetBalanceToWethOrTos(backings[i].erc20Address);
+                (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) =
+                    ITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(backings[i].erc20Address, IERC20(backings[i].erc20Address).balanceOf(address(this)));
 
                 if (existedWethPool) totalValue += convertedAmmount;
                 else if (existedTosPool) totalValue += (convertedAmmount * tosETHPricePerTOS / 1e18);
@@ -539,34 +539,6 @@ contract Treasury is
         return totalValue;
     }
 
-    function convertAssetBalanceToWethOrTos(address _asset)
-        public view
-        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmmount)
-    {
-        (bool isWeth, , address pool, address token0, address token1) = ITOSValueCalculator(calculator).existPool(_asset, wethAddress, 3000);
-
-        if (isWeth) {
-            existedWethPool = true;
-            if (token0 == _asset) priceWethOrTosPerAsset = ITOSValueCalculator(calculator).getPriceToken0(pool);
-            else if(token1 == _asset) priceWethOrTosPerAsset = ITOSValueCalculator(calculator).getPriceToken1(pool);
-
-            if(priceWethOrTosPerAsset > 0) {
-                convertedAmmount = IERC20(_asset).balanceOf(address(this)) * priceWethOrTosPerAsset / IIIERC20(wethAddress).decimals();
-            }
-
-        } else {
-            (, bool isTos, address poolt, address token0t, address token1t) = ITOSValueCalculator(calculator).existPool(_asset, address(TOS), 3000);
-            if (isTos){
-                existedTosPool = true;
-                if (token0t == _asset) priceWethOrTosPerAsset = ITOSValueCalculator(calculator).getPriceToken0(poolt);
-                else if(token1t == _asset) priceWethOrTosPerAsset = ITOSValueCalculator(calculator).getPriceToken1(poolt);
-
-                if(priceWethOrTosPerAsset > 0) {
-                    convertedAmmount = IERC20(_asset).balanceOf(address(this)) * priceWethOrTosPerAsset / IIIERC20(address(TOS)).decimals();
-                }
-            }
-        }
-    }
 
     function backingRateETHPerTOS() public override view returns (uint256) {
         return (backingReserve() / TOS.totalSupply()) ;
