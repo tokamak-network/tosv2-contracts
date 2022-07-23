@@ -9,40 +9,40 @@ interface ITOSValueCalculator {
         address _npm,
         address _basicpool,
         address _uniswapV3factory
-    ) 
+    )
         external;
 
     function getWETHPoolTOSPrice() external view returns (uint256 price);
-    
+
     function getTOSWETHPoolETHPrice() external view returns (uint256 price);
 
     function getTOSERC20PoolTOSPrice(
         address _erc20address,
         address _tosERC20Pool,
         uint24 fee
-    ) 
-        external 
-        view 
+    )
+        external
+        view
         returns (uint256 price);
 
     function getTOSERC20PoolERC20Price(
         address _erc20address,
-        address _tosERC20Pool, 
+        address _tosERC20Pool,
         uint24 fee
-    ) 
-        external 
-        view 
+    )
+        external
+        view
         returns (uint256 price);
 
     function getETHERC20PoolETHPrice(
-        address _erc20address, 
-        address _ethERC20Pool, 
+        address _erc20address,
+        address _ethERC20Pool,
         uint24 fee
     ) external view returns (uint256 price);
 
     function getETHERC20PoolERC20Price(
-        address _erc20address, 
-        address _ethERC20Pool, 
+        address _erc20address,
+        address _ethERC20Pool,
         uint24 fee
     ) external view returns (uint256 price);
 
@@ -64,4 +64,8 @@ interface ITOSValueCalculator {
         external
         view
         returns (uint256 ethValue);
+
+    function getPriceToken0(address poolAddress) external view returns (uint256 priceX96);
+    function getPriceToken1(address poolAddress) external view returns(uint256 priceX96);
+
 }

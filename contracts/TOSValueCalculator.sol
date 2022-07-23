@@ -109,7 +109,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
 
     //WETH-TOS Pool에서 1TOS = ? ETH를 반환한다 (ether단위로 반환) -> ? ETH/1TOS
     function getWETHPoolTOSPrice() public override view returns (uint256 price) {
-        uint wethOrder = getTOStoken0(weth,3000);
+        uint wethOrder = getTOStoken0(weth, 3000);
         if(wethOrder == 2 && wethOrder == 3) {
             return price = 0;
         }
@@ -379,7 +379,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         return (IERC20(token0).decimals(), IERC20(token1).decimals());
     }
 
-    function getPriceToken0(address poolAddress) public view returns (uint256 priceX96) {
+    function getPriceToken0(address poolAddress) public override view returns (uint256 priceX96) {
 
         (, int24 tick, , , , ,) = IIUniswapV3Pool(poolAddress).slot0();
         (uint256 token0Decimals, ) = getDecimals(
@@ -395,7 +395,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
              );
     }
 
-    function getPriceToken1(address poolAddress) public view returns(uint256 priceX96) {
+    function getPriceToken1(address poolAddress) public override  view returns(uint256 priceX96) {
 
         (, int24 tick, , , , ,) = IIUniswapV3Pool(poolAddress).slot0();
         (, uint256 token1Decimals) = getDecimals(
@@ -429,5 +429,6 @@ contract TOSValueCalculator is ITOSValueCalculator {
             );
         }
     }
+
 
 }

@@ -19,6 +19,14 @@ import "./common/ProxyAccessCommon.sol";
 
 import "hardhat/console.sol";
 
+interface IIIERC20 {
+    function decimals() external view returns (uint256);
+}
+
+interface IUniswapV3Pool {
+    function token0() external view returns (address);
+    function token1() external view returns (address);
+}
 
 contract Treasury is
     TreasuryStorage,
@@ -117,6 +125,12 @@ contract Treasury is
 
         require(mintingRateOfAddress[_asset] != _mrRate, "same value");
         mintingRateOfAddress[_asset] = _mrRate;
+    }
+
+    function setUniswapV3Factory(address _uniswapFactory) external onlyPolicyOwner {
+
+        require(uniswapV3Factory != _uniswapFactory, "same address");
+        uniswapV3Factory = _uniswapFactory;
     }
 
     function totalBacking() public override view returns(uint256) {
@@ -421,38 +435,194 @@ contract Treasury is
     }
 
     function calculateNeedTOS (uint256 _checkMintRate, uint256 amount) public view returns (bool) {
-
+        /*
         if (TOS.totalSupply() + amount <= _checkMintRate * backingReserve() / mintRateDenominator ) {
+             return true;
+        } else {
+            return false;
+        }
+        */
+        // uint256 a = getTOSPricePerETH();
+        // uint256 b = getETHPricPerTOS();
+
+        // console.log("getTOSPricePerETH %s", a);
+        // console.log("getETHPricPerTOS %s", b);
+
+        if (
+            TOS.totalSupply() + (amount * _checkMintRate / mintRateDenominator) <= backingReserveTOS()
+            ) {
              return true;
         } else {
             return false;
         }
     }
 
+    function getTOSPricePerETH() public view returns (uint256 price) {
+        (bool isWeth1, bool isTos1, address poola, address token0a, address token1a) = existPool(address(TOS), wethAddress, 3000);
 
-    //tokenID를 받으면 token0 Amount, token1 amount return 해주는 View함수
+        if(isWeth1 && isTos1 && token0a == address(TOS)) price = ITOSValueCalculator(calculator).getPriceToken1(poola);
+        if(isWeth1 && isTos1 && token1a == address(TOS)) price = ITOSValueCalculator(calculator).getPriceToken0(poola);
+    }
 
-    //poolAddress를 받으면 token0, token1의 amount를 return 해주는 view함수 필요
+    function getETHPricPerTOS() public view returns (uint256 price) {
+        (bool isWeth1, bool isTos1, address poola, address token0a, address token1a) = existPool(address(TOS), wethAddress, 3000);
 
-    //eth, weth, market에서 받은 자산 다 체크해야함
-    //환산은 eth단위로
-    //Treasury에 있는 자산을 ETH로 환산하여서 합하여 리턴함
-    // token * (? ETH/1TOS * ?TOS/1ERC20) -> ? token * ( ? ETH/1token) -> ? ETH
-    function backingReserve() public override view returns (uint256) {
+        if(isWeth1 && isTos1 && token0a == wethAddress) price = ITOSValueCalculator(calculator).getPriceToken1(poola);
+        if(isWeth1 && isTos1 && token1a == wethAddress) price = ITOSValueCalculator(calculator).getPriceToken0(poola);
+    }
+
+    function backingReserveETH() public view returns (uint256) {
+        return backingReserve();
+    }
+
+    function backingReserveTOS() public view returns (uint256) {
         uint256 totalValue;
-        uint256 tosETHPrice = ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
-        for(uint256 i = 0; i < backings.length; i++) {
-            uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));
 
-            if (wethAddress != backings[i].erc20Address)  {
-                uint256 tosERC20Price = ITOSValueCalculator(calculator).getTOSERC20PoolERC20Price(backings[i].erc20Address,backings[i].tosPoolAddress,backings[i].fee);
-                totalValue += ((amount * tosERC20Price * tosETHPrice/1e18)/1e18);
-            } else {
-                totalValue += amount;
+        //uint256 tosPricePerETH = ITOSValueCalculator(calculator).getTOSWETHPoolETHPrice();
+        uint256 tosPricePerETH = getTOSPricePerETH();
+        // console.log("tosPricePerETH %s", tosPricePerETH) ;
+
+        bool applyTOS = false;
+        bool applyWTON = false;
+
+        for(uint256 i = 0; i < backings.length; i++) {
+
+            if (backings[i].erc20Address == address(TOS))  {
+                totalValue +=  TOS.balanceOf(address(this)) ;
+                applyTOS = true;
+
+            } else if (backings[i].erc20Address == wethAddress)  {
+                totalValue += IERC20(wethAddress).balanceOf(address(this)) * tosPricePerETH / 1e18;
+                applyWTON = true;
+
+            } else if (backings[i].erc20Address != address(0) )  {
+
+                (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) = convertAssetBalanceToWethOrTos(backings[i].erc20Address);
+
+                if (existedTosPool) totalValue += convertedAmmount;
+                else if (existedWethPool) totalValue += (convertedAmmount * tosPricePerETH / 1e18);
             }
         }
-        totalValue += address(this).balance;
+
+        if (!applyTOS && address(TOS) != address(0)) totalValue += TOS.balanceOf(address(this));
+        if (!applyWTON && wethAddress != address(0)) totalValue += (IERC20(wethAddress).balanceOf(address(this)) * tosPricePerETH / 1e18);
+
+        totalValue += (address(this).balance * tosPricePerETH / 1e18);
+
         return totalValue;
+    }
+
+    // 이더 가치로 환산
+    function backingReserve() public override view returns (uint256) {
+        uint256 totalValue;
+        //uint256 tosETHPricePerTOS = ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
+
+        uint256 tosETHPricePerTOS = getETHPricPerTOS();
+
+        //0.000004124853366489 ETH/TOS
+        // console.log("tosETHPricePerTOS %s", tosETHPricePerTOS) ;
+
+        bool applyTOS = false;
+        bool applyWTON = false;
+
+        for(uint256 i = 0; i < backings.length; i++) {
+
+            if (backings[i].erc20Address == address(TOS))  {
+                totalValue +=  (TOS.balanceOf(address(this)) * tosETHPricePerTOS / 1e18);
+                applyTOS = true;
+
+            } else if (backings[i].erc20Address == wethAddress)  {
+                totalValue += IERC20(wethAddress).balanceOf(address(this));
+                applyWTON = true;
+
+            } else if (backings[i].erc20Address != address(0) )  {
+
+                (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) = convertAssetBalanceToWethOrTos(backings[i].erc20Address);
+
+                if (existedWethPool) totalValue += convertedAmmount;
+                else if (existedTosPool) totalValue += (convertedAmmount * tosETHPricePerTOS / 1e18);
+            }
+        }
+
+        if (!applyTOS && address(TOS) != address(0)) totalValue += (TOS.balanceOf(address(this))* tosETHPricePerTOS / 1e18);
+        if (!applyWTON && wethAddress != address(0)) totalValue += IERC20(wethAddress).balanceOf(address(this));
+
+        //0.000004124853366489 ETH/TOS ,  242427 TOS /ETH
+        totalValue += address(this).balance;
+
+        return totalValue;
+    }
+
+    function convertAssetBalanceToWethOrTos(address _asset)
+        public view
+        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmmount)
+    {
+        (bool isWeth, , address pool, address token0, address token1) = existPool(_asset, wethAddress, 3000);
+
+        if (isWeth) {
+            existedWethPool = true;
+            if (token0 == _asset) priceWethOrTosPerAsset = ITOSValueCalculator(calculator).getPriceToken0(pool);
+            else if(token1 == _asset) priceWethOrTosPerAsset = ITOSValueCalculator(calculator).getPriceToken1(pool);
+
+            if(priceWethOrTosPerAsset > 0) {
+                convertedAmmount = IERC20(_asset).balanceOf(address(this)) * priceWethOrTosPerAsset / IIIERC20(wethAddress).decimals();
+            }
+
+        } else {
+            (, bool isTos, address poolt, address token0t, address token1t) = existPool(_asset, address(TOS), 3000);
+            if (isTos){
+                existedTosPool = true;
+                if (token0t == _asset) priceWethOrTosPerAsset = ITOSValueCalculator(calculator).getPriceToken0(poolt);
+                else if(token1t == _asset) priceWethOrTosPerAsset = ITOSValueCalculator(calculator).getPriceToken1(poolt);
+
+                if(priceWethOrTosPerAsset > 0) {
+                    convertedAmmount = IERC20(_asset).balanceOf(address(this)) * priceWethOrTosPerAsset / IIIERC20(address(TOS)).decimals();
+                }
+            }
+        }
+    }
+
+    function existPool(address tokenA, address tokenB, uint24 _fee)
+        public view returns (bool isWeth, bool isTos, address pool, address token0, address token1) {
+
+        if(tokenA == address(0) || tokenB == address(0)) return (false, false, address(0), address(0), address(0));
+
+        (pool, , ) =  computePoolAddress(tokenA, tokenB, _fee);
+
+        token0 = IUniswapV3Pool(pool).token0();
+        token1 = IUniswapV3Pool(pool).token1();
+
+        if(token0 == address(0) || token1 == address(0)) return (false, false, address(0), address(0), address(0));
+        if(token0 == wethAddress || token1 == wethAddress) isWeth = true;
+        if(token0 == address(TOS) || token1 == address(TOS)) isTos = true;
+    }
+
+    function computePoolAddress(address tokenA, address tokenB, uint24 _fee)
+        public view returns (address pool, address token0, address token1)
+    {
+        bytes32  POOL_INIT_CODE_HASH = 0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54;
+
+        token0 = tokenA;
+        token1 = tokenB;
+
+        if(token0 > token1) {
+            token0 = tokenB;
+            token1 = tokenA;
+        }
+
+        pool = address( uint160(
+            uint256(
+                keccak256(
+                    abi.encodePacked(
+                        hex'ff',
+                        address(uniswapV3Factory),
+                        keccak256(abi.encode(token0, token1, _fee)),
+                        POOL_INIT_CODE_HASH
+                    )
+                )
+            ))
+        );
+
     }
 
     function backingRateETHPerTOS() public override view returns (uint256) {
