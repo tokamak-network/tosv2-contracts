@@ -1,6 +1,3 @@
-// const { expect } = require("chai");
-// const { ethers } = require("hardhat");
-
 const chai = require("chai");
 const { solidity } = require("ethereum-waffle");
 const { expect, assert } = chai;
@@ -41,8 +38,8 @@ let UniswapV3Pool = require('../abis/UniswapV3Pool.json');
 let UniswapV3LiquidityChanger = require('../abis/UniswapV3LiquidityChanger.json');
 let tosabi = require('../abis/TOS.json');
 let lockTOSProxyabi = require('../abis/LockTOSProxy_ABI.json');
-let lockTOSProxy2abi = require('../abis/LockTOSProxy2_ABI.json');;
-let lockTOSLogic2abi = require('../abis/LockTOSLogic2_ABI.json');
+let lockTOSProxy2abi = require('../abis/LockTOSv2Proxy.json').abi;
+let lockTOSLogic2abi = require('../abis/LockTOSv2Logic0.json').abi;
 const { id } = require("@ethersproject/hash");
 
 let treasuryLogicAbi = require('../artifacts/contracts/Treasury.sol/Treasury.json');
@@ -51,7 +48,10 @@ let stakingV2LogicAbi = require('../artifacts/contracts/StakingV2.sol/StakingV2.
 
 let UniswapV3LiquidityChangerAddress = "0xa839a0e64b27a34ed293d3d81e1f2f8b463c3514";
 let totalTosSupplyTarget = ethers.utils.parseEther("1000000");
+
 let tosAdmin = "0x5b6e72248b19F2c5b88A4511A6994AD101d0c287";
+let lockTosAdmin = "0x5b6e72248b19F2c5b88A4511A6994AD101d0c287";
+
 
 describe("TOSv2 Phase1", function () {
   //시나리오 : https://www.notion.so/onther/BondDepository-StakingV2-scenario-Suah-497853d6e65f48a390255f3bca29fa36
@@ -153,7 +153,7 @@ describe("TOSv2 Phase1", function () {
   // let wtonUint = ethers.utils.parseUnits("1", 27);
   */
 
-  let firstExcute = true;
+  let firstExcute = false;
 
   let firstMarketlength;
   let checkMarketLength;
@@ -234,6 +234,10 @@ describe("TOSv2 Phase1", function () {
       "0x8ac7230489e80000",
     ]);
 
+    await hre.ethers.provider.send("hardhat_impersonateAccount",[lockTosAdmin]);
+
+    _lockTosAdmin = await ethers.getSigner(lockTosAdmin);
+
   });
 
   describe("#0. lockTOSContract update", () => {
@@ -244,7 +248,7 @@ describe("TOSv2 Phase1", function () {
         let code = await ethers.provider.getCode(lockTosContract.address);
         expect(code).to.not.eq("0x");
       })
-
+      /*
       it("bring the lockTOSProxy2Contract", async () => {
         lockTos2Contract = new ethers.Contract( lockTOSProxy2Address, lockTOSProxy2abi, ethers.provider);
 
@@ -252,18 +256,19 @@ describe("TOSv2 Phase1", function () {
         expect(code).to.not.eq("0x");
       })
 
+
       it("bring the lockTOSLogic2Contract", async () => {
         lockToslogic2Contract = new ethers.Contract( lockTOSLogic2Address, lockTOSLogic2abi, ethers.provider);
 
         let code = await ethers.provider.getCode(lockToslogic2Contract.address);
         expect(code).to.not.eq("0x");
       })
+      */
 
       it("lockTOSProxy upgrade", async () => {
-        await lockTosContract.connect(admin1).upgradeTo(lockTos2Contract.address);
 
-        let tx = lockTosContract.connect(admin1).upgradeTo(lockTos2Contract.address);
-        await expect(tx).to.be.revertedWith('LockTOSProxy: same');
+        await lockTosContract.connect(_lockTosAdmin).upgradeTo(lockTOSProxy2Address);
+
       })
 
       it("bring the newLockTOSProxyContract", async () => {
@@ -271,16 +276,20 @@ describe("TOSv2 Phase1", function () {
       })
 
       it("lockTOSProxy2 setimpletation", async () => {
-        await lockTosContract.connect(admin1).setImplementation2(lockToslogic2Contract.address, 0, true);
+        await lockTosContract.connect(_lockTosAdmin).setImplementation2(lockTOSLogic2Address, 0, true);
       })
+
 
       it("bring the newlogic", async () => {
         lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSLogic2abi, ethers.provider);
       })
+
     } else {
+
       it("bring the newlogic", async () => {
         lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSLogic2abi, ethers.provider);
       })
+
     }
   })
 
@@ -907,7 +916,6 @@ describe("TOSv2 Phase1", function () {
 
   })
 
-  /*
   describe("#2. lockTOS setting", async () => {
     it("#2-1-1. user can't set the stakingContarct", async () => {
       await expect(
@@ -923,6 +931,7 @@ describe("TOSv2 Phase1", function () {
     })
   })
 
+  /*
   describe("#3-1. bondDepository function test", async () => {
     it("#3-1-1. user don't create the ETH market", async () => {
       const block = await ethers.provider.getBlock('latest')

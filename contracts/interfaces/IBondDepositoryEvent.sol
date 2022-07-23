@@ -5,11 +5,11 @@ interface IBondDepositoryEvent{
 
     /// @dev This event occurs when a specific market product is purchased.
     /// @param user  user address
+    /// @param marketId  the market id
     /// @param amount the amount
     /// @param payout  Allocated TOS Amount
-    /// @param marketId  the market id
     /// @param isEth  Whether Ether is available
-    event Deposited(address user, uint256 amount, uint256 payout, uint256 marketId, bool isEth);
+    event Deposited(address user, uint256 marketId, uint256 amount, uint256 payout, bool isEth);
 
     /// @dev This event occurs when a specific market product is created.
     /// @param marketId the market id
@@ -27,28 +27,32 @@ interface IBondDepositoryEvent{
     /// @dev Events Emitted when Buying Bonding with ERC20 Token
     /// @param user name
     /// @param marketId the market id
+    /// @param stakeId  the stake id
     /// @param token  ERC20 Token address
     /// @param amount  the amount of ERC20 Token
-    event ERC20Deposited(address user, uint256 marketId, address token, uint256 amount);
+    event ERC20Deposited(address user, uint256 marketId, uint256 stakeId, address token, uint256 amount);
 
     /// @dev Event that gives a lockout period and is emitted when purchasing bonding with ERC20 Token
     /// @param user name
     /// @param marketId the market id
+    /// @param stakeId  the stake id
     /// @param token  ERC20 Token address
     /// @param amount  the amount of ERC20 Token
     /// @param lockWeeks  the number of weeks to locking
-    event ERC20DepositedWithSTOS(address user, uint256 marketId, address token, uint256 amount, uint256 lockWeeks);
+    event ERC20DepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, address token, uint256 amount, uint256 lockWeeks);
 
     /// @dev Events Emitted when Buying Bonding with Ether
     /// @param user the user account
     /// @param marketId the market id
+    /// @param stakeId  the stake id
     /// @param amount  the amount of Ether
-    event ETHDeposited(address user, uint256 marketId, uint256 amount);
+    event ETHDeposited(address user, uint256 marketId, uint256 stakeId, uint256 amount);
 
     /// @dev Event that gives a lockout period and is emitted when purchasing bonding with Ether
     /// @param user name
     /// @param marketId the market id
+    /// @param stakeId  the stake id
     /// @param amount  the amount of Ether
     /// @param lockWeeks  the number of weeks to locking
-    event ETHDepositedWithSTOS(address user, uint256 marketId, uint256 amount, uint256 lockWeeks);
+    event ETHDepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint256 lockWeeks);
 }

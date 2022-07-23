@@ -168,14 +168,15 @@ contract BondDepository is
         require(IERC20(_token).allowance(msg.sender, address(this)) >= _amount, "Depository : allowance is insufficient");
         IERC20(_token).transferFrom(msg.sender, address(treasury), _amount);
 
-        (payout_, index_) = _deposit(msg.sender, _amount, _id, false);
+        (payout_) = _deposit(msg.sender, _amount, _id, false);
 
-        require(payout_ > 0, "zero TOS amount");
         uint256 stakeId = staking.stakeByBond(msg.sender, payout_, _id);
+
+        index_ = deposits[msg.sender].length;
 
         deposits[msg.sender].push(LibBondDepository.Deposit(_id, stakeId));
 
-        emit ERC20Deposited(msg.sender, _id, _token, _amount);
+        emit ERC20Deposited(msg.sender, _id, stakeId, _token, _amount);
     }
 
     /// @inheritdoc IBondDepository
@@ -198,14 +199,15 @@ contract BondDepository is
         require(IERC20(_token).allowance(msg.sender, address(this)) >= _amount, "Depository : allowance is insufficient");
         IERC20(_token).transferFrom(msg.sender, address(treasury), _amount);
 
-        (payout_, index_) = _deposit(msg.sender, _amount, _id, false);
+        (payout_) = _deposit(msg.sender, _amount, _id, false);
 
-        require(payout_ > 0, "zero TOS amount");
         uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, _id, _lockWeeks);
+
+        index_ = deposits[msg.sender].length;
 
         deposits[msg.sender].push(LibBondDepository.Deposit(_id, stakeId));
 
-        emit ERC20DepositedWithSTOS(msg.sender, _id, _token, _amount, _lockWeeks);
+        emit ERC20DepositedWithSTOS(msg.sender, _id, stakeId, _token, _amount, _lockWeeks);
     }
 
     /// @inheritdoc IBondDepository
@@ -224,16 +226,17 @@ contract BondDepository is
     {
         require(msg.value == _amount, "Depository : ETH value not same");
 
-        (payout_, index_) = _deposit(msg.sender, _amount, _id, true);
+        (payout_) = _deposit(msg.sender, _amount, _id, true);
 
-        require(payout_ > 0, "zero TOS amount");
         uint256 stakeId = staking.stakeByBond(msg.sender, payout_, _id);
+
+        index_ = deposits[msg.sender].length;
 
         deposits[msg.sender].push(LibBondDepository.Deposit(_id, stakeId));
 
         payable(treasury).transfer(msg.value);
 
-        emit ETHDeposited(msg.sender, _id, _amount);
+        emit ETHDeposited(msg.sender, _id, stakeId, _amount);
     }
 
     /// @inheritdoc IBondDepository
@@ -254,16 +257,17 @@ contract BondDepository is
     {
         require(msg.value == _amount, "Depository : ETH value not same");
 
-        (payout_, index_) = _deposit(msg.sender, _amount, _id, true);
+        (payout_) = _deposit(msg.sender, _amount, _id, true);
 
-        require(payout_ > 0, "zero TOS amount");
         uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, _id, _lockWeeks);
+
+        index_ = deposits[msg.sender].length;
 
         deposits[msg.sender].push(LibBondDepository.Deposit(_id, stakeId));
 
         payable(treasury).transfer(msg.value);
 
-        emit ETHDepositedWithSTOS(msg.sender, _id, _amount, _lockWeeks);
+        emit ETHDepositedWithSTOS(msg.sender, _id, stakeId, _amount, _lockWeeks);
     }
 
 
@@ -272,7 +276,7 @@ contract BondDepository is
         uint256 _amount,
         uint256 _marketId,
         bool _eth
-    ) internal nonReentrant returns (uint256 _payout, uint256 index_) {
+    ) internal nonReentrant returns (uint256 _payout) {
 
         require(_amount <= purchasableTOSAmountAtOneTime(_marketId), "Depository : over maxPay");
 
@@ -321,7 +325,7 @@ contract BondDepository is
             IITreasury(treasury).requestMintAndTransfer(mrAmount, address(staking), _payout, true);
         }
 
-        emit Deposited(user, _amount, _payout, _marketId, _eth);
+        emit Deposited(user, _marketId, _amount, _payout, _eth);
     }
 
     ///////////////////////////////////////
