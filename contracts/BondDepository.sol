@@ -8,7 +8,13 @@ import "./libraries/SafeERC20.sol";
 
 import "./interfaces/IBondDepository.sol";
 import "./interfaces/IBondDepositoryEvent.sol";
+import "./interfaces/ITOSValueCalculator.sol";
+
 //import "hardhat/console.sol";
+
+interface IIIERC20 {
+    function decimals() external view returns (uint256);
+}
 
 interface IUniswapV3Pool {
     function token0() external view returns (address);
@@ -98,7 +104,7 @@ contract BondDepository is
         else require(_token != address(0), "zero address");
 
         require(_market[1] > block.timestamp, "sale end time has passed.");
-        require(_fee > 0, "zero fee");
+        if(!_check) require(_fee > 0, "zero fee");
 
         require(markets[id_].endSaleTime == 0 && metadata[id_].totalSaleAmount == 0, "already registered market and metadata");
 
@@ -128,8 +134,8 @@ contract BondDepository is
 
     /// @inheritdoc IBondDepository
     function close(uint256 _id) external override onlyPolicyOwner {
-        require(metadata[_id].fee > 0, "empty market");
-        require(markets[_id].endSaleTime > block.timestamp , "already end");
+        require(markets[_id].endSaleTime > 0, "empty market");
+        require(markets[_id].endSaleTime > block.timestamp , "already closed");
         markets[_id].endSaleTime = block.timestamp;
         markets[_id].capacity = 0;
         emit ClosedMarket(_id);
@@ -257,7 +263,9 @@ contract BondDepository is
 
         require(_amount <= marketMaxPayout(_marketId), "Depository : over maxPay");
 
-        _payout = calculPayoutAmount(metadata[_marketId].tokenPrice, metadata[_marketId].tosPrice, _amount);
+        // _payout = calculPayoutAmount(metadata[_marketId].tokenPrice, metadata[_marketId].tosPrice, _amount);
+        _payout = calculPayoutAmount(_marketId, _amount);
+
        // console.log("payoutAmount : %s", _payout);
 
         require(_payout > 0, "zero staking amount");
@@ -321,11 +329,37 @@ contract BondDepository is
         return payout = ((((_tokenPrice * 1e10)/_tosPrice) * _amount) / 1e10);
     }
 
-    //해당 마켓의 maxpayout양을 return한다.
+    //  토큰양_amount에 해당하는 토스의 양을 리턴
+    function calculPayoutAmount(
+        uint256 _id,
+        uint256 _amount
+    )
+        public
+        view
+        returns (uint256 payout)
+    {
+        // 금액에 해당하는 토스의 양
+        // return payout = ((((_tokenPrice * 1e10)/_tosPrice) * _amount) / 1e10);
+
+        if(!markets[_id].method && markets[_id].quoteToken == address(0)) return 0;
+        else if(!markets[_id].method && markets[_id].quoteToken == address(tos)) return _amount;
+
+        if(markets[_id].method)  payout = _amount * ITOSValueCalculator(calculator).getTOSPricePerETH() / 1e18;
+        else payout = _amount * ITOSValueCalculator(calculator).getTOSPricPerAsset(markets[_id].quoteToken) / 1e18;
+
+    }
 
     /// @inheritdoc IBondDepository
     function marketMaxPayout(uint256 _id) public override view returns (uint256 maxpayout_) {
-        maxpayout_ = (markets[_id].maxPayout * 1e10) / tokenPrice(_id);
+        // 한번에 최대 받을 수 있는 에셋 토큰의 양 .
+        //maxpayout_ = (markets[_id].maxPayout * 1e10) / tokenPrice(_id);
+
+        if(!markets[_id].method && markets[_id].quoteToken == address(0)) return 0;
+        else if(!markets[_id].method && markets[_id].quoteToken == address(tos)) return markets[_id].maxPayout;
+
+        if(markets[_id].method)  maxpayout_ = markets[_id].maxPayout * ITOSValueCalculator(calculator).getETHPricPerTOS() / 1e18;
+        else maxpayout_ = markets[_id].maxPayout * ITOSValueCalculator(calculator).getAssetPricPerTOS(markets[_id].quoteToken) / IIIERC20(markets[_id].quoteToken).decimals();
+
         return maxpayout_;
     }
 

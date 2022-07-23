@@ -313,7 +313,7 @@ contract Treasury is
 
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
-        uint256 value = (_amount*ITOSValueCalculator(calculator).getTOSERC20PoolERC20Price(_token,_tosERC20Pool,_fee))/1e18;
+        uint256 value = (_amount * ITOSValueCalculator(calculator).getTOSERC20PoolERC20Price(_token,_tosERC20Pool,_fee))/1e18;
 
         // mint TOS needed and store amount of rewards for distribution
         send_ = value.sub(_profit);
@@ -339,7 +339,7 @@ contract Treasury is
         require(permissions[LibTreasury.STATUS.RESERVETOKEN][_token], notAccepted); // Only reserves can be used for redemptions
         require(permissions[LibTreasury.STATUS.RESERVESPENDER][msg.sender], notApproved);
 
-        uint256 value = (_amount*ITOSValueCalculator(calculator).getTOSERC20PoolTOSPrice(_token,_tosERC20Pool,_fee))/1e18;
+        uint256 value = (_amount * ITOSValueCalculator(calculator).getTOSERC20PoolTOSPrice(_token,_tosERC20Pool,_fee))/1e18;
         ITOS(address(TOS)).burn(msg.sender, value);
 
         //뺏을때 backing에 미치는 영향은 무엇인가?
@@ -457,20 +457,6 @@ contract Treasury is
         }
     }
 
-    function getTOSPricePerETH() public view returns (uint256 price) {
-        (bool isWeth1, bool isTos1, address poola, address token0a, address token1a) = existPool(address(TOS), wethAddress, 3000);
-
-        if(isWeth1 && isTos1 && token0a == address(TOS)) price = ITOSValueCalculator(calculator).getPriceToken1(poola);
-        if(isWeth1 && isTos1 && token1a == address(TOS)) price = ITOSValueCalculator(calculator).getPriceToken0(poola);
-    }
-
-    function getETHPricPerTOS() public view returns (uint256 price) {
-        (bool isWeth1, bool isTos1, address poola, address token0a, address token1a) = existPool(address(TOS), wethAddress, 3000);
-
-        if(isWeth1 && isTos1 && token0a == wethAddress) price = ITOSValueCalculator(calculator).getPriceToken1(poola);
-        if(isWeth1 && isTos1 && token1a == wethAddress) price = ITOSValueCalculator(calculator).getPriceToken0(poola);
-    }
-
     function backingReserveETH() public view returns (uint256) {
         return backingReserve();
     }
@@ -479,7 +465,7 @@ contract Treasury is
         uint256 totalValue;
 
         //uint256 tosPricePerETH = ITOSValueCalculator(calculator).getTOSWETHPoolETHPrice();
-        uint256 tosPricePerETH = getTOSPricePerETH();
+        uint256 tosPricePerETH = ITOSValueCalculator(calculator).getTOSPricePerETH();
         // console.log("tosPricePerETH %s", tosPricePerETH) ;
 
         bool applyTOS = false;
@@ -517,7 +503,7 @@ contract Treasury is
         uint256 totalValue;
         //uint256 tosETHPricePerTOS = ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
 
-        uint256 tosETHPricePerTOS = getETHPricPerTOS();
+        uint256 tosETHPricePerTOS = ITOSValueCalculator(calculator).getETHPricPerTOS();
 
         //0.000004124853366489 ETH/TOS
         // console.log("tosETHPricePerTOS %s", tosETHPricePerTOS) ;
@@ -557,7 +543,7 @@ contract Treasury is
         public view
         returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmmount)
     {
-        (bool isWeth, , address pool, address token0, address token1) = existPool(_asset, wethAddress, 3000);
+        (bool isWeth, , address pool, address token0, address token1) = ITOSValueCalculator(calculator).existPool(_asset, wethAddress, 3000);
 
         if (isWeth) {
             existedWethPool = true;
@@ -569,7 +555,7 @@ contract Treasury is
             }
 
         } else {
-            (, bool isTos, address poolt, address token0t, address token1t) = existPool(_asset, address(TOS), 3000);
+            (, bool isTos, address poolt, address token0t, address token1t) = ITOSValueCalculator(calculator).existPool(_asset, address(TOS), 3000);
             if (isTos){
                 existedTosPool = true;
                 if (token0t == _asset) priceWethOrTosPerAsset = ITOSValueCalculator(calculator).getPriceToken0(poolt);
@@ -580,49 +566,6 @@ contract Treasury is
                 }
             }
         }
-    }
-
-    function existPool(address tokenA, address tokenB, uint24 _fee)
-        public view returns (bool isWeth, bool isTos, address pool, address token0, address token1) {
-
-        if(tokenA == address(0) || tokenB == address(0)) return (false, false, address(0), address(0), address(0));
-
-        (pool, , ) =  computePoolAddress(tokenA, tokenB, _fee);
-
-        token0 = IUniswapV3Pool(pool).token0();
-        token1 = IUniswapV3Pool(pool).token1();
-
-        if(token0 == address(0) || token1 == address(0)) return (false, false, address(0), address(0), address(0));
-        if(token0 == wethAddress || token1 == wethAddress) isWeth = true;
-        if(token0 == address(TOS) || token1 == address(TOS)) isTos = true;
-    }
-
-    function computePoolAddress(address tokenA, address tokenB, uint24 _fee)
-        public view returns (address pool, address token0, address token1)
-    {
-        bytes32  POOL_INIT_CODE_HASH = 0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54;
-
-        token0 = tokenA;
-        token1 = tokenB;
-
-        if(token0 > token1) {
-            token0 = tokenB;
-            token1 = tokenA;
-        }
-
-        pool = address( uint160(
-            uint256(
-                keccak256(
-                    abi.encodePacked(
-                        hex'ff',
-                        address(uniswapV3Factory),
-                        keccak256(abi.encode(token0, token1, _fee)),
-                        POOL_INIT_CODE_HASH
-                    )
-                )
-            ))
-        );
-
     }
 
     function backingRateETHPerTOS() public override view returns (uint256) {

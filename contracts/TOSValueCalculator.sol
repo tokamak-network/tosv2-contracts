@@ -19,6 +19,11 @@ interface IERC20 {
     function decimals() external  view returns (uint256);
 }
 
+interface IIUniswapV3Factory {
+
+    function getPool(address,address,uint24) external view returns (address);
+}
+
 interface IIUniswapV3Pool {
     function token0() external view returns (address);
     function token1() external view returns (address);
@@ -52,11 +57,11 @@ interface IIUniswapV3Pool {
         view
         returns (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidityCumulativeX128s);
 
-    function getPool(
-        address tokenA,
-        address tokenB,
-        uint24 fee
-    ) external view returns (address pool);
+    // function getPool(
+    //     address tokenA,
+    //     address tokenB,
+    //     uint24 fee
+    // ) external view returns (address pool);
 }
 
 interface IINonfungiblePositionManager {
@@ -82,7 +87,7 @@ interface IINonfungiblePositionManager {
 contract TOSValueCalculator is ITOSValueCalculator {
 
     // IUniswapV3Pool public pool;
-    IIUniswapV3Pool public UniswapV3Factory;
+    IIUniswapV3Factory public UniswapV3Factory;
 
     address public tos;
     address public weth;
@@ -103,7 +108,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         weth = _weth;
         npm_ = _npm;
         ethTosPool = _basicpool;
-        UniswapV3Factory = IIUniswapV3Pool(_uniswapV3factory);
+        UniswapV3Factory = IIUniswapV3Factory(_uniswapV3factory);
     }
 
 
@@ -430,5 +435,77 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
+
+    function getTOSPricePerETH() public override view  returns (uint256 price) {
+        (bool isWeth1, bool isTos1, address poola, address token0a, address token1a) = existPool(tos, weth, 3000);
+
+        if (isWeth1 && isTos1 && token0a == tos) price = getPriceToken1(poola);
+        if (isWeth1 && isTos1 && token1a == tos) price = getPriceToken0(poola);
+    }
+
+    function getETHPricPerTOS() public override view returns (uint256 price) {
+        (bool isWeth1, bool isTos1, address poola, address token0a, address token1a) = existPool(tos, weth, 3000);
+
+        if (isWeth1 && isTos1 && token0a == weth) price = getPriceToken1(poola);
+        if (isWeth1 && isTos1 && token1a == weth) price = getPriceToken0(poola);
+    }
+
+    function getTOSPricPerAsset(address _asset) public override view returns (uint256 price) {
+        (, bool isTos1, address poola, address token0a, address token1a) = existPool(tos, _asset, 3000);
+
+        if (isTos1 && token0a == tos) price = getPriceToken1(poola);
+        if (isTos1 && token1a == tos) price = getPriceToken0(poola);
+    }
+
+    function getAssetPricPerTOS(address _asset) public override view returns (uint256 price) {
+        (, bool isTos1, address poola, address token0a, address token1a) = existPool(tos, _asset, 3000);
+
+        if (isTos1 && token0a == _asset) price = getPriceToken1(poola);
+        if (isTos1 && token1a == _asset) price = getPriceToken0(poola);
+    }
+
+    function existPool(address tokenA, address tokenB, uint24 _fee)
+        public override view returns (bool isWeth, bool isTos, address pool, address token0, address token1) {
+
+        if(tokenA == address(0) || tokenB == address(0)) return (false, false, address(0), address(0), address(0));
+
+        (pool, , ) =  computePoolAddress(tokenA, tokenB, _fee);
+
+        token0 = IIUniswapV3Pool(pool).token0();
+        token1 = IIUniswapV3Pool(pool).token1();
+
+        if(token0 == address(0) || token1 == address(0)) return (false, false, address(0), address(0), address(0));
+        if(token0 == weth || token1 == weth) isWeth = true;
+        if(token0 == tos || token1 == tos) isTos = true;
+    }
+
+
+    function computePoolAddress(address tokenA, address tokenB, uint24 _fee)
+        public override view returns (address pool, address token0, address token1)
+    {
+        bytes32  POOL_INIT_CODE_HASH = 0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54;
+
+        token0 = tokenA;
+        token1 = tokenB;
+
+        if(token0 > token1) {
+            token0 = tokenB;
+            token1 = tokenA;
+        }
+
+        pool = address( uint160(
+            uint256(
+                keccak256(
+                    abi.encodePacked(
+                        hex'ff',
+                        address(UniswapV3Factory),
+                        keccak256(abi.encode(token0, token1, _fee)),
+                        POOL_INIT_CODE_HASH
+                    )
+                )
+            ))
+        );
+
+    }
 
 }

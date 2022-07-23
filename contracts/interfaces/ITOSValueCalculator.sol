@@ -68,4 +68,18 @@ interface ITOSValueCalculator {
     function getPriceToken0(address poolAddress) external view returns (uint256 priceX96);
     function getPriceToken1(address poolAddress) external view returns(uint256 priceX96);
 
+    function getTOSPricePerETH() external view returns (uint256 price);
+
+    function getETHPricPerTOS() external view returns (uint256 price);
+
+    function getTOSPricPerAsset(address _asset) external view returns (uint256 price);
+
+    function getAssetPricPerTOS(address _asset) external view returns (uint256 price);
+
+    function existPool(address tokenA, address tokenB, uint24 _fee)
+        external view returns (bool isWeth, bool isTos, address pool, address token0, address token1);
+
+    function computePoolAddress(address tokenA, address tokenB, uint24 _fee)
+        external view returns (address pool, address token0, address token1);
+
 }
