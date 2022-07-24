@@ -11,7 +11,7 @@ import "./interfaces/IBondDepositoryEvent.sol";
 import "./interfaces/ITOSValueCalculator.sol";
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
-//import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 interface IIIERC20 {
     function decimals() external view returns (uint256);
@@ -39,9 +39,7 @@ contract BondDepository is
     using SafeERC20 for IERC20;
 
     modifier nonEndMarket(uint256 id_) {
-        require(markets[id_].endSaleTime > 0 && markets[id_].endSaleTime < block.timestamp,
-            "BondDepository: closed market"
-        );
+        require(markets[id_].endSaleTime > block.timestamp, "BondDepository: closed market");
         require(markets[id_].capacity > 0 , "BondDepository: zero capacity" );
         _;
     }
@@ -176,7 +174,7 @@ contract BondDepository is
 
         deposits[msg.sender].push(LibBondDepository.Deposit(_id, stakeId));
 
-        emit ERC20Deposited(msg.sender, _id, stakeId, _token, _amount);
+        emit ERC20Deposited(msg.sender, _id, stakeId, _token, _amount, payout_);
     }
 
     /// @inheritdoc IBondDepository
@@ -207,7 +205,7 @@ contract BondDepository is
 
         deposits[msg.sender].push(LibBondDepository.Deposit(_id, stakeId));
 
-        emit ERC20DepositedWithSTOS(msg.sender, _id, stakeId, _token, _amount, _lockWeeks);
+        emit ERC20DepositedWithSTOS(msg.sender, _id, stakeId, _token, _amount, _lockWeeks, payout_);
     }
 
     /// @inheritdoc IBondDepository
@@ -236,7 +234,7 @@ contract BondDepository is
 
         payable(treasury).transfer(msg.value);
 
-        emit ETHDeposited(msg.sender, _id, stakeId, _amount);
+        emit ETHDeposited(msg.sender, _id, stakeId, _amount, payout_);
     }
 
     /// @inheritdoc IBondDepository
@@ -267,7 +265,7 @@ contract BondDepository is
 
         payable(treasury).transfer(msg.value);
 
-        emit ETHDepositedWithSTOS(msg.sender, _id, stakeId, _amount, _lockWeeks);
+        emit ETHDepositedWithSTOS(msg.sender, _id, stakeId, _amount, _lockWeeks, payout_);
     }
 
 
@@ -278,12 +276,12 @@ contract BondDepository is
         bool _eth
     ) internal nonReentrant returns (uint256 _payout) {
 
-        require(_amount <= purchasableTOSAmountAtOneTime(_marketId), "Depository : over maxPay");
+        require(_amount <= purchasableAseetAmountAtOneTime(_marketId), "Depository : over maxPay");
 
         // _payout = calculPayoutAmount(metadata[_marketId].tokenPrice, metadata[_marketId].tosPrice, _amount);
         _payout = calculateTosAmountForAsset(_marketId, _amount);
 
-       // console.log("payoutAmount : %s", _payout);
+        console.log("payoutAmount : %s", _payout);
 
         require(_payout > 0, "zero staking amount");
 
@@ -378,12 +376,14 @@ contract BondDepository is
             if(markets[_id].method)  payoutDynamic = _amount * ITOSValueCalculator(calculator).getTOSPricePerETH() / 1e18;
             else payoutDynamic = _amount * ITOSValueCalculator(calculator).getTOSPricPerAsset(markets[_id].quoteToken) / 1e18;
         }
+        console.log("calculateTosAmountForAsset payoutFixed %s", payoutFixed);
+        console.log("calculateTosAmountForAsset payoutDynamic %s", payoutDynamic);
 
         return Math.max(payoutFixed, payoutDynamic);
     }
 
     /// @inheritdoc IBondDepository
-    function purchasableTOSAmountAtOneTime(uint256 _id) public override view returns (uint256 maxpayout_) {
+    function purchasableAseetAmountAtOneTime(uint256 _id) public override view returns (uint256 maxpayout_) {
         // 한번에 최대 받을 수 있는 에셋 토큰의 양 .
         //maxpayout_ = (markets[_id].maxPayout * 1e10) / tokenPrice(_id);
 
@@ -396,8 +396,9 @@ contract BondDepository is
         else {
              if(markets[_id].method)  maxpayoutDynamic = markets[_id].maxPayout * ITOSValueCalculator(calculator).getETHPricPerTOS() / 1e18;
             else maxpayoutDynamic = markets[_id].maxPayout * ITOSValueCalculator(calculator).getAssetPricPerTOS(markets[_id].quoteToken) / IIIERC20(markets[_id].quoteToken).decimals();
-
         }
+        console.log("purchasableAseetAmountAtOneTime maxpayoutFixed %s", maxpayoutFixed);
+        console.log("purchasableAseetAmountAtOneTime maxpayoutDynamic %s", maxpayoutDynamic);
 
         return Math.max(maxpayoutFixed, maxpayoutDynamic);
     }

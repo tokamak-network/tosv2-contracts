@@ -130,10 +130,10 @@ interface IBondDepository {
         returns (uint256 payout);
 
 
-    /// @dev purchasable TOS amount At One Time
+    /// @dev purchasable Asset amount At One Time
     /// @param _id  the market id
-    /// @return maxpayout_  tos amount
-    function purchasableTOSAmountAtOneTime(uint256 _id) external view returns (uint256 maxpayout_);
+    /// @return maxpayout_  the asset amount
+    function purchasableAseetAmountAtOneTime(uint256 _id) external view returns (uint256 maxpayout_);
 
 
     /// @dev the token price is calculated by the token price / the tos price

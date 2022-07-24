@@ -364,7 +364,9 @@ contract Treasury is
     )
         external override
     {
-        require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender], notApproved);
+        require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender]
+                || isBonder(msg.sender), notApproved);
+
         require(_mintAmount > 0, "zero amount");
         require(_mintAmount >= _transferAmount, "_mintAmount is less than _transferAmount");
 
@@ -395,7 +397,8 @@ contract Treasury is
         address _recipient,
         uint256 _amount
     ) external override {
-        require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender], notApproved);
+        require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender]
+                || isStaker(msg.sender), notApproved);
         require(_recipient != address(0), "zero recipient");
         require(_amount > 0, "zero amount");
 

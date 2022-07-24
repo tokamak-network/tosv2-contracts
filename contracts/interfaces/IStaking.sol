@@ -246,4 +246,20 @@ interface IStaking {
     /// @param ltos  LTOS 양
     /// @return return TOS 양
     function getLtosToTos(uint256 ltos) external view returns (uint256);
+
+
+    function stakeInfo(uint256 stakeId) external view returns (
+        address staker,
+        uint256 deposit,
+        uint256 LTOS,
+        uint256 endTime,
+        uint256 getLTOS,
+        uint256 rewardTOS,
+        uint256 marketId,
+        bool withdraw
+    );
+
+
+    function getIndex() external view returns(uint256) ;
+
 }

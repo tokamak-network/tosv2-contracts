@@ -52,6 +52,8 @@ let totalTosSupplyTarget = ethers.utils.parseEther("1000000");
 let tosAdmin = "0x5b6e72248b19F2c5b88A4511A6994AD101d0c287";
 let lockTosAdmin = "0x5b6e72248b19F2c5b88A4511A6994AD101d0c287";
 
+let eventCreatedMarket ="CreatedMarket(uint256,bool,address,address,uint24,uint256[5])";
+let eventETHDeposited ="ETHDeposited(address,uint256,uint256,uint256,uint256)";
 
 describe("TOSv2 Phase1", function () {
   //시나리오 : https://www.notion.so/onther/BondDepository-StakingV2-scenario-Suah-497853d6e65f48a390255f3bca29fa36
@@ -119,14 +121,13 @@ describe("TOSv2 Phase1", function () {
 
   //let mintRate = 10;
   //let mintRate = 1000000; // 0.0001
-  let mintRate = ethers.BigNumber.from("100000");
+  let mintRate = ethers.BigNumber.from("500000");
   let unstakingAmount = ethers.utils.parseUnits("500", 18);
 
   let ETHPrice = 1000000
   let TOSPrice = 1000
 
   let minter_role = "0xf0887ba65ee2024ea881d91b74c2450ef19e1557f03bed3ea9f16b037cbe2dc9";
-
 
   ///
   let basicBondPeriod = 60*60*24*5 ;  // 본드를 사고, 락업없을때, 기본 락업기간 5일
@@ -193,7 +194,23 @@ describe("TOSv2 Phase1", function () {
 
   //[팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격, 한번에 구매 가능한 TOS물량]
   // 이더상품.
-  let bondInfo1 = {
+  let bondInfoEther = {
+    marketId : null,
+    check: true,
+    token: ethers.constants.AddressZero,
+    poolAddress: uniswapInfo.tosethPool,
+    fee: 0,
+    market: {
+      capAmountOfTos: ethers.utils.parseEther("10000000"),
+      closeTime: 0,
+      priceTokenPerTos: ethers.BigNumber.from("4124960000000"),
+      priceTosPerToken: ethers.BigNumber.from("242427000000000000000000"),
+      purchasableTOSAmountAtOneTime: ethers.utils.parseEther("1000000")
+    }
+  }
+
+  let bondInfoWTON = {
+    marketId : null,
     check: true,
     token: ethers.constants.AddressZero,
     poolAddress: uniswapInfo.tosethPool,
@@ -206,6 +223,23 @@ describe("TOSv2 Phase1", function () {
       purchasableTOSAmountAtOneTime: ethers.utils.parseEther("100")
     }
   }
+
+  let bondInfoLP = {
+    marketId : null,
+    check: true,
+    token: ethers.constants.AddressZero,
+    poolAddress: uniswapInfo.tosethPool,
+    fee: 0,
+    market: {
+      capAmountOfTos: ethers.utils.parseEther("1000"),
+      closeTime: 0,
+      priceTokenPerTos: ethers.BigNumber.from("4124960000000"),
+      priceTosPerToken: ethers.BigNumber.from("242427000000000000000000"),
+      purchasableTOSAmountAtOneTime: ethers.utils.parseEther("100")
+    }
+  }
+
+  let deposits = {user1 : [], user2: []};
 
   before(async () => {
     accounts = await ethers.getSigners();
@@ -437,7 +471,7 @@ describe("TOSv2 Phase1", function () {
         expect(code).to.not.eq("0x");
       })
 
-      it("#0-4-1. Deploy BondDepository Proxy", async () => {
+      it("#0-4-1. upgradeTo: Deploy BondDepository Proxy", async () => {
         bondDepositorycont = await ethers.getContractFactory("BondDepositoryProxy");
         bondDepositoryProxy = await bondDepositorycont.connect(admin1).deploy();
         await bondDepositoryProxy.deployed();
@@ -445,7 +479,7 @@ describe("TOSv2 Phase1", function () {
         await bondDepositoryProxy.connect(admin1).upgradeTo(bondDepositoryContract.address);
       })
 
-      it("#0-4-2. initialize bondDepositoryProxy", async () => {
+      it("#0-4-2. initialize : initialize bondDepositoryProxy", async () => {
         await bondDepositoryProxy.connect(admin1).initialize(
           uniswapInfo.tos,
           stakingProxy.address,
@@ -471,7 +505,7 @@ describe("TOSv2 Phase1", function () {
 
 
   describe("#1. setting the contract", () => {
-    it("give the mintRole to treasury", async () => {
+    it("grantRole: give the mintRole to treasury", async () => {
       await tosContract.connect(admin1).grantRole(minter_role,treasuryProxy.address);
 
       let tx = await tosContract.hasRole(minter_role,treasuryProxy.address);
@@ -487,13 +521,13 @@ describe("TOSv2 Phase1", function () {
         expect(await treasuryProxy.isPolicy(admin1.address)).to.be.equal(false)
       })
 
-      it("#1-1-1. user can't call addPolicy", async () => {
+      it("#1-1-1.addPolicy : user can't call addPolicy", async () => {
         await expect(
           treasuryProxy.connect(user1).addPolicy(admin1.address)
         ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
 
-      it("#1-1-1. onlyProxyAdmin can call addPolicy", async () => {
+      it("#1-1-1. addPolicy : onlyProxyAdmin can call addPolicy", async () => {
         await treasuryProxy.connect(admin1).addPolicy(admin1.address)
         expect(await treasuryProxy.isPolicy(admin1.address)).to.be.equal(true)
       })
@@ -509,7 +543,7 @@ describe("TOSv2 Phase1", function () {
         ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
 
-      it("#1-1-2. onlyProxyAdmin can call initialize", async () => {
+      it("#1-1-2. initialize : onlyProxyAdmin can call initialize", async () => {
         await treasuryProxy.connect(admin1).initialize(
           tosContract.address,
           TOSValueCalculator.address,
@@ -522,7 +556,7 @@ describe("TOSv2 Phase1", function () {
         expect(await treasuryProxylogic.wethAddress()).to.be.equal(wethAddress);
       })
 
-      it("#1-1-3. user can't call enable (for mint)", async () => {
+      it("#1-1-3. enable : user can't call enable (for mint)", async () => {
         await expect(
           treasuryProxylogic.connect(user1).enable(
             STATUS.REWARDMANAGER,
@@ -548,7 +582,7 @@ describe("TOSv2 Phase1", function () {
         ).to.be.equal(true)
       })
       */
-      it("#1-1-3. policy can call enable (for mint staking)", async () => {
+      it("#1-1-3. enable : policy can call enable (for mint staking)", async () => {
 
         expect(
           await treasuryProxylogic.permissions(STATUS.REWARDMANAGER, stakingProxy.address)
@@ -569,7 +603,7 @@ describe("TOSv2 Phase1", function () {
         ).to.be.revertedWith("Accessible: Caller is not an policy admin")
       })
 
-      it("#1-1-4. policy can call approve (stakingV2)", async () => {
+      it("#1-1-4. approve : policy can call approve (stakingV2)", async () => {
         let beforeApprove = await tosContract.allowance(treasuryProxy.address, stakingProxy.address);
         expect(beforeApprove).to.be.equal(0)
         await treasuryProxylogic.connect(admin1).approve(stakingProxy.address)
@@ -578,7 +612,7 @@ describe("TOSv2 Phase1", function () {
         expect(afterApprove).to.be.above(0)
       })
 
-      it("#1-1-5. user can't call disable", async () => {
+      it("#1-1-5. disable : user can't call disable", async () => {
         await expect(
           treasuryProxylogic.connect(user1).disable(
             STATUS.REWARDMANAGER,
@@ -586,7 +620,7 @@ describe("TOSv2 Phase1", function () {
         ).to.be.revertedWith("Accessible: Caller is not an policy admin")
       })
 
-      it("#1-1-5. policy can call disable", async () => {
+      it("#1-1-5. disable : policy can call disable", async () => {
 
           expect(
             await treasuryProxylogic.permissions(STATUS.REWARDMANAGER, stakingProxy.address)
@@ -601,7 +635,7 @@ describe("TOSv2 Phase1", function () {
           await treasuryProxylogic.connect(admin1).enable(STATUS.REWARDMANAGER, stakingProxy.address);
       })
 
-      it("#1-1-6. user can't call setMR(mintRate)", async () => {
+      it("#1-1-6. setMR : user can't call setMR(mintRate)", async () => {
         await expect(
           treasuryProxylogic.connect(user1).setMR(mintRate,
             ethers.utils.parseEther("100")
@@ -609,7 +643,7 @@ describe("TOSv2 Phase1", function () {
         ).to.be.revertedWith("Accessible: Caller is not an policy admin")
       })
 
-      it("#1-1-6. setMR(mintRate) fail: TOS is insufficient for backing", async () => {
+      it("#1-1-6. setMR : setMR(mintRate) fail: TOS is insufficient for backing", async () => {
 
         await expect(
           treasuryProxylogic.connect(admin1).setMR(mintRate,
@@ -646,7 +680,7 @@ describe("TOSv2 Phase1", function () {
 
       })
 
-      it("#1-1-6. onlyPolicyAdmin can call setMR(mintRate)", async () => {
+      it("#1-1-6. setMR : onlyPolicyAdmin can call setMR(mintRate)", async () => {
         await treasuryProxylogic.connect(admin1).setMR(mintRate,
           ethers.utils.parseEther("0")
           );
@@ -665,18 +699,18 @@ describe("TOSv2 Phase1", function () {
         expect(await stakingProxy.isPolicy(admin1.address)).to.be.equal(false)
       })
 
-      it("#1-2-1. user can't call addPolicy", async () => {
+      it("#1-2-1. addPolicy : user can't call addPolicy", async () => {
         await expect(
           stakingProxy.connect(user1).addPolicy(admin1.address)
         ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
 
-      it("#1-2-1. onlyProxyAdmin can call addPolicy", async () => {
+      it("#1-2-1. addPolicy : onlyProxyAdmin can call addPolicy", async () => {
         await stakingProxy.connect(admin1).addPolicy(admin1.address)
         expect(await stakingProxy.isPolicy(admin1.address)).to.be.equal(true)
       })
 
-      it("#1-2-2. user can't call initialize", async () => {
+      it("#1-2-2. initialize : user can't call initialize", async () => {
         const block = await ethers.provider.getBlock('latest')
         firstEndEpochTime = block.timestamp + epochLength;
 
@@ -691,7 +725,7 @@ describe("TOSv2 Phase1", function () {
         ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
 
-      it("#1-2-2. onlyProxyAdmin can call initialize", async () => {
+      it("#1-2-2. initialize : onlyProxyAdmin can call initialize", async () => {
         const block = await ethers.provider.getBlock('latest')
         firstEndEpochTime = block.timestamp + epochLength;
         // console.log("firstEndEpochTime :", firstEndEpochTime);
@@ -714,27 +748,27 @@ describe("TOSv2 Phase1", function () {
 
       })
 
-      it("#1-2-3. user can't call setRebasePerEpoch", async () => {
+      it("#1-2-3. setRebasePerEpoch : user can't call setRebasePerEpoch", async () => {
         let rebasePerEpoch = ethers.utils.parseUnits("1", 17) //index가 0.1크기만큼 증가
         await expect(
           stakingProxylogic.connect(user1).setRebasePerEpoch(rebasePerEpoch)
         ).to.be.revertedWith("Accessible: Caller is not an policy admin")
       })
 
-      it("#1-2-3. onlyPolicyAdmin can call setRebasePerEpoch", async () => {
+      it("#1-2-3. setRebasePerEpoch : onlyPolicyAdmin can call setRebasePerEpoch", async () => {
         let rebasePerEpoch = ethers.utils.parseUnits("1", 17) //index가 0.1크기만큼 증가
         await stakingProxylogic.connect(admin1).setRebasePerEpoch(rebasePerEpoch);
         expect((await stakingProxylogic.rebasePerEpoch())).to.be.equal(rebasePerEpoch)
       })
 
-      it("#1-2-4. user can't call setIndex", async () => {
+      it("#1-2-4. setIndex : user can't call setIndex", async () => {
         let index = ethers.utils.parseUnits("10", 18)
         await expect(
           stakingProxylogic.connect(user1).setIndex(index)
         ).to.be.revertedWith("Accessible: Caller is not an policy admin")
       })
 
-      it("#1-2-4. onlyPolicyAdmin can call setIndex", async () => {
+      it("#1-2-4. setIndex : onlyPolicyAdmin can call setIndex", async () => {
         let epochtestbefore = await stakingProxylogic.epoch();
 
         expect(epochtestbefore.length_).to.be.equal(28800);
@@ -744,26 +778,26 @@ describe("TOSv2 Phase1", function () {
         expect((await stakingProxylogic.index_())).to.be.equal(index)
       })
 
-      it("#1-2-5. user can't call setBasicBondPeriod", async () => {
+      it("#1-2-5. setBasicBondPeriod : user can't call setBasicBondPeriod", async () => {
         await expect(
           stakingProxylogic.connect(user1).setBasicBondPeriod(basicBondPeriod)
         ).to.be.revertedWith("Accessible: Caller is not an policy admin")
       })
 
-      it("#1-2-5. onlyPolicyAdmin can call setBasicBondPeriod", async () => {
+      it("#1-2-5. setBasicBondPeriod : onlyPolicyAdmin can call setBasicBondPeriod", async () => {
         await stakingProxylogic.connect(admin1).setBasicBondPeriod(basicBondPeriod + 100)
         expect((await stakingProxylogic.basicBondPeriod())).to.be.equal(basicBondPeriod+ 100);
 
         await stakingProxylogic.connect(admin1).setBasicBondPeriod(basicBondPeriod)
       })
 
-      it("#1-2-6. user can't call addAdmin", async () => {
+      it("#1-2-6. addAdmin : user can't call addAdmin", async () => {
         await expect(
           stakingProxylogic.connect(user1).addAdmin(user1.address)
         ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
 
-      it("#1-2-6. onlyProxyAdmin can call addAdmin", async () => {
+      it("#1-2-6. addAdmin : onlyProxyAdmin can call addAdmin", async () => {
         await stakingProxylogic.connect(admin1).addAdmin(bondDepositoryProxylogic.address)
         expect(await stakingProxylogic.isAdmin(bondDepositoryProxylogic.address)).to.be.equal(true);
       })
@@ -778,18 +812,18 @@ describe("TOSv2 Phase1", function () {
         expect(await bondDepositoryProxy.isPolicy(admin1.address)).to.be.equal(false)
       })
 
-      it("#1-3-1. user can't call addPolicy", async () => {
+      it("#1-3-1. addPolicy : user can't call addPolicy", async () => {
         await expect(
           bondDepositoryProxy.connect(user1).addPolicy(admin1.address)
         ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
 
-      it("#1-3-1. onlyProxyAdmin can call addPolicy", async () => {
+      it("#1-3-1. addPolicy : onlyProxyAdmin can call addPolicy", async () => {
         await bondDepositoryProxy.connect(admin1).addPolicy(admin1.address)
         expect(await bondDepositoryProxy.isPolicy(admin1.address)).to.be.equal(true)
       })
 
-      it("#1-3-2. user can't call initialize", async () => {
+      it("#1-3-2. initialize : user can't call initialize", async () => {
         await expect(
           bondDepositoryProxy.connect(user1).initialize(
             uniswapInfo.tos,
@@ -801,7 +835,7 @@ describe("TOSv2 Phase1", function () {
         ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
 
-      it("#1-3-2. onlyProxyAdmin can call initialize", async () => {
+      it("#1-3-2. initialize : onlyProxyAdmin can call initialize", async () => {
         await bondDepositoryProxy.connect(admin1).initialize(
             uniswapInfo.tos,
             stakingProxy.address,
@@ -814,53 +848,53 @@ describe("TOSv2 Phase1", function () {
         expect(treasuryAddr).to.be.equal(treasuryProxy.address);
       })
 
-      it("#1-3-3. user can't call create", async () => {
+      it("#1-3-3. create : user can't call create", async () => {
         const block = await ethers.provider.getBlock('latest')
         let finishTime = block.timestamp + sellingTime  //2주
-        bondInfo1.market.closeTime = finishTime;
+        bondInfoEther.market.closeTime = finishTime;
 
         await expect(
           bondDepositoryProxylogic.connect(user1).create(
-            bondInfo1.check,
-            bondInfo1.token,
-            bondInfo1.poolAddress,
-            bondInfo1.fee,
+            bondInfoEther.check,
+            bondInfoEther.token,
+            bondInfoEther.poolAddress,
+            bondInfoEther.fee,
             [
-              bondInfo1.market.capAmountOfTos,
-              bondInfo1.market.closeTime,
-              bondInfo1.market.priceTokenPerTos,
-              bondInfo1.market.priceTosPerToken,
-              bondInfo1.market.purchasableTOSAmountAtOneTime
+              bondInfoEther.market.capAmountOfTos,
+              bondInfoEther.market.closeTime,
+              bondInfoEther.market.priceTokenPerTos,
+              bondInfoEther.market.priceTosPerToken,
+              bondInfoEther.market.purchasableTOSAmountAtOneTime
             ]
           )
         ).to.be.revertedWith("Accessible: Caller is not an policy admin")
       })
 
 
-      it("#1-3-3. create maekrt : If you do not register the bond with the treasury, fail ", async () => {
+      it("#1-3-3. create : create market : If you do not register the bond with the treasury, fail ", async () => {
         const block = await ethers.provider.getBlock('latest')
         let finishTime = block.timestamp + sellingTime  //2주
-        bondInfo1.market.closeTime = finishTime;
+        bondInfoEther.market.closeTime = finishTime;
 
         await expect(
           bondDepositoryProxylogic.connect(admin1).create(
-            bondInfo1.check,
-            bondInfo1.token,
-            bondInfo1.poolAddress,
-            bondInfo1.fee,
+            bondInfoEther.check,
+            bondInfoEther.token,
+            bondInfoEther.poolAddress,
+            bondInfoEther.fee,
             [
-              bondInfo1.market.capAmountOfTos,
-              bondInfo1.market.closeTime,
-              bondInfo1.market.priceTokenPerTos,
-              bondInfo1.market.priceTosPerToken,
-              bondInfo1.market.purchasableTOSAmountAtOneTime
+              bondInfoEther.market.capAmountOfTos,
+              bondInfoEther.market.closeTime,
+              bondInfoEther.market.priceTokenPerTos,
+              bondInfoEther.market.priceTosPerToken,
+              bondInfoEther.market.purchasableTOSAmountAtOneTime
             ]
           )
         ).to.be.revertedWith("sender is not a bonder")
       })
 
 
-      it("#1-1-3. policy can call enable (for create market in bondDepository)", async () => {
+      it("#1-1-3. enable : policy can call enable (for create market in bondDepository)", async () => {
         expect(await treasuryProxylogic.isPolicy(admin1.address)).to.be.equal(true)
         expect(await treasuryProxylogic.isAdmin(admin1.address)).to.be.equal(true)
         expect(await treasuryProxylogic.isProxyAdmin(admin1.address)).to.be.equal(true)
@@ -876,36 +910,36 @@ describe("TOSv2 Phase1", function () {
         ).to.be.equal(true)
       })
 
-      it("#1-3-3. onlyPolicy can call create", async () => {
+      it("#1-3-3. create : onlyPolicy can call create", async () => {
           const block = await ethers.provider.getBlock('latest')
           let finishTime = block.timestamp + sellingTime  //2주
           firstMarketlength = await stakingProxylogic.marketIdCounter();
 
-          bondInfo1.market.closeTime = finishTime;
+          bondInfoEther.market.closeTime = finishTime;
 
           await bondDepositoryProxylogic.connect(admin1).create(
-              bondInfo1.check,
-              bondInfo1.token,
-              bondInfo1.poolAddress,
-              bondInfo1.fee,
+              bondInfoEther.check,
+              bondInfoEther.token,
+              bondInfoEther.poolAddress,
+              bondInfoEther.fee,
               [
-                bondInfo1.market.capAmountOfTos,
-                bondInfo1.market.closeTime,
-                bondInfo1.market.priceTokenPerTos,
-                bondInfo1.market.priceTosPerToken,
-                bondInfo1.market.purchasableTOSAmountAtOneTime
+                bondInfoEther.market.capAmountOfTos,
+                bondInfoEther.market.closeTime,
+                bondInfoEther.market.priceTokenPerTos,
+                bondInfoEther.market.priceTosPerToken,
+                bondInfoEther.market.purchasableTOSAmountAtOneTime
               ]
           )
           expect(await stakingProxylogic.marketIdCounter()).to.be.equal(firstMarketlength.add(ethers.constants.One));
       })
 
-      it("#1-3-4. user can't call close", async () => {
+      it("#1-3-4. close : user can't call close", async () => {
         await expect(
           bondDepositoryProxylogic.connect(user1).close(firstMarketlength)
         ).to.be.revertedWith("Accessible: Caller is not an policy admin")
       })
 
-      it("#1-3-4. onlyPolicy can call close", async () => {
+      it("#1-3-4. close : onlyPolicy can call close", async () => {
         await bondDepositoryProxylogic.connect(admin1).close(firstMarketlength);
 
         let marketcapacity = await bondDepositoryProxylogic.markets(firstMarketlength);
@@ -931,68 +965,287 @@ describe("TOSv2 Phase1", function () {
     })
   })
 
-  /*
+
   describe("#3-1. bondDepository function test", async () => {
-    it("#3-1-1. user don't create the ETH market", async () => {
+
+    it("#3-1-1. create : user don't create the ETH market", async () => {
       const block = await ethers.provider.getBlock('latest')
       let finishTime = block.timestamp + sellingTime  //2주
-      let marketbefore = await stakingProxylogic.marketIdCounter();
-      console.log(marketbefore)
-      await bondDepositoryProxylogic.connect(admin1).create(
-          true,
-          admin1.address,
-          uniswapInfo.tosethPool,
-          0,
-          [sellTosAmount,finishTime,ETHPrice,TOSPrice,onePayout]
-      )
-      let marketafter = await stakingProxylogic.marketIdCounter();
-      console.log(marketafter)
-      expect(Number(marketbefore)+1).to.be.equal(marketafter);
+
+      bondInfoEther.market.closeTime = finishTime;
+
+      await expect(
+          bondDepositoryProxylogic.connect(user1).create(
+              bondInfoEther.check,
+              bondInfoEther.token,
+              bondInfoEther.poolAddress,
+              bondInfoEther.fee,
+              [
+                bondInfoEther.market.capAmountOfTos,
+                bondInfoEther.market.closeTime,
+                bondInfoEther.market.priceTokenPerTos,
+                bondInfoEther.market.priceTosPerToken,
+                bondInfoEther.market.purchasableTOSAmountAtOneTime
+              ]
+          )
+      ).to.be.revertedWith("Accessible: Caller is not an policy admin")
+
     })
 
-    it("#3-1-1. create the ETH market", async () => {
-      const block = await ethers.provider.getBlock('latest')
-      let finishTime = block.timestamp + sellingTime  //2주
-      let marketbefore = await stakingProxylogic.marketIdCounter();
-      console.log(marketbefore)
-      await bondDepositoryProxylogic.connect(admin1).create(
-          true,
-          admin1.address,
-          uniswapInfo.tosethPool,
-          0,
-          [sellTosAmount,finishTime,ETHPrice,TOSPrice,onePayout]
-      )
-      let marketafter = await stakingProxylogic.marketIdCounter();
-      console.log(marketafter)
-      expect(Number(marketbefore)+1).to.be.equal(marketafter);
+    it("#3-1-1. create : create the ETH market", async () => {
+        const block = await ethers.provider.getBlock('latest');
+        let finishTime = block.timestamp + (epochUnit * 3); //10주
+
+        bondInfoEther.market.closeTime = finishTime;
+
+        let marketbefore = await stakingProxylogic.marketIdCounter();
+
+        let tx = await bondDepositoryProxylogic.connect(admin1).create(
+            bondInfoEther.check,
+            bondInfoEther.token,
+            bondInfoEther.poolAddress,
+            bondInfoEther.fee,
+            [
+              bondInfoEther.market.capAmountOfTos,
+              bondInfoEther.market.closeTime,
+              bondInfoEther.market.priceTokenPerTos,
+              bondInfoEther.market.priceTosPerToken,
+              bondInfoEther.market.purchasableTOSAmountAtOneTime
+            ]
+        )
+
+        const receipt = await tx.wait();
+
+        let interface = bondDepositoryProxylogic.interface;
+        for(let i=0; i< receipt.events.length; i++){
+
+            if(receipt.events[i].topics[0] == interface.getEventTopic(eventCreatedMarket)){
+                let data = receipt.events[i].data;
+                let topics = receipt.events[i].topics;
+                let log = interface.parseLog(
+                {  data,  topics } );
+
+                bondInfoEther.marketId = log.args.marketId;
+                expect(bondInfoEther.check).to.be.eq(log.args.isEth);
+            }
+        }
+
+        let marketIdCounter = await stakingProxylogic.marketIdCounter();
+        expect(marketIdCounter).to.be.eq(marketbefore.add(ethers.constants.One));
+        expect(bondInfoEther.marketId).to.be.lt(marketIdCounter);
+
+        let market = await bondDepositoryProxylogic.viewMarket(bondInfoEther.marketId);
+
+        expect(market.method).to.be.eq(bondInfoEther.check);
+        expect(market.quoteToken).to.be.eq(bondInfoEther.token);
+        expect(market.capacity).to.be.eq(bondInfoEther.market.capAmountOfTos);
+        expect(market.endSaleTime).to.be.eq(bondInfoEther.market.closeTime);
+        expect(market.sold).to.be.eq(ethers.constants.Zero);
+        expect(market.maxPayout).to.be.eq(bondInfoEther.market.purchasableTOSAmountAtOneTime);
+
     })
 
-    it("#3-1-2. overDeposit situration", async () => {
+    it("#3-1-2. ETHDeposit : overDeposit situation, fail", async () => {
+
+        let purchasableAssetAmountAtOneTime
+            = bondInfoEther.market.purchasableTOSAmountAtOneTime
+              .mul(bondInfoEther.market.priceTokenPerTos)
+              .div(ethers.constants.WeiPerEther);
+
+        let amount = purchasableAssetAmountAtOneTime.add(ethers.utils.parseEther("1"));
+
+        await expect(
+          bondDepositoryProxylogic.connect(user1).ETHDeposit(
+            bondInfoEther.marketId,
+            amount,
+            {value: amount}
+          )
+        ).to.be.revertedWith("Depository : over maxPay");
+
+    })
+
+    it("#3-1-2. ETHDeposit : fail, The minting amount cannot be less than the staking amount (TOS evaluation amount).", async () => {
+
+        await treasuryProxylogic.connect(admin1).setMR(ethers.BigNumber.from("1000"), ethers.utils.parseEther("0"));
+
+        let purchasableAssetAmountAtOneTime
+          = bondInfoEther.market.purchasableTOSAmountAtOneTime
+          .mul(bondInfoEther.market.priceTokenPerTos)
+          .div(ethers.constants.WeiPerEther);
+
+        let amount = purchasableAssetAmountAtOneTime;
+
+        await expect(
+          bondDepositoryProxylogic.connect(user1).ETHDeposit(
+            bondInfoEther.marketId,
+            amount,
+            {value: amount}
+          )
+        ).to.be.revertedWith("mintableAmount is less than staking amount.");
+
+        await treasuryProxylogic.connect(admin1).setMR(mintRate, ethers.utils.parseEther("0"));
+    })
+
+
+    it("#3-1-2. ETHDeposit  ", async () => {
+
+      let depositor = user1;
+      let depositorUser = "user1";
+
+      let balanceEtherPrevTreasury = await ethers.provider.getBalance(treasuryProxylogic.address);
+      let balanceEtherPrevDepositor = await ethers.provider.getBalance(depositor.address);
+      let balanceTOSPrevStaker = await tosContract.balanceOf(stakingProxylogic.address);
+
+
+      let purchasableAssetAmountAtOneTime
+        = bondInfoEther.market.purchasableTOSAmountAtOneTime.mul(bondInfoEther.market.priceTokenPerTos).div(
+          ethers.constants.WeiPerEther);
+
+      let amount = purchasableAssetAmountAtOneTime;
+
+      let tx = await bondDepositoryProxylogic.connect(depositor).ETHDeposit(
+          bondInfoEther.marketId,
+          amount,
+          {value: amount}
+        );
+
+      const receipt = await tx.wait();
+
+      let tosValuation = 0;
+      let interface = bondDepositoryProxylogic.interface;
+      for (let i = 0; i < receipt.events.length; i++){
+          if(receipt.events[i].topics[0] == interface.getEventTopic(eventETHDeposited)){
+              let data = receipt.events[i].data;
+              let topics = receipt.events[i].topics;
+              let log = interface.parseLog({data, topics});
+              tosValuation = log.args.tosValuation;
+
+              deposits[depositorUser+""].push(
+                {
+                  marketId: log.args.marketId,
+                  stakeId: log.args.stakeId
+                }
+              );
+              expect(amount).to.be.eq(log.args.amount);
+          }
+      }
+      let depositList = deposits[depositorUser+""];
+      let depositData = depositList[depositList.length-1];
+
+      expect(depositData.marketId).to.be.eq(bondInfoEther.marketId);
+
+      expect(
+        await ethers.provider.getBalance(depositor.address)
+        ).to.be.lte(balanceEtherPrevDepositor.sub(amount));
+
+      expect(
+        await ethers.provider.getBalance(treasuryProxylogic.address)
+        ).to.be.eq(balanceEtherPrevTreasury.add(amount));
+
+      expect(
+        await tosContract.balanceOf(stakingProxylogic.address)
+        ).to.be.eq(balanceTOSPrevStaker.add(tosValuation));
+
+      let ltosAmount =  await stakingProxylogic.getTosToLtos(tosValuation);
+
+      let stakeInfo = await stakingProxylogic.stakeInfo(depositData.stakeId);
+
+      expect(stakeInfo.staker).to.be.eq(depositor.address);
+      expect(stakeInfo.deposit).to.be.eq(tosValuation);
+      expect(stakeInfo.marketId).to.be.eq(depositData.marketId);
+      expect(stakeInfo.LTOS).to.be.eq(ltosAmount);
+
+    })
+
+    it("      pass blocks", async function () {
+        let block = await ethers.provider.getBlock();
+        let epochInfo = await stakingProxylogic.epoch();
+        let passTime =  epochInfo.end - block.timestamp + 60;
+        ethers.provider.send("evm_increaseTime", [passTime])
+        ethers.provider.send("evm_mine")
+    });
+
+    it("#3-1-2. rebaseIndex   ", async () => {
+        let depositor = user1;
+        let depositorUser = "user1";
+        let depositList = deposits[depositorUser+""];
+        let depositData = depositList[depositList.length-1];
+
+        let runwayTOS = await stakingProxylogic.runwayTOS();
+        expect(runwayTOS).to.be.gt(ethers.constants.Zero);
+
+        let remainedLTOSToTosBefore = await stakingProxylogic.remainedLTOSToTos(depositData.stakeId);
+        let indexBefore = await stakingProxylogic.getIndex();
+
+        await stakingProxylogic.connect(depositor).rebaseIndex();
+
+        let indexAfter = await stakingProxylogic.getIndex();
+        expect(indexAfter).to.be.gt(indexBefore);
+
+        let stakeInfo = await stakingProxylogic.stakeInfo(depositData.stakeId);
+        let remainedLTOSToTosAfter = await stakingProxylogic.remainedLTOSToTos(depositData.stakeId);
+        let interestAmount = stakeInfo.LTOS.mul(indexAfter.sub(indexBefore)).div(ethers.constants.WeiPerEther)
+
+        expect(
+          remainedLTOSToTosAfter
+        ).to.be.eq(
+          remainedLTOSToTosBefore.add(interestAmount)
+        );
+    });
+  });
+
+  /*
+
+    it("#3-1-3. ETHDeposit : deposit ETHmarket with sTOS", async () => {
+      let beforeindex = await stakingProxylogic.getIndex()
+      console.log("beforeindex : ", beforeindex)
+
       const block = await ethers.provider.getBlock('latest')
       depositTime = block.timestamp
 
+      let epoch = await stakingProxylogic.epoch();
+      console.log("block.timestamp :", block.timestamp);
+      console.log("epoch.end1 :", epoch.end);
+
+      if(block.timestamp < epoch.end) {
+        console.log("in update blockTime");
+        await ethers.provider.send('evm_setNextBlockTimestamp', [Number(epoch.end) + 10]);
+        await ethers.provider.send('evm_mine');
+      }
+
       let beforetosTreasuryAmount = await tosContract.balanceOf(treasuryProxylogic.address)
+      let beforetosUser2Amount = await tosContract.balanceOf(user2.address)
+
+      let marketlength = await await stakingProxylogic.marketIdCounter();
+      console.log("marketlength : ", marketlength);
+
       expect(beforetosTreasuryAmount).to.be.equal(0)
 
-      let marketlength = await stakingProxylogic.marketIdCounter();
+      await bondDepositoryProxylogic.connect(user1).ETHDepositWithSTOS(
+        bondInfoEther.marketId,
+        depositAmount,
+        {value: depositAmount}
+      );
 
-      await expect(
-        bondDepositoryProxylogic.connect(admin1).ETHDeposit(
-          (marketlength-1),
-          overdepositAmount,
-          1,
-          false,
-          {value: overdepositAmount}
-        )
-      ).to.be.revertedWith("Depository : over maxPay");
+      let epochtime = await stakingProxylogic.epoch();
+      console.log("epoch.end2 :", epochtime.end)
+      let afterindex = await stakingProxylogic.index_()
+      console.log("beforeindex :", beforeindex)
+      console.log("afterindex :", afterindex)
+      // expect(afterindex).to.be.above(beforeindex)
 
-
+      //18000TOS가 treasury에 있음
       let aftertosTreasuryAmount = await tosContract.balanceOf(treasuryProxylogic.address)
+      let aftertosUser2Amount = await tosContract.balanceOf(user2.address)
+      // console.log("aftertosTreasuryAmount : ", aftertosTreasuryAmount)
 
-      expect(aftertosTreasuryAmount).to.be.equal(0)
+      expect(aftertosTreasuryAmount).to.above(0)
+      expect(aftertosUser2Amount).to.above(beforetosUser2Amount)
     })
 
-    it("#3-1-3. deposit ETHmarket with sTOS and index increase test", async () => {
+  });
+
+    it("#3-1-3. ETHDeposit : deposit ETHmarket with sTOS and index increase test", async () => {
       let beforeindex = await stakingProxylogic.index_()
       console.log("beforeindex : ", beforeindex)
 
@@ -1017,11 +1270,9 @@ describe("TOSv2 Phase1", function () {
 
       expect(beforetosTreasuryAmount).to.be.equal(0)
 
-      await bondDepositoryProxylogic.connect(admin1).ETHDeposit(
-        (marketlength-1),
+      await bondDepositoryProxylogic.connect(user1).ETHDepositWithSTOS(
+        bondInfoEther.marketId,
         depositAmount,
-        1,
-        true,
         {value: depositAmount}
       );
 
@@ -1040,7 +1291,6 @@ describe("TOSv2 Phase1", function () {
       expect(aftertosTreasuryAmount).to.above(0)
       expect(aftertosUser2Amount).to.above(beforetosUser2Amount)
     })
-
     it("#3-1-4. user can deposit without sTOS", async () => {
       let marketlength = await stakingProxylogic.marketIdCounter();
       console.log("marketlength : ", marketlength);

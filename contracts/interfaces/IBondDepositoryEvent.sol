@@ -30,7 +30,8 @@ interface IBondDepositoryEvent{
     /// @param stakeId  the stake id
     /// @param token  ERC20 Token address
     /// @param amount  the amount of ERC20 Token
-    event ERC20Deposited(address user, uint256 marketId, uint256 stakeId, address token, uint256 amount);
+    /// @param tosValuation  the tos evaluate amount of sending
+    event ERC20Deposited(address user, uint256 marketId, uint256 stakeId, address token, uint256 amount, uint256 tosValuation);
 
     /// @dev Event that gives a lockout period and is emitted when purchasing bonding with ERC20 Token
     /// @param user name
@@ -39,14 +40,16 @@ interface IBondDepositoryEvent{
     /// @param token  ERC20 Token address
     /// @param amount  the amount of ERC20 Token
     /// @param lockWeeks  the number of weeks to locking
-    event ERC20DepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, address token, uint256 amount, uint256 lockWeeks);
+    /// @param tosValuation  the tos evaluate amount of sending
+    event ERC20DepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, address token, uint256 amount, uint256 lockWeeks, uint256 tosValuation);
 
     /// @dev Events Emitted when Buying Bonding with Ether
     /// @param user the user account
     /// @param marketId the market id
     /// @param stakeId  the stake id
     /// @param amount  the amount of Ether
-    event ETHDeposited(address user, uint256 marketId, uint256 stakeId, uint256 amount);
+    /// @param tosValuation  the tos evaluate amount of sending
+    event ETHDeposited(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint256 tosValuation);
 
     /// @dev Event that gives a lockout period and is emitted when purchasing bonding with Ether
     /// @param user name
@@ -54,5 +57,6 @@ interface IBondDepositoryEvent{
     /// @param stakeId  the stake id
     /// @param amount  the amount of Ether
     /// @param lockWeeks  the number of weeks to locking
-    event ETHDepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint256 lockWeeks);
+    /// @param tosValuation  the tos evaluate amount of sending
+    event ETHDepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint256 lockWeeks, uint256 tosValuation);
 }

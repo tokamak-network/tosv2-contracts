@@ -460,12 +460,17 @@ contract StakingV2 is
 
     /// @inheritdoc IStaking
     function rebaseIndex() public override {
+        console.log("rebaseIndex epoch.end : %s", epoch.end);
+
         if(epoch.end <= block.timestamp) {
 
             uint256 epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
-            console.log("epochNumber : %s", epochNumber);
 
-            epoch.end += (epoch.length_ * (epochNumber + 1));
+            epoch.end += (epoch.length_ * (1+ epochNumber));
+
+            epochNumber++;
+            console.log("rebaseIndex epochNumber : %s", epochNumber);
+            console.log("rebaseIndex epoch.end : %s", epoch.end);
             /*
              epoch.end = epoch.end + (epoch.length_ * (epochNumber + 1));
             console.log("epoch.end : %s", epoch.end);
@@ -477,20 +482,33 @@ contract StakingV2 is
             uint256 newIndex = index_;
             if(epochNumber > 1) newIndex = compound(index_, rebasePerEpoch, epochNumber) ;
             else if(epochNumber == 1)  newIndex = nextIndex();
+            console.log("rebaseIndex newIndex : %s", newIndex);
 
-            if ((totalLTOS * newIndex / 1e18) < runwayTOS()) {
+            console.log("rebaseIndex totalLTOS : %s", totalLTOS);
+
+            uint256 _runawayTOS = runwayTOS();
+
+            console.log("rebaseIndex runwayTOS() : %s", _runawayTOS);
+
+            if (_runawayTOS == 0) return;
+
+            if ((totalLTOS * (newIndex-index_) / 1e18) < _runawayTOS) {
                 index_ = newIndex;
 
             } else if (epochNumber > 1) {
                 // 2. find posible epoch number
                 uint256 _possibleEpochNumber = possibleEpochNumber();
+                console.log("rebaseIndex _possibleEpochNumber : %s", _possibleEpochNumber);
+
                 if (_possibleEpochNumber < epochNumber) {
                     newIndex = compound(index_, rebasePerEpoch, _possibleEpochNumber);
-                    if (totalLTOS * newIndex / 1e18 < runwayTOS()) {
+                    console.log("rebaseIndex newIndex : %s", newIndex);
+                    if (totalLTOS * (newIndex-index_) / 1e18 < _runawayTOS) {
                         index_ =  newIndex;
                     }
                 }
             }
+            console.log("rebaseIndex index_ : %s", index_);
         }
     }
 
@@ -532,6 +550,10 @@ contract StakingV2 is
     /// @inheritdoc IStaking
     function nextIndex() public view override returns (uint256) {
         return (index_*(1 ether+rebasePerEpoch) / 1e18);
+    }
+
+    function getIndex() public view override returns(uint256){
+        return index_;
     }
 
     function possibleEpochNumber() public view returns (uint256 ){
@@ -678,6 +700,29 @@ contract StakingV2 is
     /// @inheritdoc IStaking
     function getLtosToTos(uint256 ltos) public override view returns (uint256) {
         return (ltos * index_) / 1e18;
+    }
+
+    function stakeInfo(uint256 stakeId) public override view returns (
+        address staker,
+        uint256 deposit,
+        uint256 LTOS,
+        uint256 endTime,
+        uint256 getLTOS,
+        uint256 rewardTOS,
+        uint256 marketId,
+        bool withdraw
+    ) {
+        LibStaking.UserBalance memory stakeInfo = allStakings[stakeId];
+        return (
+            stakeInfo.staker,
+            stakeInfo.deposit,
+            stakeInfo.LTOS,
+            stakeInfo.endTime,
+            stakeInfo.getLTOS,
+            stakeInfo.rewardTOS,
+            stakeInfo.marketId,
+            stakeInfo.withdraw
+        );
     }
 
      /* ========== internal ========== */
