@@ -154,6 +154,8 @@ contract StakingV2 is
         rebaseIndex();
 
         _createStakeInfo(to, stakeId, _amount, block.timestamp + basicBondPeriod, _marketId);
+
+        emit StakedByBond(to, _amount, _marketId, stakeId);
     }
 
     /// @inheritdoc IStaking
@@ -181,11 +183,15 @@ contract StakingV2 is
         stakeId = _addStakeId();
         _addUserStakeId(_to, stakeId);
 
+        rebaseIndex();
+
         _createStakeInfo(_to, stakeId, _amount, unlockTime, _marketId);
 
         uint256 sTOSid = _createStos(_to, _amount, _periodWeeks, sTosEpochUnit);
         connectId[stakeId] = sTOSid;
         lockTOSId[sTOSid] = stakeId;
+
+        emit StakedGetStosByBond(_to, _amount, _periodWeeks, _marketId, stakeId, sTOSid);
     }
 
     /* ========== Anyone can execute ========== */
@@ -209,6 +215,7 @@ contract StakingV2 is
 
         _createStakeInfo(to, stakeId, _amount, block.timestamp + 1, 0);
 
+        emit Staked(to, _amount, stakeId);
     }
 
     /// @inheritdoc IStaking
@@ -244,6 +251,8 @@ contract StakingV2 is
         uint256 sTOSid = _createStos(to, _amount, _periodWeeks, sTosEpochUnit);
         connectId[stakeId] = sTOSid;
         lockTOSId[sTOSid] = stakeId;
+
+        emit StakedGetStos(to, _amount, _periodWeeks, stakeId, sTOSid);
     }
 
 
@@ -260,6 +269,8 @@ contract StakingV2 is
         require(userStakingIndex[staker][_stakeId] == 1, "it's not simple staking product");
         rebaseIndex();
         _increaseAmountAndPeriodStake(staker, _stakeId, _amount, 0);
+
+        emit IncreasedAmountForSimpleStake(staker, _amount, _stakeId);
     }
 
 
@@ -308,11 +319,12 @@ contract StakingV2 is
 
         _updateStakeInfo(_stakeId, unlockTime, _addAmount, _claimAmount);
 
+        uint256 sTOSid = 0;
+        uint256 stakeId = _stakeId;
         if (_periodWeeks > 0) {
             depositPlusAmount += _addAmount;
             depositPlusAmount -= _claimAmount;
-            uint256 stakeId = _stakeId;
-            uint256 sTOSid = _createStos(staker, depositPlusAmount, _periodWeeks, sTosEpochUnit);
+            sTOSid = _createStos(staker, depositPlusAmount, _periodWeeks, sTosEpochUnit);
             connectId[stakeId] = sTOSid;
             lockTOSId[sTOSid] = stakeId;
         }
@@ -320,6 +332,8 @@ contract StakingV2 is
         if (_claimAmount > 0) {
             TOS.safeTransferFrom(address(this), msg.sender, _claimAmount);
         }
+
+        emit ResetStakedGetStosAfterLock(staker, _addAmount, _claimAmount, _periodWeeks, stakeId, sTOSid);
     }
 
     /// @inheritdoc IStaking
@@ -376,6 +390,8 @@ contract StakingV2 is
                 ILockTosV2(lockTOS).increaseAmountUnlockTimeByStaker(staker, lockId, amountCompound1 + amountCompound2, _unlockWeeks);
             }
         }
+
+        emit IncreasedBeforeEndOrNonEnd(staker, _amount, _unlockWeeks, _stakeId, lockId);
     }
 
     /// @inheritdoc IStaking
@@ -396,6 +412,8 @@ contract StakingV2 is
         rebaseIndex();
         _updateStakeInfo(_stakeId, 0, 0, _claimAmount);
         TOS.safeTransfer(staker, _claimAmount);
+
+        emit ClaimdForNonLock(staker, _claimAmount, _stakeId);
     }
 
 
@@ -433,6 +451,8 @@ contract StakingV2 is
         }
 
         TOS.safeTransfer(staker, amount);
+
+        emit Unstaked(staker, amount, _stakeId);
     }
 
     /// @inheritdoc IStaking
@@ -442,7 +462,7 @@ contract StakingV2 is
         require(_stakeIds.length > 0, "no stakeIds");
 
         uint256 len = _stakeIds.length;
-         for(uint256 i = 0; i < len; i++) {
+        for(uint256 i = 0; i < len; i++) {
             unstake(_stakeIds[i]);
         }
     }
@@ -494,7 +514,8 @@ contract StakingV2 is
 
             if ((totalLTOS * (newIndex-index_) / 1e18) < _runawayTOS) {
                 index_ = newIndex;
-
+                epoch.number += epochNumber;
+                emit Rebased(index_, newIndex);
             } else if (epochNumber > 1) {
                 // 2. find posible epoch number
                 uint256 _possibleEpochNumber = possibleEpochNumber();
@@ -505,6 +526,8 @@ contract StakingV2 is
                     console.log("rebaseIndex newIndex : %s", newIndex);
                     if (totalLTOS * (newIndex-index_) / 1e18 < _runawayTOS) {
                         index_ =  newIndex;
+                        epoch.number += _possibleEpochNumber;
+                        emit Rebased(index_, newIndex);
                     }
                 }
             }
