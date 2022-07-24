@@ -97,5 +97,5 @@ interface ITreasury {
     function hasPermission(LibTreasury.STATUS role, address account) external view returns (bool);
     function hasPermission(uint role, address account) external view returns (bool);
     function isTreasuryHealthyAfterTOSMint (uint256 _checkMintRate, uint256 amount) external view returns (bool);
-
+    function isTreasuryHealthyAfterTOSMint (uint256 amount) external view returns (bool);
 }

@@ -370,7 +370,7 @@ contract Treasury is
         require(_mintAmount > 0, "zero amount");
         require(_mintAmount >= _transferAmount, "_mintAmount is less than _transferAmount");
 
-        require(isTreasuryHealthyAfterTOSMint(mintRate, _mintAmount), "non-available mintRate");
+        require(isTreasuryHealthyAfterTOSMint(_mintAmount), "non-available mintRate");
 
         TOS.mint(address(this), _mintAmount);
 
@@ -449,13 +449,16 @@ contract Treasury is
         // console.log("getTOSPricePerETH %s", a);
         // console.log("getETHPricPerTOS %s", b);
 
-        if (
-            TOS.totalSupply() + (amount * _checkMintRate / mintRateDenominator) <= backingReserveTOS()
-            ) {
+        if (TOS.totalSupply() + (amount * _checkMintRate / mintRateDenominator) <= backingReserveTOS())
              return true;
-        } else {
-            return false;
-        }
+        else return false;
+    }
+
+    function isTreasuryHealthyAfterTOSMint(uint256 amount)
+        public override view returns (bool)
+    {
+        if (TOS.totalSupply() + amount <= backingReserveTOS())  return true;
+        else return false;
     }
 
     function backingReserveETH() public view returns (uint256) {
