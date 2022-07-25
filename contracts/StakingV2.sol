@@ -467,16 +467,16 @@ contract StakingV2 is
         }
     }
 
-    /// @inheritdoc IStaking
-    function allUnstake() public override {
-        uint256[] memory _stakeIds = stakingOf(msg.sender);
-        require(_stakeIds.length > 0, "no stakeIds");
+    // /// @inheritdoc IStaking
+    // function allUnstake() public override {
+    //     uint256[] memory _stakeIds = stakingOf(msg.sender);
+    //     require(_stakeIds.length > 0, "no stakeIds");
 
-        uint256 len = _stakeIds.length;
-        for(uint256 i = 0; i < len; i++) {
-            unstake(_stakeIds[i]);
-        }
-    }
+    //     uint256 len = _stakeIds.length;
+    //     for(uint256 i = 0; i < len; i++) {
+    //         unstake(_stakeIds[i]);
+    //     }
+    // }
 
     /// @inheritdoc IStaking
     function rebaseIndex() public override {
@@ -616,6 +616,7 @@ contract StakingV2 is
         return userStakings[_addr];
     }
 
+
     /// @inheritdoc IStaking
     function balanceOfId(uint256 _stakeId)
         public
@@ -724,6 +725,15 @@ contract StakingV2 is
     function getLtosToTos(uint256 ltos) public override view returns (uint256) {
         return (ltos * index_) / 1e18;
     }
+
+    function stakedOf(uint256 stakeId) public override view returns (uint256) {
+        return getLtosToTos(allStakings[stakeId].LTOS);
+    }
+
+    function stakedOfAll() public override view returns (uint256) {
+        return getLtosToTos(totalLTOS);
+    }
+
 
     function stakeInfo(uint256 stakeId) public override view returns (
         address staker,

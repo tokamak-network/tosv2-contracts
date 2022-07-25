@@ -540,7 +540,8 @@ describe("TOSv2 Phase1", function () {
             tosContract.address,
             TOSValueCalculator.address,
             wethAddress,
-            uniswapInfo.poolfactory
+            uniswapInfo.poolfactory,
+            stakingProxy.address
           )
         ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
@@ -550,7 +551,8 @@ describe("TOSv2 Phase1", function () {
           tosContract.address,
           TOSValueCalculator.address,
           wethAddress,
-          uniswapInfo.poolfactory
+          uniswapInfo.poolfactory,
+          stakingProxy.address
         )
 
         expect(await treasuryProxylogic.calculator()).to.be.equal(TOSValueCalculator.address);
@@ -1368,10 +1370,73 @@ describe("TOSv2 Phase1", function () {
         expect(await tosContract.balanceOf(stakingProxylogic.address)).to.be.eq(balanceOfPrevStakeContract.add(amount));
       })
 
-      /*
-      it("#3-2-3. rebase  ", async () => {
+      it("      pass blocks", async function () {
+          let block = await ethers.provider.getBlock();
+          let epochInfo = await stakingProxylogic.epoch();
+          let passTime =  epochInfo.end - block.timestamp + 60;
+          ethers.provider.send("evm_increaseTime", [passTime])
+          ethers.provider.send("evm_mine")
+      });
 
-      })
+      it("#3-1-2. rebaseIndex   ", async () => {
+          let depositor = user2;
+          let depositorUser = "user2";
+          let depositList = deposits[depositorUser+""];
+          let depositData = depositList[depositList.length-1];
+
+          let runwayTOS = await stakingProxylogic.runwayTOS();
+          expect(runwayTOS).to.be.gt(ethers.constants.Zero);
+
+          let remainedLTOSToTosBefore = await stakingProxylogic.remainedLTOSToTos(depositData.stakeId);
+          let indexBefore = await stakingProxylogic.getIndex();
+          let epochBefore = await stakingProxylogic.epoch();
+
+          await stakingProxylogic.connect(depositor).rebaseIndex();
+
+          let indexAfter = await stakingProxylogic.getIndex();
+          expect(indexAfter).to.be.gt(indexBefore);
+
+          //----
+          let stakeInfo = await stakingProxylogic.stakeInfo(depositData.stakeId);
+          let remainedLTOSToTosAfter = await stakingProxylogic.remainedLTOSToTos(depositData.stakeId);
+          let interestAmount = stakeInfo.LTOS.mul(indexAfter.sub(indexBefore)).div(ethers.constants.WeiPerEther)
+
+          expect(interestAmount).to.be.gt(ethers.constants.Zero);
+          expect(remainedLTOSToTosAfter).to.be.gte(remainedLTOSToTosBefore.add(interestAmount));
+          expect(remainedLTOSToTosAfter).to.be.lte(remainedLTOSToTosBefore.add(interestAmount).add(ethers.constants.One));
+
+
+          let epochAfter = await stakingProxylogic.epoch();
+          expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
+          expect(epochAfter.number).to.be.eq(epochBefore.number.add(ethers.constants.One));
+
+      });
+
+      it("#3-1-2. increaseAmountForSimpleStake  : when caller is not staker, it's fail ", async () => {
+        let depositor = user2;
+        let depositorUser = "user2";
+        let depositList = deposits[depositorUser+""];
+        let depositData = depositList[depositList.length-1];
+
+        let amount = ethers.utils.parseEther("10");
+        await expect(
+          stakingProxylogic.connect(user1).increaseAmountForSimpleStake(depositData.stakeId, amount))
+        .to.be.revertedWith("caller is not staker");
+      });
+
+
+      it("#3-1-2. increaseAmountForSimpleStake  : when stakeId is not for simple product, it's fail ", async () => {
+        let depositor = user1;
+        let depositorUser = "user1";
+        let depositList = deposits[depositorUser+""];
+        let depositData = depositList[depositList.length-1];
+
+        let amount = ethers.utils.parseEther("10");
+        await expect(stakingProxylogic.connect(user1).increaseAmountForSimpleStake(depositData.stakeId, amount))
+        .to.be.revertedWith("it's not simple staking product");
+      });
+
+      /*
 
       it("#3-2-3. increaseAmountForSimpleStake  ", async () => {
 

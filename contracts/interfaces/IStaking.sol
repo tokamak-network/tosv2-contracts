@@ -158,8 +158,6 @@ interface IStaking {
         uint256[] calldata _stakeIds
     ) external;
 
-    /// @dev 샌더가 보유하고 있는 모든 스테이킹아이디를 언스테이킹 하려고 할 때 사용
-    function allUnstake() external;
 
      /// @dev 인덱스 조절, 복리 적용
     function rebaseIndex() external;
@@ -247,6 +245,9 @@ interface IStaking {
     /// @return return TOS 양
     function getLtosToTos(uint256 ltos) external view returns (uint256);
 
+    function stakedOf(uint256 stakeId) external view returns (uint256);
+
+    function stakedOfAll() external view returns (uint256) ;
 
     function stakeInfo(uint256 stakeId) external view returns (
         address staker,

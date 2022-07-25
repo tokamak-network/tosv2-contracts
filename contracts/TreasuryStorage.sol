@@ -15,6 +15,7 @@ contract TreasuryStorage {
     mapping(address => address) public bondCalculator;
     address public wethAddress;
     address public uniswapV3Factory;
+    address public stakingv2;
 
 
     uint256 public totalReserves;

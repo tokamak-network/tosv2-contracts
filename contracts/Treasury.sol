@@ -19,11 +19,14 @@ import "./common/ProxyAccessCommon.sol";
 
 import "hardhat/console.sol";
 
+interface IIStaking {
+    function stakedOfAll() external view returns (uint256) ;
+}
+
 interface IUniswapV3Pool {
     function token0() external view returns (address);
     function token1() external view returns (address);
 }
-
 contract Treasury is
     TreasuryStorage,
     ProxyAccessCommon,
@@ -448,8 +451,11 @@ contract Treasury is
 
         // console.log("getTOSPricePerETH %s", a);
         // console.log("getETHPricPerTOS %s", b);
+        uint256 totalTOS = TOS.totalSupply();
+        uint256 holdingTOS = TOS.balanceOf(address(this)) + TOS.balanceOf(stakingv2);
+        uint256 stakedTOS = IIStaking(stakingv2).stakedOfAll();
 
-        if (TOS.totalSupply() + (amount * _checkMintRate / mintRateDenominator) <= backingReserveTOS())
+        if (totalTOS - holdingTOS + stakedTOS + (amount * _checkMintRate / mintRateDenominator) <= backingReserveTOS())
              return true;
         else return false;
     }
@@ -457,7 +463,11 @@ contract Treasury is
     function isTreasuryHealthyAfterTOSMint(uint256 amount)
         public override view returns (bool)
     {
-        if (TOS.totalSupply() + amount <= backingReserveTOS())  return true;
+        uint256 totalTOS = TOS.totalSupply();
+        uint256 holdingTOS = TOS.balanceOf(address(this)) + TOS.balanceOf(stakingv2);
+        uint256 stakedTOS = IIStaking(stakingv2).stakedOfAll();
+
+        if (totalTOS - holdingTOS + stakedTOS + amount <= backingReserveTOS())  return true;
         else return false;
     }
 
@@ -472,14 +482,14 @@ contract Treasury is
         uint256 tosPricePerETH = ITOSValueCalculator(calculator).getTOSPricePerETH();
         // console.log("tosPricePerETH %s", tosPricePerETH) ;
 
-        bool applyTOS = false;
+        //bool applyTOS = false;
         bool applyWTON = false;
 
         for(uint256 i = 0; i < backings.length; i++) {
 
             if (backings[i].erc20Address == address(TOS))  {
-                totalValue +=  TOS.balanceOf(address(this)) ;
-                applyTOS = true;
+               // totalValue +=  TOS.balanceOf(address(this)) ;
+               // applyTOS = true;
 
             } else if (backings[i].erc20Address == wethAddress)  {
                 totalValue += (IERC20(wethAddress).balanceOf(address(this)) * tosPricePerETH / 1e18);
@@ -495,7 +505,7 @@ contract Treasury is
             }
         }
 
-        if (!applyTOS && address(TOS) != address(0)) totalValue += TOS.balanceOf(address(this));
+        //if (!applyTOS && address(TOS) != address(0)) totalValue += TOS.balanceOf(address(this));
         if (!applyWTON && wethAddress != address(0)) totalValue += (IERC20(wethAddress).balanceOf(address(this)) * tosPricePerETH / 1e18);
 
         totalValue += (address(this).balance * tosPricePerETH / 1e18);
