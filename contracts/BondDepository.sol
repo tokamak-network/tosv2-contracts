@@ -109,7 +109,7 @@ contract BondDepository is
         nonZero(_market[4])
         returns (uint256 id_)
     {
-        id_ = staking.marketId();  // BondDepository는 staking의 오너로 등록이 되어야 함.
+        id_ = staking.generateMarketId();  // BondDepository는 staking의 오너로 등록이 되어야 함.
 
         if (_check) require(_token == address(0), "when use eth, token must be zero address");
         else require(_token != address(0), "zero address");
@@ -365,27 +365,42 @@ contract BondDepository is
         uint256 _marketId,
         bool _eth
     ) internal nonReentrant returns (uint256 _payout) {
-
+        console.log("_deposit _amount : %s", _amount);
         require(_amount <= purchasableAseetAmountAtOneTime(_marketId), "Depository : over maxPay");
 
         _payout = calculateTosAmountForAsset(_marketId, _amount);
 
-        console.log("payoutAmount : %s", _payout);
+        console.log("_deposit payoutAmount : %s", _payout);
 
         require(_payout > 0, "zero staking amount");
-        uint256 _ethValue = 0;
+        uint256 _ethValue = 0; // _payout tos 를 이더로 바꿈.
 
         if(!_eth) {
             (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) =
-                IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(markets[_marketId].quoteToken, _amount);
-             if(existedWethPool)  _ethValue =  convertedAmmount;
-             else if(existedTosPool) _ethValue =  convertedAmmount * IITreasury(treasury).getETHPricePerTOS() / 1e18 ;
+                IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(address(tos), _payout);
+
+            if(existedWethPool){
+                _ethValue =  convertedAmmount;
+                console.log("_deposit existedWethPool : %s", convertedAmmount);
+            }
+            /*
+            else if(existedTosPool) {
+                uint256 _price = IITreasury(treasury).getETHPricePerTOS();
+                console.log("_deposit getETHPricePerTOS : %s", _price);
+                _ethValue =  convertedAmmount * _price / 1e18 ;
+                console.log("_deposit existedTosPool : %s", convertedAmmount);
+            }
+            */
         } else {
             _ethValue = _amount;
         }
 
+        console.log("_deposit _ethValue : %s", _ethValue);
+
         require(_ethValue > 0, "zero _ethValue");
         uint256 _mintRate = IITreasury(treasury).getMintRate();
+
+        console.log("_deposit _mintRate : %s", _mintRate);
         require(_mintRate > 0, "zero mintRate");
 
         uint256 mrAmount = _ethValue * _mintRate / IITreasury(treasury).mintRateDenominator() ;
@@ -426,12 +441,13 @@ contract BondDepository is
         view
         returns (uint256 payout)
     {
+        console.log("calculateTosAmountForAsset metadata[_id].tosPrice : %s", metadata[_id].tosPrice);
         return (_amount * metadata[_id].tosPrice / 1e18);
     }
 
     /// @inheritdoc IBondDepository
     function purchasableAseetAmountAtOneTime(uint256 _id) public override view returns (uint256 maxpayout_) {
-
+        console.log("purchasableAseetAmountAtOneTime metadata[_id].tokenPrice : %s", metadata[_id].tokenPrice);
         return ( markets[_id].maxPayout * metadata[_id].tokenPrice / 1e18 );
     }
 

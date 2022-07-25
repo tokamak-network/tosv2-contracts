@@ -39,7 +39,7 @@ interface IITreasury {
 
     function enableStaking() external view returns (uint256);
     function requestTrasfer(address _recipient, uint256 _amount)  external;
-    function hasPermission(LibTreasury.STATUS role, address account) external view returns (bool);
+    function hasPermission(uint role, address account) external view returns (bool);
 }
 
 contract StakingV2 is
@@ -56,7 +56,7 @@ contract StakingV2 is
 
     /// @dev Check if a function is used or not
     modifier onlyBonder() {
-        require(IITreasury(treasury).hasPermission(LibTreasury.STATUS.BONDER, msg.sender), "sender is not a bonder");
+        require(IITreasury(treasury).hasPermission(uint(LibTreasury.STATUS.BONDER), msg.sender), "sender is not a bonder");
         _;
     }
 
@@ -130,7 +130,7 @@ contract StakingV2 is
     /* ========== onlyBonder ========== */
 
     /// @inheritdoc IStaking
-    function marketId() public override onlyBonder returns (uint256) {
+    function generateMarketId() public override onlyBonder returns (uint256) {
         return marketIdCounter++;
     }
 
@@ -511,6 +511,7 @@ contract StakingV2 is
                 index_ = newIndex;
                 epoch.number += epochNumber;
                 emit Rebased(oldIndex, newIndex, totalLTOS);
+
             } else if (epochNumber > 1) {
 
                 uint256 _possibleEpochNumber = possibleEpochNumber();
@@ -738,7 +739,7 @@ contract StakingV2 is
         uint256 endTime,
         uint256 getLTOS,
         uint256 rewardTOS,
-        uint256 _marketId,
+        uint256 marketId,
         bool withdraw
     ) {
         LibStaking.UserBalance memory _stakeInfo = allStakings[stakeId];
@@ -798,7 +799,7 @@ contract StakingV2 is
         uint256 _periodSeconds = 0;
         if (_unlockWeeks > 0) _periodSeconds = _getUnlockTime(0, _unlockWeeks);
 
-        _addStakeInfo(_stakeId, _amount, _periodSeconds);
+        _increaseStakeInfo(_stakeId, _amount, _periodSeconds);
     }
 
 
@@ -858,12 +859,12 @@ contract StakingV2 is
         }
     }
 
-    function _addStakeInfo(
+    function _increaseStakeInfo(
         uint256 _stakeId,
         uint256 _amount,
         uint256 _increaseSeconds
     ) internal ifFree {
-        require(allStakings[_stakeId].staker == address(0), "non-empty stakeInfo");
+        require(allStakings[_stakeId].staker != address(0), "non-empty stakeInfo");
         require(_amount > 0 || _increaseSeconds > 0, "zero amount and _increaseSeconds");
 
         LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
@@ -872,9 +873,7 @@ contract StakingV2 is
             uint256 ltos = getTosToLtos(_amount);
             _stakeInfo.deposit += _amount;
             _stakeInfo.LTOS += ltos;
-
             stakingPrincipal += _amount;
-            // cummulatedLTOS += ltos;
             totalLTOS += ltos;
         }
 
@@ -889,7 +888,7 @@ contract StakingV2 is
         uint256 _addAmount,
         uint256 _claimAmount
     ) internal ifFree {
-        require(allStakings[_stakeId].staker == address(0), "non-empty stakeInfo");
+        require(allStakings[_stakeId].staker != address(0), "non-exist stakeInfo");
 
         uint256 addProfitRemainedTos = remainedLTOSToTos(_stakeId);
         uint256 remainedTos = addProfitRemainedTos;
@@ -971,6 +970,6 @@ contract StakingV2 is
     }
 
     function isBonder(address account) public view virtual returns (bool) {
-        return IITreasury(treasury).hasPermission(LibTreasury.STATUS.BONDER, account);
+        return IITreasury(treasury).hasPermission(uint(LibTreasury.STATUS.BONDER), account);
     }
 }

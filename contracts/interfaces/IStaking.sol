@@ -54,7 +54,7 @@ interface IStaking {
 
 
     /// @dev Increment and return the market ID.
-    function marketId() external returns (uint256);
+    function generateMarketId() external returns (uint256);
 
     /// @dev bonder stake the tos mintted when user purchase the bond with asset.
     /// @param to  the user address
@@ -256,7 +256,7 @@ interface IStaking {
         uint256 endTime,
         uint256 getLTOS,
         uint256 rewardTOS,
-        uint256 _marketId,
+        uint256 marketId,
         bool withdraw
     );
 
