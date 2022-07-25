@@ -16,14 +16,12 @@ contract StakingV2Storage {
     LibStaking.Epoch public epoch;
 
     uint256 public startEpochTime;
-
     uint256 public index_;
 
     uint256 internal free = 1;
 
     uint256 public totalLTOS;
     uint256 public stakingPrincipal;
-    // uint256 public cummulatedLTOS;
 
     uint256 public rebasePerEpoch;
     uint256 public basicBondPeriod;

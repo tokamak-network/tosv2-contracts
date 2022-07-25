@@ -124,6 +124,14 @@ describe("TOSv2 Phase1", function () {
   //let mintRate = 10;
   //let mintRate = 1000000; // 0.0001
   let mintRate = ethers.BigNumber.from("500000");
+
+  let priceLimitTOSETH = {
+    minimumTOSPricePerETH: ethers.utils.parseEther("0.00001"),
+    minimumETHPricePerTOS: ethers.utils.parseEther("1000"),
+    maximumTOSPricePerETH: ethers.utils.parseEther("1"),
+    maximumETHPricePerTOS: ethers.utils.parseEther("1000000"),
+  }
+
   let unstakingAmount = ethers.utils.parseUnits("500", 18);
 
   let ETHPrice = 1000000
@@ -541,7 +549,9 @@ describe("TOSv2 Phase1", function () {
             TOSValueCalculator.address,
             wethAddress,
             uniswapInfo.poolfactory,
-            stakingProxy.address
+            stakingProxy.address,
+            uniswapInfo.wtonTosPool,
+            priceLimitTOSETH.minimumTOSPricePerETH
           )
         ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
@@ -552,7 +562,9 @@ describe("TOSv2 Phase1", function () {
           TOSValueCalculator.address,
           wethAddress,
           uniswapInfo.poolfactory,
-          stakingProxy.address
+          stakingProxy.address,
+          uniswapInfo.wtonTosPool,
+          priceLimitTOSETH.minimumTOSPricePerETH
         )
 
         expect(await treasuryProxylogic.calculator()).to.be.equal(TOSValueCalculator.address);
@@ -588,6 +600,9 @@ describe("TOSv2 Phase1", function () {
       */
       it("#1-1-3. enable : policy can call enable (for mint staking)", async () => {
 
+
+        let stakingProxyREWARDMANAGER =  await treasuryProxylogic.permissions(STATUS.REWARDMANAGER, stakingProxy.address)
+
         expect(
           await treasuryProxylogic.permissions(STATUS.REWARDMANAGER, stakingProxy.address)
         ).to.be.equal(false)
@@ -598,6 +613,7 @@ describe("TOSv2 Phase1", function () {
           await treasuryProxylogic.permissions(STATUS.REWARDMANAGER, stakingProxy.address)
         ).to.be.equal(true)
       })
+
 
       it("#1-1-4. user can't call approve (stakingV2)", async () => {
         await expect(
@@ -650,8 +666,7 @@ describe("TOSv2 Phase1", function () {
       it("#1-1-6. setMR : setMR(mintRate) fail: TOS is insufficient for backing", async () => {
 
         await expect(
-          treasuryProxylogic.connect(admin1).setMR(mintRate,
-            ethers.utils.parseEther("100"))
+          treasuryProxylogic.connect(admin1).setMR(mintRate, ethers.utils.parseEther("100"))
         ).to.be.revertedWith("unavailable mintRate")
 
       })
@@ -694,7 +709,7 @@ describe("TOSv2 Phase1", function () {
 
     })
 
-
+    /*
     describe("#1-2. Staking setting", async () => {
       it("#1-2. Staking admin, proxyAdmin, policyAdmin check", async () => {
         expect(await stakingProxy.isAdmin(admin1.address)).to.be.equal(true)
@@ -951,9 +966,10 @@ describe("TOSv2 Phase1", function () {
       })
 
     })
-
+    */
   })
 
+  /*
   describe("#2. lockTOS setting", async () => {
     it("#2-1-1. user can't set the stakingContarct", async () => {
       await expect(
@@ -1436,59 +1452,11 @@ describe("TOSv2 Phase1", function () {
         .to.be.revertedWith("it's not simple staking product");
       });
 
-      /*
-
-      it("#3-2-3. increaseAmountForSimpleStake  ", async () => {
-
-      })
-
-      it("#3-2-3. resetStakeGetStosAfterLock  ", async () => {
-
-      })
-
-      it("#3-2-3. increaseBeforeEndOrNonEnd  ", async () => {
-
-      })
-
-      it("#3-2-3. claimForNonLock  ", async () => {
-
-      })
-
-      it("#3-2-3. unstake  ", async () => {
-
-      })
-      */
-    });
-    /*
-    describe("#3-2-2. stakeGetStos", async () => {
-
-      it("#3-2-2. stakeGetStos  ", async () => {
-
-      })
-
-      it("#3-2-2. increaseAmountForSimpleStake  ", async () => {
-
-      })
-
-      it("#3-2-2. resetStakeGetStosAfterLock  ", async () => {
-
-      })
-
-      it("#3-2-2. increaseBeforeEndOrNonEnd  ", async () => {
-
-      })
-
-      it("#3-2-2. claimForNonLock  ", async () => {
-
-      })
-
-      it("#3-2-2. unstake  ", async () => {
-
-      })
 
     });
-    */
+
   });
 
+  */
 
 });

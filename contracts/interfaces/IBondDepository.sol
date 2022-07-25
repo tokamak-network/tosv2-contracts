@@ -33,6 +33,31 @@ interface IBondDepository {
      */
     function close(uint256 _id) external;
 
+    function increaseCapacity(
+        uint256 _marketId,
+        uint256 amount
+    )   external;
+
+    function decreaseCapacity(
+        uint256 _marketId,
+        uint256 amount
+    ) external;
+
+    function changeCloseTime(
+        uint256 _marketId,
+        uint256 closeTime
+    )   external ;
+
+    function changeMaxPayout(
+        uint256 _marketId,
+        uint256 _amount
+    )   external;
+
+    function changePrice(
+        uint256 _marketId,
+        uint256 _tokenPrice,
+        uint256 _tosPrice
+    )   external ;
 
     ///////////////////////////////////////
     /// Anyone can use.
@@ -103,21 +128,6 @@ interface IBondDepository {
 
 
     /// @dev How much tokens are valued as TOS
-    /// @param _tokenPrice  the token price
-    /// @param _tosPrice  the tos price
-    /// @param _amount the amount of input
-    /// @return payout  When the amount of tokens is putted, the amount evaluated as TOS
-    function calculPayoutAmount(
-        uint256 _tokenPrice,
-        uint256 _tosPrice,
-        uint256 _amount
-    )
-        external
-        pure
-        returns (uint256 payout);
-
-
-    /// @dev How much tokens are valued as TOS
     /// @param _id  the market id
     /// @param _amount the amount of asset
     /// @return payout  the amount evaluated as TOS
@@ -134,18 +144,6 @@ interface IBondDepository {
     /// @param _id  the market id
     /// @return maxpayout_  the asset amount
     function purchasableAseetAmountAtOneTime(uint256 _id) external view returns (uint256 maxpayout_);
-
-
-    /// @dev the token price is calculated by the token price / the tos price
-    /// @param _id  the market id
-    /// @return price  The amount calculated when the token is evaluated as TOS in a specific market
-    function tokenPrice(uint256 _id) external view returns (uint256 price);
-
-
-    /// @dev Amount of TOS currently available for purchase in a specific market
-    /// @param _id  the market id
-    /// @return tokenAmount Amount of TOS currently available for purchase in a specific market
-    function remainingAmount(uint256 _id) external view returns (uint256 tokenAmount);
 
     function getMarketList() external view returns (uint256[] memory) ;
     function totalMarketCount() external view returns (uint256) ;
@@ -165,9 +163,9 @@ interface IBondDepository {
         returns
         (
             address poolAddress,
-            uint256 tokenPrice,
-            uint256 tosPrice,
-            uint256 totalSaleAmount,
+            uint256 _tokenPrice,
+            uint256 _tosPrice,
+            uint256 _totalSaleAmount,
             uint24 fee,
             bool ethMarket
             );

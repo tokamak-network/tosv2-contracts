@@ -20,7 +20,6 @@ interface IERC20 {
 }
 
 interface IIUniswapV3Factory {
-
     function getPool(address,address,uint24) external view returns (address);
 }
 
@@ -57,11 +56,6 @@ interface IIUniswapV3Pool {
         view
         returns (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidityCumulativeX128s);
 
-    // function getPool(
-    //     address tokenA,
-    //     address tokenB,
-    //     uint24 fee
-    // ) external view returns (address pool);
 }
 
 interface IINonfungiblePositionManager {
@@ -443,21 +437,21 @@ contract TOSValueCalculator is ITOSValueCalculator {
         if (isWeth1 && isTos1 && token1a == tos) price = getPriceToken0(poola);
     }
 
-    function getETHPricPerTOS() public override view returns (uint256 price) {
+    function getETHPricePerTOS() public override view returns (uint256 price) {
         (bool isWeth1, bool isTos1, address poola, address token0a, address token1a) = existPool(tos, weth, 3000);
 
         if (isWeth1 && isTos1 && token0a == weth) price = getPriceToken1(poola);
         if (isWeth1 && isTos1 && token1a == weth) price = getPriceToken0(poola);
     }
 
-    function getTOSPricPerAsset(address _asset) public override view returns (uint256 price) {
+    function getTOSPricePerAsset(address _asset) public override view returns (uint256 price) {
         (, bool isTos1, address poola, address token0a, address token1a) = existPool(tos, _asset, 3000);
 
         if (isTos1 && token0a == tos) price = getPriceToken1(poola);
         if (isTos1 && token1a == tos) price = getPriceToken0(poola);
     }
 
-    function getAssetPricPerTOS(address _asset) public override view returns (uint256 price) {
+    function getAssetPricePerTOS(address _asset) public override view returns (uint256 price) {
         (, bool isTos1, address poola, address token0a, address token1a) = existPool(tos, _asset, 3000);
 
         if (isTos1 && token0a == _asset) price = getPriceToken1(poola);

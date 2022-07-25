@@ -287,12 +287,12 @@ contract StakingV2 is
         uint256 lockId = connectId[_stakeId];
         require(lockId > 0, "zero lockId");
 
-        LibStaking.UserBalance storage stakeInfo = allStakings[_stakeId];
-        address staker = stakeInfo.staker;
+        LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
+        address staker = _stakeInfo.staker;
         require(staker == msg.sender, "caller is not staker");
 
         (, uint256 end, ) = ILockTosV2(lockTOS).locksInfo(lockId);
-        require(end < block.timestamp && stakeInfo.endTime < block.timestamp, "lock end time has not passed");
+        require(end < block.timestamp && _stakeInfo.endTime < block.timestamp, "lock end time has not passed");
 
         uint256 depositPlusAmount = remainedLTOSToTos(_stakeId);
         require(_claimAmount <= depositPlusAmount, "remainedTos is insufficient");
@@ -423,10 +423,10 @@ contract StakingV2 is
     )   public override
         nonZero(_stakeId)
     {
-        LibStaking.UserBalance storage stakeInfo = allStakings[_stakeId];
-        address staker = stakeInfo.staker;
+        LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
+        address staker = _stakeInfo.staker;
         require(staker == msg.sender, "caller is not staker.");
-        require(stakeInfo.endTime < block.timestamp, "end time hasn't passed.");
+        require(_stakeInfo.endTime < block.timestamp, "end time hasn't passed.");
         rebaseIndex();
 
         // 모두 클래임한다. 스토리지를 모두 지운다.
@@ -434,7 +434,7 @@ contract StakingV2 is
         require(amount > 0, "zero claimable amount");
 
         uint256 addProfitRemainedTos = remainedLTOSToTos(_stakeId);
-        uint256 principal = stakeInfo.deposit;
+        uint256 principal = _stakeInfo.deposit;
         uint256 sTOSid = connectId[_stakeId];
 
         if (sTOSid > 0) {
@@ -491,14 +491,7 @@ contract StakingV2 is
             epochNumber++;
             console.log("rebaseIndex epochNumber : %s", epochNumber);
             console.log("rebaseIndex epoch.end : %s", epoch.end);
-            /*
-             epoch.end = epoch.end + (epoch.length_ * (epochNumber + 1));
-            console.log("epoch.end : %s", epoch.end);
-            epoch.number = epoch.number + (epochNumber + 1);
-            console.log("epoch.number : %s", epoch.number);
-            */
 
-            // 1. use epochNumber
             uint256 newIndex = index_;
             if(epochNumber > 1) newIndex = compound(index_, rebasePerEpoch, epochNumber) ;
             else if(epochNumber == 1)  newIndex = nextIndex();
@@ -512,22 +505,25 @@ contract StakingV2 is
 
             if (_runawayTOS == 0) return;
 
+            uint256 oldIndex = index_;
+
             if ((totalLTOS * (newIndex-index_) / 1e18) < _runawayTOS) {
                 index_ = newIndex;
                 epoch.number += epochNumber;
-                emit Rebased(index_, newIndex);
+                emit Rebased(oldIndex, newIndex, totalLTOS);
             } else if (epochNumber > 1) {
-                // 2. find posible epoch number
+
                 uint256 _possibleEpochNumber = possibleEpochNumber();
                 console.log("rebaseIndex _possibleEpochNumber : %s", _possibleEpochNumber);
 
                 if (_possibleEpochNumber < epochNumber) {
                     newIndex = compound(index_, rebasePerEpoch, _possibleEpochNumber);
                     console.log("rebaseIndex newIndex : %s", newIndex);
+
                     if (totalLTOS * (newIndex-index_) / 1e18 < _runawayTOS) {
                         index_ =  newIndex;
                         epoch.number += _possibleEpochNumber;
-                        emit Rebased(index_, newIndex);
+                        emit Rebased(oldIndex, newIndex, totalLTOS);
                     }
                 }
             }
@@ -742,19 +738,19 @@ contract StakingV2 is
         uint256 endTime,
         uint256 getLTOS,
         uint256 rewardTOS,
-        uint256 marketId,
+        uint256 _marketId,
         bool withdraw
     ) {
-        LibStaking.UserBalance memory stakeInfo = allStakings[stakeId];
+        LibStaking.UserBalance memory _stakeInfo = allStakings[stakeId];
         return (
-            stakeInfo.staker,
-            stakeInfo.deposit,
-            stakeInfo.LTOS,
-            stakeInfo.endTime,
-            stakeInfo.getLTOS,
-            stakeInfo.rewardTOS,
-            stakeInfo.marketId,
-            stakeInfo.withdraw
+            _stakeInfo.staker,
+            _stakeInfo.deposit,
+            _stakeInfo.LTOS,
+            _stakeInfo.endTime,
+            _stakeInfo.getLTOS,
+            _stakeInfo.rewardTOS,
+            _stakeInfo.marketId,
+            _stakeInfo.withdraw
         );
     }
 
@@ -850,15 +846,15 @@ contract StakingV2 is
         if(userStakeIdIndex > 1)  delete allStakings[_stakeId];
         else  {
             // 초기화
-            LibStaking.UserBalance storage stakeInfo = allStakings[_stakeId];
-            stakeInfo.staker = address(0);
-            stakeInfo.deposit = 0;
-            stakeInfo.LTOS = 0;
-            stakeInfo.endTime = 0;
-            stakeInfo.getLTOS = 0;
-            stakeInfo.rewardTOS = 0;
-            stakeInfo.marketId = 0;
-            stakeInfo.withdraw = false;
+            LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
+            _stakeInfo.staker = address(0);
+            _stakeInfo.deposit = 0;
+            _stakeInfo.LTOS = 0;
+            _stakeInfo.endTime = 0;
+            _stakeInfo.getLTOS = 0;
+            _stakeInfo.rewardTOS = 0;
+            _stakeInfo.marketId = 0;
+            _stakeInfo.withdraw = false;
         }
     }
 
@@ -870,12 +866,12 @@ contract StakingV2 is
         require(allStakings[_stakeId].staker == address(0), "non-empty stakeInfo");
         require(_amount > 0 || _increaseSeconds > 0, "zero amount and _increaseSeconds");
 
-        LibStaking.UserBalance storage stakeInfo = allStakings[_stakeId];
+        LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
 
         if(_amount > 0) {
             uint256 ltos = getTosToLtos(_amount);
-            stakeInfo.deposit += _amount;
-            stakeInfo.LTOS += ltos;
+            _stakeInfo.deposit += _amount;
+            _stakeInfo.LTOS += ltos;
 
             stakingPrincipal += _amount;
             // cummulatedLTOS += ltos;
@@ -883,7 +879,7 @@ contract StakingV2 is
         }
 
         if(_increaseSeconds > 0) {
-            stakeInfo.endTime += _increaseSeconds;
+            _stakeInfo.endTime += _increaseSeconds;
         }
     }
 
@@ -900,9 +896,9 @@ contract StakingV2 is
 
         require(remainedTos > 0, "zero amount");
 
-        LibStaking.UserBalance storage stakeInfo = allStakings[_stakeId];
-        uint256 principal = stakeInfo.deposit;
-        stakeInfo.endTime = _unlockTime;
+        LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
+        uint256 principal = _stakeInfo.deposit;
+        _stakeInfo.endTime = _unlockTime;
 
         remainedTos += _addAmount;
         remainedTos -= _claimAmount;
@@ -910,10 +906,12 @@ contract StakingV2 is
         uint256 addLtos = getTosToLtos(_addAmount);
         uint256 subLtos = getTosToLtos(_claimAmount);
 
-        stakeInfo.deposit = remainedTos;
-        stakeInfo.LTOS = getTosToLtos(remainedTos);
-        stakeInfo.getLTOS =  0;
+        _stakeInfo.deposit = remainedTos;
+        _stakeInfo.LTOS = getTosToLtos(remainedTos);
+        _stakeInfo.getLTOS =  0;
         stakingPrincipal += _addAmount;
+
+        // 원금분을 정확하게.. 나누자.
         stakingPrincipal -= _claimAmount;
 
         // cummulatedLTOS += addLtos;

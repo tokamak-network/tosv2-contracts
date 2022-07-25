@@ -2,48 +2,59 @@
 pragma solidity ^0.8.4;
 
 import "./TreasuryStorage.sol";
+import "./common/ProxyAccessCommon.sol";
 
-import "./libraries/SafeMath.sol";
 import "./libraries/SafeERC20.sol";
 import "./libraries/LibTreasury.sol";
 
-// import "./interfaces/IERC20.sol";
-
-import "./interfaces/IERC20Metadata.sol";
-import "./interfaces/ITOS.sol";
 import "./interfaces/ITreasury.sol";
-import "./interfaces/ITOSValueCalculator.sol";
-
-import "./common/ProxyAccessCommon.sol";
-
+import "./interfaces/ITreasuryEvent.sol";
 
 import "hardhat/console.sol";
+
+interface IIERC20 {
+    function burn(address account, uint256 amount) external returns (bool);
+}
+
+interface IITOSValueCalculator {
+
+    function getTOSERC20PoolERC20Price(
+        address _erc20address,
+        address _tosERC20Pool,
+        uint24 fee
+    )
+        external
+        view
+        returns (uint256 price);
+
+    function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
+        external view
+        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmmount);
+
+    function getTOSPricePerETH() external view returns (uint256 price);
+
+    function getETHPricePerTOS() external view returns (uint256 price);
+}
 
 interface IIStaking {
     function stakedOfAll() external view returns (uint256) ;
 }
 
-interface IUniswapV3Pool {
-    function token0() external view returns (address);
-    function token1() external view returns (address);
+interface IIIUniswapV3Pool {
+    function liquidity() external view returns (uint128);
 }
+
 contract Treasury is
     TreasuryStorage,
     ProxyAccessCommon,
-    ITreasury
+    ITreasury,
+    ITreasuryEvent
 {
-    using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    event Deposit(address indexed token, uint256 amount, uint256 value);
-    event Withdrawal(address indexed token, uint256 amount, uint256 value);
-    event Minted(address indexed caller, address indexed recipient, uint256 amount);
-    event Permissioned(address addr, LibTreasury.STATUS indexed status, bool result);
-    event ReservesAudited(uint256 indexed totalReserves);
 
     constructor() {
     }
-
 
     /* ========== onlyPolicyOwner ========== */
 
@@ -60,6 +71,7 @@ contract Treasury is
         onlyPolicyOwner
     {
         LibTreasury.STATUS role = LibTreasury.getSatatus(_status);
+
         require(role != LibTreasury.STATUS.NONE, "NONE permission");
         require(permissions[role][_address] == false, "already set");
 
@@ -71,7 +83,7 @@ contract Treasury is
             registry[role].push(_address);
         }
 
-        emit Permissioned(_address, role, true);
+        emit Permissioned(_address, _status, true);
     }
 
     /**
@@ -94,7 +106,7 @@ contract Treasury is
             registry[role].pop();
         }
 
-        emit Permissioned(_toDisable, role, false);
+        emit Permissioned(_toDisable, uint(role), false);
     }
 
     function approve(
@@ -103,33 +115,36 @@ contract Treasury is
         TOS.approve(_addr, 1e45);
     }
 
-    function setMintRateDenominator(uint256 _mintRateDenominator) external onlyPolicyOwner {
-
-        require(mintRateDenominator != _mintRateDenominator && _mintRateDenominator > 0, "check input value");
-
-        mintRateDenominator = _mintRateDenominator;
-    }
-
     function setMR(uint256 _mrRate, uint256 amount) external override onlyPolicyOwner {
 
         require(mintRate != _mrRate || amount > 0, "check input value");
 
-        require(isTreasuryHealthyAfterTOSMint(_mrRate, amount), "unavailable mintRate");
+        require(checkTosSolvencyAfterTOSMint(_mrRate, amount), "unavailable mintRate");
 
         if (mintRate != _mrRate) mintRate = _mrRate;
         if (amount > 0) TOS.mint(address(this), amount);
     }
 
-    function setMROfAddress(address _asset, uint256 _mrRate) external override onlyPolicyOwner {
+    function setMinimumTOSPricePerETH(uint256 _minimumTOSPricePerETH) external onlyPolicyOwner
+    {
+        require(_minimumTOSPricePerETH > 0 && minimumTOSPricePerETH != _minimumTOSPricePerETH, "wrong _mininumValue") ;
 
-        require(mintingRateOfAddress[_asset] != _mrRate, "same value");
-        mintingRateOfAddress[_asset] = _mrRate;
+        minimumTOSPricePerETH = _minimumTOSPricePerETH;
+    }
+
+    function setPoolAddressTOSETH(address _poolAddressTOSETH) external onlyPolicyOwner {
+        require(poolAddressTOSETH != _poolAddressTOSETH, "same address");
+        poolAddressTOSETH = _poolAddressTOSETH;
     }
 
     function setUniswapV3Factory(address _uniswapFactory) external onlyPolicyOwner {
-
         require(uniswapV3Factory != _uniswapFactory, "same address");
         uniswapV3Factory = _uniswapFactory;
+    }
+
+    function setMintRateDenominator(uint256 _mintRateDenominator) external onlyPolicyOwner {
+        require(mintRateDenominator != _mintRateDenominator && _mintRateDenominator > 0, "check input value");
+        mintRateDenominator = _mintRateDenominator;
     }
 
     function totalBacking() public override view returns(uint256) {
@@ -165,13 +180,30 @@ contract Treasury is
         }
     }
 
+    function addBondAsset(
+        address _address,
+        address _tosPooladdress,
+        uint24 _fee
+    )
+        external override
+    {
+        require(isBonder(msg.sender), "caller is not bonder");
+
+        if (backingsIndex[_address] == 0 && _address != address(0) ){
+            addBackingList(
+                _address,
+                _tosPooladdress,
+                _fee
+            );
+        }
+    }
 
     function addBackingList(
         address _address,
         address _tosPooladdress,
         uint24 _fee
     )
-        external override onlyPolicyOwner
+        public override onlyPolicyOwner
         nonZeroAddress(_address)
         nonZeroAddress(_tosPooladdress)
     {
@@ -247,6 +279,7 @@ contract Treasury is
         }
     }
 
+
     //TOS mint
     function setFoundationDistributeInfo(
         address[] memory  _addr,
@@ -278,86 +311,8 @@ contract Treasury is
         }
     }
 
-     /* ========== permissions : LibTreasury.STATUS.RESERVEDEPOSITOR ========== */
+    /* ========== permissions : LibTreasury.STATUS.RESERVEDEPOSITOR ========== */
 
-    //uniswapV3 LP token을 deposit할 수 있어야함
-    //uniswapV3 LP token을 backing할 수 있어야함
-    //uniswapV3 token을 manage할 수 있어야함, swap(TOS -> ETH) Treasury가 가지고 있는 물량 onlyPolicy , mint(treasury가 주인), increaseLiquidity(treasury물량을 씀) , collect(treasury가 받음), decreaseLiquidity(treasury한테 물량이 감)
-
-    /**
-     * @notice allow approved address to deposit an asset for TOS (token의 현재 시세에 맞게 입금하고 TOS를 받음)
-     * @param _amount uint256
-     * @param _token address
-     * @param _tosERC20Pool address
-     * @param _fee uint24
-     * @param _profit uint256
-     * @return send_ uint256
-     */
-    //erc20토큰을 받고 TOS를 준다.
-    //amount = ? ERC20 ->  ?ERC20 * ?TOS/1ERC20 -> ??TOS
-    function deposit(
-        uint256 _amount,
-        address _token,
-        address _tosERC20Pool,
-        uint24 _fee,
-        uint256 _profit
-    ) external override returns (uint256 send_) {
-        if (permissions[LibTreasury.STATUS.RESERVETOKEN][_token]) {
-            require(permissions[LibTreasury.STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);
-        } else if (permissions[LibTreasury.STATUS.LIQUIDITYTOKEN][_token]) {
-            require(permissions[LibTreasury.STATUS.LIQUIDITYDEPOSITOR][msg.sender], notApproved);
-        } else {
-            revert(invalidToken);
-        }
-
-        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
-
-        uint256 value = (_amount * ITOSValueCalculator(calculator).getTOSERC20PoolERC20Price(_token,_tosERC20Pool,_fee))/1e18;
-
-        // mint TOS needed and store amount of rewards for distribution
-        send_ = value.sub(_profit);
-        ITOS(address(TOS)).mint(msg.sender, send_);
-
-        //주었을때 backing에 미치는 영향은 무엇인가?
-        totalReserves = totalReserves.add(value);
-
-        emit Deposit(_token, _amount, value);
-    }
-
-    //자기가 보유하고 있는 TOS를 burn시키구 그가치에 해당하는 token의 amount를 가지고 간다.
-    //amount = ? TOS -> ?TOS * ?ERC20/1TOS -> ??ERC20
-    function withdraw(
-        uint256 _amount,
-        address _token,
-        address _tosERC20Pool,
-        uint24 _fee
-    )
-        external
-        override
-    {
-        require(permissions[LibTreasury.STATUS.RESERVETOKEN][_token], notAccepted); // Only reserves can be used for redemptions
-        require(permissions[LibTreasury.STATUS.RESERVESPENDER][msg.sender], notApproved);
-
-        uint256 value = (_amount * ITOSValueCalculator(calculator).getTOSERC20PoolTOSPrice(_token,_tosERC20Pool,_fee))/1e18;
-        ITOS(address(TOS)).burn(msg.sender, value);
-
-        //뺏을때 backing에 미치는 영향은 무엇인가?
-        totalReserves = totalReserves.sub(value);
-
-        IERC20(_token).safeTransfer(msg.sender, _amount);
-
-        emit Withdrawal(_token, _amount, value);
-    }
-
-    /*
-    // TOS mint 권한 및 통제 설정 필요
-    // 자신받아야 하지 않나???
-    function mint(address _recipient, uint256 _amount) external override {
-        require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender], notApproved);
-        ITOS(address(TOS)).mint(_recipient, _amount);
-        emit Minted(msg.sender, _recipient, _amount);
-    }
-    */
 
     function requestMintAndTransfer(
         uint256 _mintAmount,
@@ -367,13 +322,10 @@ contract Treasury is
     )
         external override
     {
-        require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender]
-                || isBonder(msg.sender), notApproved);
+        require(isBonder(msg.sender), notApproved);
 
         require(_mintAmount > 0, "zero amount");
         require(_mintAmount >= _transferAmount, "_mintAmount is less than _transferAmount");
-
-        require(isTreasuryHealthyAfterTOSMint(_mintAmount), "non-available mintRate");
 
         TOS.mint(address(this), _mintAmount);
 
@@ -386,6 +338,21 @@ contract Treasury is
         if(remainedAmount > 0 && _distribute) _foundationDistribute(remainedAmount);
     }
 
+    function requestTrasfer(
+        address _recipient,
+        uint256 _amount
+    ) external override {
+        require(isStaker(msg.sender), notApproved);
+
+        require(_recipient != address(0), "zero recipient");
+        require(_amount > 0, "zero amount");
+
+        require(TOS.balanceOf(address(this)) >= _amount, "treasury balance is insufficient");
+
+        TOS.safeTransfer(_recipient, _amount);
+    }
+
+
     function _foundationDistribute(uint256 remainedAmount) internal {
         if (mintings.length > 0) {
             for (uint256 i = 0; i < mintings.length ; i++) {
@@ -394,20 +361,6 @@ contract Treasury is
                 );
             }
         }
-    }
-
-    function requestTrasfer(
-        address _recipient,
-        uint256 _amount
-    ) external override {
-        require(permissions[LibTreasury.STATUS.REWARDMANAGER][msg.sender]
-                || isStaker(msg.sender), notApproved);
-        require(_recipient != address(0), "zero recipient");
-        require(_amount > 0, "zero amount");
-
-        require(TOS.balanceOf(address(this)) >= _amount, "treasury balance is insufficient");
-
-        TOS.safeTransfer(_recipient, _amount);
     }
 
     /**
@@ -431,43 +384,29 @@ contract Treasury is
 
     /* ========== VIEW ========== */
 
-    function getMintRate(address _asset) public view returns (uint256) {
-        if(_asset == address(0)) return mintRate;
-        else return mintingRateOfAddress[_asset];
+    function getMintRate() public view returns (uint256) {
+        return mintRate;
     }
 
-    function isTreasuryHealthyAfterTOSMint(uint256 _checkMintRate, uint256 amount)
+    function checkTosSolvencyAfterTOSMint(uint256 _checkMintRate, uint256 amount)
         public override view returns (bool)
     {
-        /*
-        if (TOS.totalSupply() + amount <= _checkMintRate * backingReserve() / mintRateDenominator ) {
-             return true;
-        } else {
-            return false;
-        }
-        */
-        // uint256 a = getTOSPricePerETH();
-        // uint256 b = getETHPricPerTOS();
-
-        // console.log("getTOSPricePerETH %s", a);
-        // console.log("getETHPricPerTOS %s", b);
-        uint256 totalTOS = TOS.totalSupply();
-        uint256 holdingTOS = TOS.balanceOf(address(this)) + TOS.balanceOf(stakingv2);
-        uint256 stakedTOS = IIStaking(stakingv2).stakedOfAll();
-
-        if (totalTOS - holdingTOS + stakedTOS + (amount * _checkMintRate / mintRateDenominator) <= backingReserveTOS())
-             return true;
+        if (TOS.totalSupply() + amount  <= backingReserveTOS() * _checkMintRate / mintRateDenominator)  return true;
         else return false;
     }
+
+    function  checkTosSolvency(uint256 amount)
+        public override view returns (bool)
+    {
+        if ( TOS.totalSupply() + amount <= backingReserveTOS() * mintRate / mintRateDenominator)  return true;
+        else return false;
+    }
+
 
     function isTreasuryHealthyAfterTOSMint(uint256 amount)
         public override view returns (bool)
     {
-        uint256 totalTOS = TOS.totalSupply();
-        uint256 holdingTOS = TOS.balanceOf(address(this)) + TOS.balanceOf(stakingv2);
-        uint256 stakedTOS = IIStaking(stakingv2).stakedOfAll();
-
-        if (totalTOS - holdingTOS + stakedTOS + amount <= backingReserveTOS())  return true;
+        if (TOS.totalSupply() + amount <= backingReserveTOS())  return true;
         else return false;
     }
 
@@ -476,81 +415,71 @@ contract Treasury is
     }
 
     function backingReserveTOS() public view returns (uint256) {
-        uint256 totalValue;
 
-        //uint256 tosPricePerETH = ITOSValueCalculator(calculator).getTOSWETHPoolETHPrice();
-        uint256 tosPricePerETH = ITOSValueCalculator(calculator).getTOSPricePerETH();
-        // console.log("tosPricePerETH %s", tosPricePerETH) ;
-
-        //bool applyTOS = false;
-        bool applyWTON = false;
-
-        for(uint256 i = 0; i < backings.length; i++) {
-
-            if (backings[i].erc20Address == address(TOS))  {
-               // totalValue +=  TOS.balanceOf(address(this)) ;
-               // applyTOS = true;
-
-            } else if (backings[i].erc20Address == wethAddress)  {
-                totalValue += (IERC20(wethAddress).balanceOf(address(this)) * tosPricePerETH / 1e18);
-                applyWTON = true;
-
-            } else if (backings[i].erc20Address != address(0) )  {
-
-                (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount)
-                    = ITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(backings[i].erc20Address, IERC20(backings[i].erc20Address).balanceOf(address(this)));
-
-                if (existedTosPool) totalValue += convertedAmmount;
-                else if (existedWethPool) totalValue += (convertedAmmount * tosPricePerETH / 1e18);
-            }
-        }
-
-        //if (!applyTOS && address(TOS) != address(0)) totalValue += TOS.balanceOf(address(this));
-        if (!applyWTON && wethAddress != address(0)) totalValue += (IERC20(wethAddress).balanceOf(address(this)) * tosPricePerETH / 1e18);
-
-        totalValue += (address(this).balance * tosPricePerETH / 1e18);
-
-        return totalValue;
+        return backingReserve() * getTOSPricePerETH() / 1e18;
     }
 
-    // 이더 가치로 환산
+    function getETHPricePerTOS() public view returns (uint256) {
+        console.log("getETHPricePerTOS poolAddressTOSETH %s",poolAddressTOSETH);
+        console.log("getETHPricePerTOS liquidity %s",IIIUniswapV3Pool(poolAddressTOSETH).liquidity());
+        if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
+            return  (mintRateDenominator / mintRate);
+        } else {
+            console.log("getETHPricePerTOS liquidity is not zero ");
+            return IITOSValueCalculator(calculator).getETHPricePerTOS();
+        }
+    }
+
+    function getTOSPricePerETH() public view returns (uint256) {
+
+        console.log("getTOSPricePerETH poolAddressTOSETH %s",poolAddressTOSETH);
+
+        if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
+            return  minimumTOSPricePerETH;
+        } else {
+            return IITOSValueCalculator(calculator).getTOSPricePerETH();
+        }
+    }
+
     function backingReserve() public override view returns (uint256) {
-        uint256 totalValue;
-        //uint256 tosETHPricePerTOS = ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
+        uint256 totalValue = 0;
 
-        uint256 tosETHPricePerTOS = ITOSValueCalculator(calculator).getETHPricPerTOS();
-
-        //0.000004124853366489 ETH/TOS
-        // console.log("tosETHPricePerTOS %s", tosETHPricePerTOS) ;
-
-        bool applyTOS = false;
         bool applyWTON = false;
+        uint256 tosETHPricePerTOS = IITOSValueCalculator(calculator).getETHPricePerTOS();
+        console.log("tosETHPricePerTOS %s", tosETHPricePerTOS) ;
 
         for(uint256 i = 0; i < backings.length; i++) {
 
-            if (backings[i].erc20Address == address(TOS))  {
-                totalValue +=  (TOS.balanceOf(address(this)) * tosETHPricePerTOS / 1e18);
-                applyTOS = true;
-
-            } else if (backings[i].erc20Address == wethAddress)  {
+            if (backings[i].erc20Address == wethAddress)  {
                 totalValue += IERC20(wethAddress).balanceOf(address(this));
                 applyWTON = true;
 
-            } else if (backings[i].erc20Address != address(0) )  {
+            } else if (backings[i].erc20Address != address(0) && backings[i].erc20Address != address(TOS))  {
 
                 (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) =
-                    ITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(backings[i].erc20Address, IERC20(backings[i].erc20Address).balanceOf(address(this)));
+                    IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(backings[i].erc20Address, IERC20(backings[i].erc20Address).balanceOf(address(this)));
 
                 if (existedWethPool) totalValue += convertedAmmount;
-                else if (existedTosPool) totalValue += (convertedAmmount * tosETHPricePerTOS / 1e18);
+
+                else if (existedTosPool){
+
+                    if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
+                        // 확인필요
+                        totalValue +=  (convertedAmmount * mintRateDenominator / mintRate );
+                    } else {
+                        totalValue += (convertedAmmount * tosETHPricePerTOS / 1e18);
+                    }
+                }
             }
         }
 
-        if (!applyTOS && address(TOS) != address(0)) totalValue += (TOS.balanceOf(address(this))* tosETHPricePerTOS / 1e18);
+
         if (!applyWTON && wethAddress != address(0)) totalValue += IERC20(wethAddress).balanceOf(address(this));
 
         //0.000004124853366489 ETH/TOS ,  242427 TOS /ETH
         totalValue += address(this).balance;
+
+        console.log("backingReserve %s", totalValue);
 
         return totalValue;
     }
@@ -564,20 +493,16 @@ contract Treasury is
         return TOS.balanceOf(address(this));
     }
 
-    function hasPermission(LibTreasury.STATUS role, address account) public override view returns (bool) {
-        return permissions[role][account];
-    }
-
     function hasPermission(uint role, address account) public override view returns (bool) {
         return permissions[LibTreasury.getSatatus(role)][account];
     }
 
     function isBonder(address account) public view virtual returns (bool) {
-        return hasPermission(LibTreasury.STATUS.BONDER, account);
+        return permissions[LibTreasury.STATUS.BONDER][account];
     }
 
     function isStaker(address account) public view virtual returns (bool) {
-        return hasPermission(LibTreasury.STATUS.STAKER, account);
+        return permissions[LibTreasury.STATUS.STAKER][account];
     }
 
 }

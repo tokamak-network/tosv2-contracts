@@ -256,7 +256,7 @@ interface IStaking {
         uint256 endTime,
         uint256 getLTOS,
         uint256 rewardTOS,
-        uint256 marketId,
+        uint256 _marketId,
         bool withdraw
     );
 

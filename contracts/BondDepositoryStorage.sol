@@ -11,8 +11,6 @@ contract BondDepositoryStorage {
     mapping(uint256 => LibBondDepository.Market) public markets;
     mapping(uint256 => LibBondDepository.Metadata) public metadata;
 
-    //mapping(address => LibBondDepository.User[]) public users;
-
     // user - Deposit(marketId, stakeId)[]
     mapping(address => LibBondDepository.Deposit[]) public deposits;
 

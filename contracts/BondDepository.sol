@@ -8,7 +8,6 @@ import "./libraries/SafeERC20.sol";
 
 import "./interfaces/IBondDepository.sol";
 import "./interfaces/IBondDepositoryEvent.sol";
-import "./interfaces/ITOSValueCalculator.sol";
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "hardhat/console.sol";
@@ -22,12 +21,24 @@ interface IUniswapV3Pool {
     function token1() external view returns (address);
 }
 
+interface IITOSValueCalculator {
+    function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
+        external view
+        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmmount);
+}
+
 interface IITreasury {
-    function getMintRate(address _asset) external view returns (uint256);
+
+    function getETHPricePerTOS() external view returns (uint256 price);
+    function getMintRate() external view returns (uint256);
     function mintRateDenominator() external view returns (uint256);
-    function isTreasuryHealthyAfterTOSMint (uint256 _checkMintRate, uint256 amount) external view returns (bool);
-    function requestMintAndTransfer(
-        uint256 _mintAmount, address _recipient, uint256 _transferAmount, bool _distribute) external ;
+
+    function requestMintAndTransfer(uint256 _mintAmount, address _recipient, uint256 _transferAmount, bool _distribute) external ;
+    function addBondAsset(
+        address _address,
+        address _tosPooladdress,
+        uint24 _fee
+    ) external;
 }
 
 contract BondDepository is
@@ -131,8 +142,87 @@ contract BondDepository is
 
         marketList.push(id_);
         metadataList.push(id_);
+        IITreasury(treasury).addBondAsset(_token, _poolAddress, _fee);
 
         emit CreatedMarket(id_, _check, _token, _poolAddress, _fee, _market);
+    }
+
+
+    function increaseCapacity(
+        uint256 _marketId,
+        uint256 _amount
+    )   external override onlyPolicyOwner
+        nonEndMarket(_marketId)
+        nonZero(_amount)
+    {
+        LibBondDepository.Market storage _info = markets[_marketId];
+        _info.capacity += _amount;
+
+        LibBondDepository.Metadata storage _metadata = metadata[_marketId];
+        _metadata.totalSaleAmount += _amount;
+
+        emit IncreasedCapacity(_marketId, _amount);
+    }
+
+
+    function decreaseCapacity(
+        uint256 _marketId,
+        uint256 _amount
+    ) external override onlyPolicyOwner
+        nonEndMarket(_marketId)
+        nonZero(_amount)
+    {
+        require(markets[_marketId].capacity > _amount, "not enough capacity");
+        LibBondDepository.Market storage _info = markets[_marketId];
+        _info.capacity -= _amount;
+
+        LibBondDepository.Metadata storage _metadata = metadata[_marketId];
+        _metadata.totalSaleAmount -= _amount;
+
+        emit DecreasedCapacity(_marketId, _amount);
+    }
+
+    function changeCloseTime(
+        uint256 _marketId,
+        uint256 closeTime
+    )   external override onlyPolicyOwner
+        nonEndMarket(_marketId)
+        nonZero(closeTime)
+    {
+        require(closeTime > block.timestamp, "past closeTime");
+        LibBondDepository.Market storage _info = markets[_marketId];
+        _info.endSaleTime = closeTime;
+
+        emit ChangedCloseTime(_marketId, closeTime);
+    }
+
+    function changeMaxPayout(
+        uint256 _marketId,
+        uint256 _amount
+    )   external override onlyPolicyOwner
+        nonEndMarket(_marketId)
+        nonZero(_amount)
+    {
+        LibBondDepository.Market storage _info = markets[_marketId];
+        _info.maxPayout = _amount;
+
+        emit ChangedMaxPayout(_marketId, _amount);
+    }
+
+    function changePrice(
+        uint256 _marketId,
+        uint256 _tokenPrice,
+        uint256 _tosPrice
+    )   external override onlyPolicyOwner
+        nonEndMarket(_marketId)
+        nonZero(_tokenPrice)
+        nonZero(_tosPrice)
+    {
+        LibBondDepository.Metadata storage _metadata = metadata[_marketId];
+        _metadata.tokenPrice = _tokenPrice;
+        _metadata.tosPrice = _tosPrice;
+
+        emit ChangedPrice(_marketId, _tokenPrice, _tosPrice);
     }
 
     /// @inheritdoc IBondDepository
@@ -278,18 +368,27 @@ contract BondDepository is
 
         require(_amount <= purchasableAseetAmountAtOneTime(_marketId), "Depository : over maxPay");
 
-        // _payout = calculPayoutAmount(metadata[_marketId].tokenPrice, metadata[_marketId].tosPrice, _amount);
         _payout = calculateTosAmountForAsset(_marketId, _amount);
 
         console.log("payoutAmount : %s", _payout);
 
         require(_payout > 0, "zero staking amount");
+        uint256 _ethValue = 0;
 
-        uint256 _mintRate = IITreasury(treasury).getMintRate(markets[_marketId].quoteToken);
+        if(!_eth) {
+            (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) =
+                IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(markets[_marketId].quoteToken, _amount);
+             if(existedWethPool)  _ethValue =  convertedAmmount;
+             else if(existedTosPool) _ethValue =  convertedAmmount * IITreasury(treasury).getETHPricePerTOS() / 1e18 ;
+        } else {
+            _ethValue = _amount;
+        }
+
+        require(_ethValue > 0, "zero _ethValue");
+        uint256 _mintRate = IITreasury(treasury).getMintRate();
         require(_mintRate > 0, "zero mintRate");
-        require(IITreasury(treasury).isTreasuryHealthyAfterTOSMint(_mintRate, _amount), "exceeds the reserve amount");
 
-        uint256 mrAmount = _amount * _mintRate / IITreasury(treasury).mintRateDenominator() ;
+        uint256 mrAmount = _ethValue * _mintRate / IITreasury(treasury).mintRateDenominator() ;
         require(mrAmount >= _payout, "mintableAmount is less than staking amount.");
         require(_payout <= markets[_marketId].capacity, "Depository : sold out");
 
@@ -304,53 +403,19 @@ contract BondDepository is
            emit ClosedMarket(_marketId);
         }
 
-        //index_ = users[user].length;
         if (deposits[user].length == 0) userList.push(user);
         totalDepositCount++;
-        /*
-        users[user].push(
-            LibBondDepository.User({
-                tokenAmount: _amount,
-                tosAmount: _payout,
-                marketID: _marketId,
-                endTime: market.endSaleTime,
-                dTOSuse: 0
-            })
-        );
-        */
 
         if(mrAmount > 0 && _payout <= mrAmount) {
             IITreasury(treasury).requestMintAndTransfer(mrAmount, address(staking), _payout, true);
         }
 
-        emit Deposited(user, _marketId, _amount, _payout, _eth);
+        emit Deposited(user, _marketId, _amount, _payout, _eth, mrAmount);
     }
 
     ///////////////////////////////////////
     /// VIEW
     //////////////////////////////////////
-
-    //이더리움(가격)을 기준으로만 mintingRate를 정한다. -> MR은 어떻게 정할까? admin이 세팅할 수 있고 비율은 나중에 알려줌 (admin이 정하게하면 됨)
-    //admin과 policy가 있었으면 좋겠다. (admin이 하는 역할과 policy가 하는 역할은 다름)
-    //dTOS로직
-    //총 가지고 있는 ETH기반으로 minting할 수 있는지 없는지 정한다. -> ETH가 아니라 token이 들어왔을떄
-    //본딩할때 트레저리에서 TOS를 발행할 수 있는지 물어봐야함
-
-    /// @inheritdoc IBondDepository
-    function calculPayoutAmount(
-        uint256 _tokenPrice,
-        uint256 _tosPrice,
-        uint256 _amount
-    )
-        public
-        override
-        pure
-        returns (
-            uint256 payout
-        )
-    {
-        return payout = ((((_tokenPrice * 1e10)/_tosPrice) * _amount) / 1e10);
-    }
 
     //  토큰양_amount에 해당하는 토스의 양을 리턴
     function calculateTosAmountForAsset(
@@ -361,64 +426,14 @@ contract BondDepository is
         view
         returns (uint256 payout)
     {
-        // 에셋 금액에 해당하는 토스의 양
-        // return payout = ((((_tokenPrice * 1e10)/_tosPrice) * _amount) / 1e10);
-
-        // uint256 decimal = 1e18;
-        // if(!markets[_id].method && markets[_id].quoteToken != address(tos)) decimal = 10 ** IIIERC20(markets[_id].quoteToken).decimals();
-
-        uint256 payoutFixed = _amount * metadata[_id].tosPrice / 1e18;
-        uint256 payoutDynamic = 0;
-
-        if(!markets[_id].method && markets[_id].quoteToken == address(0)) payoutDynamic = 0;
-        else if(!markets[_id].method && markets[_id].quoteToken == address(tos)) payoutDynamic = _amount;
-        else {
-            if(markets[_id].method)  payoutDynamic = _amount * ITOSValueCalculator(calculator).getTOSPricePerETH() / 1e18;
-            else payoutDynamic = _amount * ITOSValueCalculator(calculator).getTOSPricPerAsset(markets[_id].quoteToken) / 1e18;
-        }
-        console.log("calculateTosAmountForAsset payoutFixed %s", payoutFixed);
-        console.log("calculateTosAmountForAsset payoutDynamic %s", payoutDynamic);
-
-        return Math.max(payoutFixed, payoutDynamic);
+        return (_amount * metadata[_id].tosPrice / 1e18);
     }
 
     /// @inheritdoc IBondDepository
     function purchasableAseetAmountAtOneTime(uint256 _id) public override view returns (uint256 maxpayout_) {
-        // 한번에 최대 받을 수 있는 에셋 토큰의 양 .
-        //maxpayout_ = (markets[_id].maxPayout * 1e10) / tokenPrice(_id);
 
-        // 고정된 정보로 계산한것과 실시간 가격으로 계산한 것중, 큰 금액으로 지정.(?)
-        uint256 maxpayoutFixed = markets[_id].maxPayout * metadata[_id].tokenPrice / 1e18;
-
-        uint256 maxpayoutDynamic = 0;
-        if(!markets[_id].method && markets[_id].quoteToken == address(0)) maxpayoutDynamic = 0;
-        else if(!markets[_id].method && markets[_id].quoteToken == address(tos)) maxpayoutDynamic = markets[_id].maxPayout;
-        else {
-             if(markets[_id].method)  maxpayoutDynamic = markets[_id].maxPayout * ITOSValueCalculator(calculator).getETHPricPerTOS() / 1e18;
-            else maxpayoutDynamic = markets[_id].maxPayout * ITOSValueCalculator(calculator).getAssetPricPerTOS(markets[_id].quoteToken) / IIIERC20(markets[_id].quoteToken).decimals();
-        }
-        console.log("purchasableAseetAmountAtOneTime maxpayoutFixed %s", maxpayoutFixed);
-        console.log("purchasableAseetAmountAtOneTime maxpayoutDynamic %s", maxpayoutDynamic);
-
-        return Math.max(maxpayoutFixed, maxpayoutDynamic);
+        return ( markets[_id].maxPayout * metadata[_id].tokenPrice / 1e18 );
     }
-
-    // ?TOS/1ETH -> 나온값에 /1e10 해줘야함
-
-    /// @inheritdoc IBondDepository
-    function tokenPrice(uint256 _id) public override view returns (uint256 price) {
-        return ((metadata[_id].tokenPrice * 1e10)/metadata[_id].tosPrice);
-    }
-
-    //market에서 tos를 최대로 구매할 수 있는 양
-
-    /// @inheritdoc IBondDepository
-    function remainingAmount(uint256 _id) external override view returns (uint256 tokenAmount) {
-
-        return ((markets[_id].capacity*1e10)/tokenPrice(_id));
-    }
-
-
 
 
     function getMarketList() public override view returns (uint256[] memory) {
@@ -461,8 +476,8 @@ contract BondDepository is
         returns
             (
             address poolAddress,
-            uint256 tokenPrice,
-            uint256 tosPrice,
+            uint256 _tokenPrice,
+            uint256 _tosPrice,
             uint256 totalSaleAmount,
             uint24 fee,
             bool ethMarket

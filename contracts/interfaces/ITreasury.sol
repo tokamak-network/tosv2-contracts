@@ -19,15 +19,8 @@ interface ITreasury {
     //  민팅 비율
     function setMR(uint256 _mrRate, uint256 amount) external;
 
-    // 특정 ERC20 자산에 대한 mintRate이 있을 가능성이 있다.
-    function setMROfAddress(address _asset, uint256 _mrRate) external;
-
     function addBackingList(address _address, address _tosPooladdress, uint24 _fee) external ;
     function deleteBackingList(address _address) external;
-
-    // 토큰아이디 등록
-    // function addLiquidityIdList(uint256 _tokenId, address _tosPoolAddress) external ;
-
 
     function setFoundationDistributeInfo(
         address[] memory  _addr,
@@ -39,30 +32,20 @@ interface ITreasury {
 
     function requestMintAndTransfer(uint256 _mintAmount, address _recipient, uint256 _transferAmount, bool _distribute) external ;
 
+    function addBondAsset(
+        address _address,
+        address _tosPooladdress,
+        uint24 _fee
+    )
+        external;
+
     /* ========== onlyStaker ========== */
 
     function requestTrasfer(address _recipient, uint256 _amount)  external;
 
     /* ========== Anyone can execute ========== */
 
-    function deposit(
-        uint256 _amount,
-        address _token,
-        address _tosERC20Pool,
-        uint24 _fee,
-        uint256 _profit
-    ) external returns (uint256);
 
-    function withdraw(
-        uint256 _amount,
-        address _token,
-        address _tosERC20Pool,
-        uint24 _fee
-    ) external;
-
-    // function mint(address _recipient, uint256 _amount) external;
-
-    // function backingUpdate() external;
 
     /* ========== VIEW ========== */
     function backingRateETHPerTOS() external view returns (uint256);
@@ -94,8 +77,11 @@ interface ITreasury {
             uint256[] memory mintPercents
             );
 
-    function hasPermission(LibTreasury.STATUS role, address account) external view returns (bool);
     function hasPermission(uint role, address account) external view returns (bool);
-    function isTreasuryHealthyAfterTOSMint (uint256 _checkMintRate, uint256 amount) external view returns (bool);
+    function checkTosSolvencyAfterTOSMint (uint256 _checkMintRate, uint256 amount) external view returns (bool);
+    function checkTosSolvency (uint256 amount) external view returns (bool);
+
+
     function isTreasuryHealthyAfterTOSMint (uint256 amount) external view returns (bool);
+
 }

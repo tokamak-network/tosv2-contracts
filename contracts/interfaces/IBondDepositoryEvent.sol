@@ -9,7 +9,8 @@ interface IBondDepositoryEvent{
     /// @param amount the amount
     /// @param payout  Allocated TOS Amount
     /// @param isEth  Whether Ether is available
-    event Deposited(address user, uint256 marketId, uint256 amount, uint256 payout, bool isEth);
+    /// @param mintAmount  the minting amount of TOS
+    event Deposited(address user, uint256 marketId, uint256 amount, uint256 payout, bool isEth, uint256 mintAmount);
 
     /// @dev This event occurs when a specific market product is created.
     /// @param marketId the market id
@@ -59,4 +60,12 @@ interface IBondDepositoryEvent{
     /// @param lockWeeks  the number of weeks to locking
     /// @param tosValuation  the tos evaluate amount of sending
     event ETHDepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint256 lockWeeks, uint256 tosValuation);
+
+
+    event IncreasedCapacity(uint256 _marketId, uint256  _amount);
+    event DecreasedCapacity(uint256 _marketId, uint256 _amount);
+    event ChangedCloseTime(uint256 _marketId, uint256 closeTime);
+    event ChangedMaxPayout(uint256 _marketId, uint256 _amount);
+    event ChangedPrice(uint256 _marketId, uint256 _tokenPrice, uint256 _tosPrice);
+
 }

@@ -28,13 +28,6 @@ library LibTreasury
         uint24 fee;
     }
 
-    // 트래저리가 보유하고 있는 유니스왑3V3의 LP 리스트 구조체
-    struct Listing {
-        uint256 tokenId;
-        address tosPoolAddress;
-    }
-
-
     // 민트된 양에서 원금(토스 평가금)빼고,
     // 나머지에서 기관에 분배 정보 (기관주소, 남는금액에서 퍼센트)의 구조체
     struct Minting {
@@ -53,6 +46,6 @@ library LibTreasury
         else if (role == uint(STATUS.REWARDMANAGER)) return  STATUS.REWARDMANAGER;
         else if (role == uint(STATUS.BONDER)) return  STATUS.BONDER;
         else if (role == uint(STATUS.STAKER)) return  STATUS.STAKER;
-        else                return  STATUS.NONE;
+        else   return  STATUS.NONE;
     }
 }

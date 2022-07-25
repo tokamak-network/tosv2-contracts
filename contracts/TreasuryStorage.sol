@@ -6,44 +6,40 @@ import "./interfaces/IERC20.sol";
 
 contract TreasuryStorage {
 
+    string internal notAccepted = "Treasury: not accepted";
+    string internal notApproved = "Treasury: not approved";
+    string internal invalidToken = "Treasury: invalid token";
+    string internal insufficientReserves = "Treasury: insufficient reserves";
+
     IERC20 public TOS;
 
     address public calculator;
 
     mapping(LibTreasury.STATUS => address[]) public registry;
     mapping(LibTreasury.STATUS => mapping(address => bool)) public permissions;
-    mapping(address => address) public bondCalculator;
+
     address public wethAddress;
     address public uniswapV3Factory;
     address public stakingv2;
+    address public poolAddressTOSETH;
 
-
-    uint256 public totalReserves;
     uint256 public ETHbacking;
     uint256 public tosBacking;
     uint256 public ETHliquidity;
 
     uint256 public mintRate;
     uint256 public mintRateDenominator;
-    // 어떤 자산이냐에 따라 mintRate 이 달라진다.
-    mapping(address => uint256) public mintingRateOfAddress;
+
+    uint256 public minimumTOSPricePerETH; //1e18
 
     uint256 public totalPercents;
 
     LibTreasury.Backing[] public backings;
     mapping(address => uint256) public backingsIndex;
 
-    LibTreasury.Listing[] public listings;
     LibTreasury.Minting[] public mintings;
 
-    uint256[] public tokenIdLists;
-
-    mapping(uint256 => uint256) public tokenIdList;
-
-    string internal notAccepted = "Treasury: not accepted";
-    string internal notApproved = "Treasury: not approved";
-    string internal invalidToken = "Treasury: invalid token";
-    string internal insufficientReserves = "Treasury: insufficient reserves";
+    uint256[] public lpTokens;
 
     modifier nonZero(uint256 tokenId) {
         require(tokenId != 0, "Treasury: zero uint");

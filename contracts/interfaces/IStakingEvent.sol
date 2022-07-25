@@ -46,5 +46,5 @@ interface IStakingEvent{
     event ClaimdForNonLock(address staker, uint256 claimAmount, uint256 stakeId);
     event Unstaked(address staker, uint256 amount, uint256 stakeId);
 
-    event Rebased(uint256 oldIndex, uint256 newIndex);
+    event Rebased(uint256 oldIndex, uint256 newIndex, uint256 totalLTOS);
 }
