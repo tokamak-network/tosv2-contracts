@@ -78,14 +78,6 @@ contract BondDepository is
     /// onlyPolicyOwner
     //////////////////////////////////////
 
-    function setDtos(address _dtos)
-        external onlyPolicyOwner
-        nonZeroAddress(_dtos)
-    {
-        require(dTOS != _dtos, "same address");
-        dTOS = _dtos;
-    }
-
     function tokenInUniswapV3Pool(address pool, address token0) public view returns (bool) {
 
        if (IUniswapV3Pool(pool).token0() == token0 || IUniswapV3Pool(pool).token1() == token0 ) return true;
@@ -163,7 +155,6 @@ contract BondDepository is
 
         emit IncreasedCapacity(_marketId, _amount);
     }
-
 
     function decreaseCapacity(
         uint256 _marketId,

@@ -488,6 +488,7 @@ contract StakingV2 is
     /// @inheritdoc IStaking
     function rebaseIndex() public override {
         console.log("rebaseIndex epoch.end : %s", epoch.end);
+        console.log("rebaseIndex index_ : %s", index_);
 
         if(epoch.end <= block.timestamp) {
 
@@ -594,22 +595,38 @@ contract StakingV2 is
 
         uint256 _runwayTOS = runwayTOS();
         uint256 _totalTOS = getLtosToTos(totalLTOS);
-        int128 a = ABDKMath64x64.divu(
-                                _runwayTOS + _totalTOS,
-                                _totalTOS
-                            );
-        console.logInt(a);
-        int128 maxNum =
-                    ABDKMath64x64.div(
-                        ABDKMath64x64.ln(a),
-                        ABDKMath64x64.ln(
-                            ABDKMath64x64.add(
-                                ABDKMath64x64.fromUInt(1),
-                                ABDKMath64x64.fromUInt(rebasePerEpoch)
-                            )
+        int128 a = ABDKMath64x64.ln(
+                    ABDKMath64x64.add(
+                        ABDKMath64x64.divu(_runwayTOS,_totalTOS),
+                        ABDKMath64x64.fromUInt(1)
+                    ));
+
+        int128 b = ABDKMath64x64.ln(
+                    ABDKMath64x64.add(
+                        ABDKMath64x64.fromUInt(1e18),
+                        ABDKMath64x64.fromUInt(rebasePerEpoch)
+                    ));
+
+        int128 c = ABDKMath64x64.sub(
+                        b,
+                        ABDKMath64x64.mul(
+                            ABDKMath64x64.fromUInt(18),
+                            ABDKMath64x64.ln(ABDKMath64x64.fromUInt(10))
                         )
                     );
+
+        console.log("_runwayTOS %s", _runwayTOS);
+        console.log("totalLTOS %s", totalLTOS);
+        console.log("_totalTOS %s", _totalTOS);
+        console.log("rebasePerEpoch %s", rebasePerEpoch);
+
+        console.logInt(a);
+        int128 maxNum = ABDKMath64x64.div(a, c);
+        console.log("maximum # of epoch rebase = ");
         console.logInt(maxNum);
+
+        console.log("maximum # of epoch rebase = ", uint256(uint128(maxNum)));
+
         return uint256(uint128(maxNum));
     }
 
