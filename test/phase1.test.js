@@ -56,6 +56,10 @@ let eventCreatedMarket ="CreatedMarket(uint256,bool,address,address,uint24,uint2
 let eventETHDeposited ="ETHDeposited(address,uint256,uint256,uint256,uint256)";
 let eventETHDepositWithSTOS ="ETHDepositedWithSTOS(address,uint256,uint256,uint256,uint256,uint256)";
 let eventStaked ="Staked(address,uint256,uint256)";
+let eventStakedGetStos ="StakedGetStos(address,uint256,uint256,uint256,uint256)";
+let eventIncreasedAmountForSimpleStake ="IncreasedAmountForSimpleStake(address,uint256,uint256)";
+let eventResetStakedGetStosAfterLock ="ResetStakedGetStosAfterLock(address,uint256,uint256,uint256,uint256,uint256)";
+let eventIncreasedBeforeEndOrNonEnd ="IncreasedBeforeEndOrNonEnd(address,uint256,uint256,uint256,uint256)";
 
 describe("TOSv2 Phase1", function () {
   //시나리오 : https://www.notion.so/onther/BondDepository-StakingV2-scenario-Suah-497853d6e65f48a390255f3bca29fa36
@@ -251,10 +255,10 @@ describe("TOSv2 Phase1", function () {
 
   let deposits = {user1 : [], user2: []};
 
-  async function indexEpochPass(_stakingProxylogic) {
+  async function indexEpochPass(_stakingProxylogic, passNextEpochCount) {
       let block = await ethers.provider.getBlock();
       let epochInfo = await _stakingProxylogic.epoch();
-      let passTime =  epochInfo.end - block.timestamp + 60;
+      let passTime =  epochInfo.end - block.timestamp + (epochInfo.length_ * passNextEpochCount) + 60;
       ethers.provider.send("evm_increaseTime", [passTime])
       ethers.provider.send("evm_mine")
   }
@@ -1198,7 +1202,7 @@ describe("TOSv2 Phase1", function () {
     })
 
     it("      pass blocks", async function () {
-      await indexEpochPass(stakingProxylogic);
+      await indexEpochPass(stakingProxylogic, 0);
     });
 
     it("#3-1-2. rebaseIndex   ", async () => {
@@ -1236,7 +1240,7 @@ describe("TOSv2 Phase1", function () {
     });
 
     it("      pass blocks", async function () {
-      await indexEpochPass(stakingProxylogic);
+      await indexEpochPass(stakingProxylogic, 0);
     });
 
     it("#3-1-3. ETHDepositWithSTOS : deposit ETH with locking, get sTOS", async () => {
@@ -1391,7 +1395,7 @@ describe("TOSv2 Phase1", function () {
       })
 
       it("      pass blocks", async function () {
-        await indexEpochPass(stakingProxylogic);
+        await indexEpochPass(stakingProxylogic, 0);
       });
 
       it("#3-1-2. rebaseIndex   ", async () => {
@@ -1456,7 +1460,9 @@ describe("TOSv2 Phase1", function () {
         let amount = ethers.utils.parseEther("10");
 
         let stakedOf = await stakingProxylogic.stakedOf(depositData.stakeId);
+        let balanceOfId = await stakingProxylogic.balanceOfId(depositData.stakeId);
 
+        let totalLTOS = await stakingProxylogic.totalLTOS();
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
         let balanceOfPrevStakeContract = await tosContract.balanceOf(stakingProxylogic.address);
         if (balanceOfPrev.lt(amount)) {
@@ -1475,14 +1481,19 @@ describe("TOSv2 Phase1", function () {
         expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfPrev.sub(amount));
         expect(await tosContract.balanceOf(stakingProxylogic.address)).to.be.eq(balanceOfPrevStakeContract.add(amount));
 
+        expect(await stakingProxylogic.balanceOfId(depositData.stakeId)).to.be.gt(balanceOfId);
+        /*
         let stakedOfAfter = await stakingProxylogic.stakedOf(depositData.stakeId);
         expect(stakedOfAfter).to.be.gte(stakedOf.add(amount).sub(ethers.BigNumber.from("10")));
         expect(stakedOfAfter).to.be.lte(stakedOf.add(amount).add(ethers.BigNumber.from("10")));
 
+        console.log("stakedOfAfter",depositData.stakeId.toString(), stakedOfAfter.toString());
+        */
+        expect(await stakingProxylogic.totalLTOS()).to.be.gt(totalLTOS);
       });
 
       it("      pass blocks", async function () {
-        await indexEpochPass(stakingProxylogic);
+        await indexEpochPass(stakingProxylogic, 0);
       });
 
       it("#3-1-2. rebaseIndex   ", async () => {
@@ -1493,6 +1504,7 @@ describe("TOSv2 Phase1", function () {
           let runwayTOS = await stakingProxylogic.runwayTOS();
           expect(runwayTOS).to.be.gt(ethers.constants.Zero);
 
+          let totalLTOS = await stakingProxylogic.totalLTOS();
           let remainedLTOSToTosBefore = await stakingProxylogic.remainedLTOSToTos(depositData.stakeId);
           let indexBefore = await stakingProxylogic.getIndex();
           let epochBefore = await stakingProxylogic.epoch();
@@ -1526,6 +1538,7 @@ describe("TOSv2 Phase1", function () {
           expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
           expect(epochAfter.number).to.be.eq(epochBefore.number.add(ethers.constants.One));
 
+          expect(await stakingProxylogic.totalLTOS()).to.be.eq(totalLTOS);
       });
 
 
@@ -1579,8 +1592,15 @@ describe("TOSv2 Phase1", function () {
         let depositData = getUserLastData(depositorUser);
         let amount = ethers.utils.parseEther("10");
 
+        let totalLTOS = await stakingProxylogic.totalLTOS();
+        let stakingPrincipal = await stakingProxylogic.stakingPrincipal();
+        let balanceOfStakeContract = await tosContract.balanceOf(stakingProxylogic.address);
+
+        expect(stakingPrincipal).to.be.eq(balanceOfStakeContract);
+
         let balanceOfTOSPrev = await tosContract.balanceOf(depositor.address);
         let balanceOfId = await stakingProxylogic.balanceOfId(depositData.stakeId);
+        console.log('LTOS balanceOfId',balanceOfId.toString());
 
         await stakingProxylogic.connect(depositor).claimForNonLock(
             depositData.stakeId,
@@ -1590,6 +1610,10 @@ describe("TOSv2 Phase1", function () {
         expect(await stakingProxylogic.balanceOfId(depositData.stakeId)).to.be.lt(balanceOfId);
         expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfTOSPrev.add(amount));
 
+        expect(await stakingProxylogic.totalLTOS()).to.be.lt(totalLTOS);
+
+        expect(await stakingProxylogic.stakingPrincipal())
+        .to.be.eq(await tosContract.balanceOf(stakingProxylogic.address));
       });
 
 
@@ -1598,6 +1622,8 @@ describe("TOSv2 Phase1", function () {
         let depositorUser = "user2";
         let depositData = getUserLastData(depositorUser);
         let amount = ethers.utils.parseEther("10");
+
+        let totalLTOS = await stakingProxylogic.totalLTOS();
 
         let balanceOfTOSPrev = await tosContract.balanceOf(depositor.address);
         let balanceOfId = await stakingProxylogic.balanceOfId(depositData.stakeId);
@@ -1609,22 +1635,317 @@ describe("TOSv2 Phase1", function () {
 
         expect(await stakingProxylogic.balanceOfId(depositData.stakeId)).to.be.eq(ethers.constants.Zero);
         expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfTOSPrev.add(stakedOf));
-
+        if (balanceOfId.gt(ethers.constants.Zero))
+          expect(await stakingProxylogic.totalLTOS()).to.be.lt(totalLTOS);
       });
 
     });
 
     describe("#3-2-2. stakeGetStos product case ", async () => {
 
-    }
+      it("#3-2-2-1. stakeGetStos : if sender didn't approve in advance, fail ", async () => {
+
+        let staker = user2;
+        let balanceOfPrev = await tosContract.balanceOf(staker.address);
+        let amount = ethers.utils.parseEther("100");
+        let periodWeeks = ethers.constants.One;
+
+        if (balanceOfPrev.lt(amount)) {
+          await tosContract.connect(_lockTosAdmin).transfer(staker.address, amount);
+        }
+        balanceOfPrev = await tosContract.balanceOf(staker.address);
+        expect(balanceOfPrev).to.be.gte(amount);
+
+        await expect(
+          stakingProxylogic.connect(staker).stakeGetStos(amount, periodWeeks))
+        .to.be.revertedWith("allowance is insufficient.");
+
+      })
+
+      it("#3-2-1-1. stakeGetStos  ", async () => {
+
+        let depositor = user2;
+        let depositorUser = "user2";
+
+        let balanceOfPrev = await tosContract.balanceOf(depositor.address);
+        let balanceOfPrevStakeContract = await tosContract.balanceOf(stakingProxylogic.address);
+
+        let amount = ethers.utils.parseEther("100");
+        let periodWeeks = ethers.constants.One;
+
+        if (balanceOfPrev.lt(amount)) {
+          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+        }
+        balanceOfPrev = await tosContract.balanceOf(depositor.address);
+        expect(balanceOfPrev).to.be.gte(amount);
+
+        let allowance = await tosContract.allowance(depositor.address, stakingProxylogic.address);
+        if (allowance < amount) {
+          await tosContract.connect(depositor).approve(stakingProxylogic.address, amount);
+        }
+
+        let balanceOfLTOSPrev = await stakingProxylogic.balanceOf(depositor.address);
+
+        let tx = await stakingProxylogic.connect(depositor).stakeGetStos(amount, periodWeeks);
+        const receipt = await tx.wait();
+
+        let interface = stakingProxylogic.interface;
+        for (let i = 0; i < receipt.events.length; i++){
+            if(receipt.events[i].topics[0] == interface.getEventTopic(eventStakedGetStos)){
+                let data = receipt.events[i].data;
+                let topics = receipt.events[i].topics;
+                let log = interface.parseLog({data, topics});
+                deposits[depositorUser+""].push(
+                  {
+                    marketId: ethers.constants.Zero,
+                    stakeId: log.args.stakeId
+                  }
+                );
+
+                expect(amount).to.be.eq(log.args.amount);
+            }
+        }
+        expect(await stakingProxylogic.balanceOf(depositor.address)).to.be.gt(balanceOfLTOSPrev);
+        expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfPrev.sub(amount));
+        expect(await tosContract.balanceOf(stakingProxylogic.address)).to.be.eq(balanceOfPrevStakeContract.add(amount));
+      })
+
+      it("      pass blocks", async function () {
+        await indexEpochPass(stakingProxylogic, 0);
+      });
+
+      it("#3-1-2. rebaseIndex   ", async () => {
+        let depositor = user2;
+        let depositorUser = "user2";
+        let depositData = getUserLastData(depositorUser);
+
+        let runwayTOS = await stakingProxylogic.runwayTOS();
+        expect(runwayTOS).to.be.gt(ethers.constants.Zero);
+
+        let remainedLTOSToTosBefore = await stakingProxylogic.remainedLTOSToTos(depositData.stakeId);
+        let indexBefore = await stakingProxylogic.getIndex();
+        let epochBefore = await stakingProxylogic.epoch();
+
+        let rebasePerEpoch = await stakingProxylogic.rebasePerEpoch();
+        let indexCompound = await stakingProxylogic.compound(indexBefore, rebasePerEpoch, 1) ;
+        let nextIndex  = indexBefore.mul(ethers.constants.WeiPerEther.add(rebasePerEpoch)).div(ethers.constants.WeiPerEther)
+        let nextIndexContract = await stakingProxylogic.nextIndex();
+
+        expect(nextIndex).to.be.eq(nextIndexContract);
+
+        await stakingProxylogic.connect(depositor).rebaseIndex();
+
+        let indexAfter = await stakingProxylogic.getIndex();
+        expect(indexAfter).to.be.gt(indexBefore);
+
+        expect(indexAfter).to.be.eq(nextIndexContract);
+        expect(indexAfter).to.be.gt(indexBefore);
+
+        let epochAfter = await stakingProxylogic.epoch();
+        expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
+        expect(epochAfter.number).to.be.eq(epochBefore.number.add(ethers.constants.One));
+
+      });
+
+      it("#3-1-2. increaseAmountForSimpleStake  : when stakeId is not for simple product, it's fail ", async () => {
+        let depositor = user2;
+        let depositorUser = "user2";
+        let depositData = getUserLastData(depositorUser);
+
+        let amount = ethers.utils.parseEther("10");
+        await expect(stakingProxylogic.connect(user2).increaseAmountForSimpleStake(depositData.stakeId, amount))
+        .to.be.revertedWith("it's not simple staking product");
+      });
+
+      it("#3-1-2. resetStakeGetStosAfterLock :  caller is not a staker, fail ", async () => {
+        let depositor = user2;
+        let depositorUser = "user2";
+        let depositData = getUserLastData(depositorUser);
+        let amount = ethers.utils.parseEther("100");
+        let periodWeeks = ethers.constants.One;
+        await expect(
+          stakingProxylogic.connect(user1).resetStakeGetStosAfterLock(
+            depositData.stakeId,
+            amount,
+            ethers.utils.parseEther("10"),
+            periodWeeks
+          ))
+        .to.be.revertedWith("caller is not staker");
+      });
+
+      it("#3-1-2. increaseBeforeEndOrNonEnd :  caller is not a staker, fail ", async () => {
+        let depositor = user2;
+        let depositorUser = "user2";
+        let depositData = getUserLastData(depositorUser);
+        let amount = ethers.utils.parseEther("100");
+        await expect(
+          stakingProxylogic.connect(user1).increaseBeforeEndOrNonEnd(
+            depositData.stakeId,
+            amount,
+            ethers.constants.One
+          ))
+        .to.be.revertedWith("caller is not staker");
+      });
+
+      it("#3-1-2. increaseBeforeEndOrNonEnd  ", async () => {
+        let depositor = user2;
+        let depositorUser = "user2";
+        let depositData = getUserLastData(depositorUser);
+        let amount = ethers.utils.parseEther("100");
+        let periodWeeks = ethers.constants.One;
+
+        let totalLTOS = await stakingProxylogic.totalLTOS();
+        let balanceOfPrev = await tosContract.balanceOf(depositor.address);
+        let balanceOfPrevStakeContract = await tosContract.balanceOf(stakingProxylogic.address);
+
+        if (balanceOfPrev.lt(amount)) {
+          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+        }
+        balanceOfPrev = await tosContract.balanceOf(depositor.address);
+        expect(balanceOfPrev).to.be.gte(amount);
+
+        let allowance = await tosContract.allowance(depositor.address, stakingProxylogic.address);
+        if (allowance < amount) {
+          await tosContract.connect(depositor).approve(stakingProxylogic.address, amount);
+        }
+
+        let tx = await stakingProxylogic.connect(depositor).increaseBeforeEndOrNonEnd(
+              depositData.stakeId,
+              amount,
+              periodWeeks
+        );
+        const receipt = await tx.wait();
+
+        let interface = stakingProxylogic.interface;
+        for (let i = 0; i < receipt.events.length; i++){
+            if(receipt.events[i].topics[0] == interface.getEventTopic(eventIncreasedBeforeEndOrNonEnd)){
+                let data = receipt.events[i].data;
+                let topics = receipt.events[i].topics;
+                let log = interface.parseLog({data, topics});
+                deposits[depositorUser+""].push(
+                  {
+                    marketId: ethers.constants.Zero,
+                    stakeId: log.args.stakeId
+                  }
+                );
+                expect(amount).to.be.eq(log.args.amount);
+            }
+        }
+
+        expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfPrev.sub(amount));
+        expect(await tosContract.balanceOf(stakingProxylogic.address)).to.be.eq(balanceOfPrevStakeContract.add(amount));
+
+      });
+
+      it("#3-1-2. resetStakeGetStosAfterLock : Fail if the lock state is not over.", async () => {
+        let depositor = user2;
+        let depositorUser = "user2";
+        let depositData = getUserLastData(depositorUser);
+        let addAmount = ethers.utils.parseEther("100");
+        let claimAmount = ethers.utils.parseEther("0");
+        let periodWeeks = ethers.constants.One;
+
+        await expect(
+          stakingProxylogic.connect(depositor).resetStakeGetStosAfterLock(
+            depositData.stakeId,
+            addAmount,
+            claimAmount,
+            periodWeeks
+          ))
+        .to.be.revertedWith("lock end time has not passed");
+
+      });
+
+      it("      pass blocks", async function () {
+        let epoch = await stakingProxylogic.epoch();
+        let n = Math.floor(60*60*24*7 / epoch.length_);
+        await indexEpochPass(stakingProxylogic, n);
+      });
+
+      it("#3-1-2. resetStakeGetStosAfterLock  ", async () => {
+        let depositor = user2;
+        let depositorUser = "user2";
+        let depositData = getUserLastData(depositorUser);
+        let amount = ethers.utils.parseEther("100");
+        let claimAmount = ethers.utils.parseEther("0");
+        let periodWeeks = ethers.constants.One;
+
+        let index = await stakingProxylogic.getIndex();
+        console.log('index',index);
+
+        let totalLTOS = await stakingProxylogic.totalLTOS();
+        let balanceOfPrev = await tosContract.balanceOf(depositor.address);
+        let balanceOfPrevStakeContract = await tosContract.balanceOf(stakingProxylogic.address);
+
+        if (balanceOfPrev.lt(amount)) {
+          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+        }
+        balanceOfPrev = await tosContract.balanceOf(depositor.address);
+        expect(balanceOfPrev).to.be.gte(amount);
+
+        let allowance = await tosContract.allowance(depositor.address, stakingProxylogic.address);
+        if (allowance < amount) {
+          await tosContract.connect(depositor).approve(stakingProxylogic.address, amount);
+        }
+
+        let tx = await stakingProxylogic.connect(depositor).resetStakeGetStosAfterLock(
+              depositData.stakeId,
+              amount,
+              claimAmount,
+              periodWeeks
+        );
+
+        const receipt = await tx.wait();
+        let interface = stakingProxylogic.interface;
+        for (let i = 0; i < receipt.events.length; i++){
+            if(receipt.events[i].topics[0] == interface.getEventTopic(eventIncreasedBeforeEndOrNonEnd)){
+                let data = receipt.events[i].data;
+                let topics = receipt.events[i].topics;
+                let log = interface.parseLog({data, topics});
+                deposits[depositorUser+""].push(
+                  {
+                    marketId: ethers.constants.Zero,
+                    stakeId: log.args.stakeId
+                  }
+                );
+                expect(amount).to.be.eq(log.args.amount);
+            }
+        }
+
+        expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfPrev.sub(amount));
+        expect(await tosContract.balanceOf(stakingProxylogic.address)).to.be.gt(balanceOfPrevStakeContract.add(amount));
+
+        let index2 = await stakingProxylogic.getIndex();
+        console.log('index2',index2);
+
+
+      });
+
+
+      it("#3-1-2. claimForNonLock :  when it is lockup status, it's fail  ", async () => {
+        let depositor = user2;
+        let depositorUser = "user2";
+        let depositData = getUserLastData(depositorUser);
+        let amount = ethers.utils.parseEther("10");
+
+        await expect(
+          stakingProxylogic.connect(depositor).claimForNonLock(
+            depositData.stakeId,
+            amount
+          ))
+        .to.be.revertedWith("this is for non-lock product.");
+      });
+
+
+    });
 
     describe("#3-2-2. stakeByBond product case ", async () => {
 
-    }
+    });
 
     describe("#3-2-2. stakeGetStosByBond product case ", async () => {
 
-    }
+    });
 
   });
 

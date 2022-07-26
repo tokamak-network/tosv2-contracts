@@ -254,10 +254,7 @@ interface IStaking {
         uint256 deposit,
         uint256 LTOS,
         uint256 endTime,
-        uint256 getLTOS,
-        uint256 rewardTOS,
-        uint256 marketId,
-        bool withdraw
+        uint256 marketId
     );
 
 
