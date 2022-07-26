@@ -615,19 +615,9 @@ contract StakingV2 is
                         )
                     );
 
-        console.log("_runwayTOS %s", _runwayTOS);
-        console.log("totalLTOS %s", totalLTOS);
-        console.log("_totalTOS %s", _totalTOS);
-        console.log("rebasePerEpoch %s", rebasePerEpoch);
-
-        console.logInt(a);
         int128 maxNum = ABDKMath64x64.div(a, c);
-        console.log("maximum # of epoch rebase = ");
-        console.logInt(maxNum);
-
-        console.log("maximum # of epoch rebase = ", uint256(uint128(maxNum)));
-
-        return uint256(uint128(maxNum));
+        int64 rebaseCount = ABDKMath64x64.toInt(maxNum);
+        return uint256(uint64(rebaseCount));
     }
 
     /// @inheritdoc IStaking

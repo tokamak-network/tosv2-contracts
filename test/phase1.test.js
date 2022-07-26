@@ -1879,13 +1879,14 @@ describe("TOSv2 Phase1", function () {
         await indexEpochPass(stakingProxylogic, n);
       });
 
-      it("#3-1-2. resetStakeGetStosAfterLock  ", async () => {
+      it("#3-1-2. resetStakeGetStosAfterLock : in case claimAMount is zero. addAmount is greater than zero. periodWeeks is zero. ", async () => {
         let depositor = user2;
         let depositorUser = "user2";
         let depositData = getUserLastData(depositorUser);
         let amount = ethers.utils.parseEther("100");
         let claimAmount = ethers.utils.parseEther("0");
         let periodWeeks = ethers.constants.One;
+        //let periodWeeks = ethers.constants.Zero;
 
         let index = await stakingProxylogic.getIndex();
         console.log('index',index);
@@ -1925,7 +1926,7 @@ describe("TOSv2 Phase1", function () {
                     stakeId: log.args.stakeId
                   }
                 );
-                expect(amount).to.be.eq(log.args.amount);
+                expect(amount).to.be.eq(log.args.addAmount);
             }
         }
 
@@ -1938,7 +1939,68 @@ describe("TOSv2 Phase1", function () {
 
       });
 
+      /*
+      it("#3-1-2. resetStakeGetStosAfterLock : in case claimAMount is greater than zero. addAmount is zero. periodWeeks is zero. ", async () => {
+        let depositor = user2;
+        let depositorUser = "user2";
+        let depositData = getUserLastData(depositorUser);
+        let amount = ethers.utils.parseEther("0");
+        let claimAmount = ethers.utils.parseEther("10");
+        let periodWeeks = ethers.constants.One;
+        //let periodWeeks = ethers.constants.Zero;
 
+        let index = await stakingProxylogic.getIndex();
+        console.log('index',index);
+
+        let totalLTOS = await stakingProxylogic.totalLTOS();
+        let balanceOfPrev = await tosContract.balanceOf(depositor.address);
+        let balanceOfPrevStakeContract = await tosContract.balanceOf(stakingProxylogic.address);
+
+        // if (balanceOfPrev.lt(amount)) {
+        //   await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+        // }
+        // balanceOfPrev = await tosContract.balanceOf(depositor.address);
+        // expect(balanceOfPrev).to.be.gte(amount);
+
+        // let allowance = await tosContract.allowance(depositor.address, stakingProxylogic.address);
+        // if (allowance < amount) {
+        //   await tosContract.connect(depositor).approve(stakingProxylogic.address, amount);
+        // }
+
+        let tx = await stakingProxylogic.connect(depositor).resetStakeGetStosAfterLock(
+              depositData.stakeId,
+              amount,
+              claimAmount,
+              periodWeeks
+        );
+
+        const receipt = await tx.wait();
+        let interface = stakingProxylogic.interface;
+        for (let i = 0; i < receipt.events.length; i++){
+            if(receipt.events[i].topics[0] == interface.getEventTopic(eventResetStakedGetStosAfterLock)){
+                let data = receipt.events[i].data;
+                let topics = receipt.events[i].topics;
+                let log = interface.parseLog({data, topics});
+                deposits[depositorUser+""].push(
+                  {
+                    marketId: ethers.constants.Zero,
+                    stakeId: log.args.stakeId
+                  }
+                );
+                //expect(amount).to.be.eq(log.args.addAmount);
+                expect(claimAmount).to.be.eq(log.args.claimAmount);
+            }
+        }
+
+        expect(await tosContract.balanceOf(depositor.address)).to.be.gt(balanceOfPrev.add(claimAmount));
+        expect(await tosContract.balanceOf(stakingProxylogic.address)).to.be.eq(balanceOfPrevStakeContract.sub(claimAmount));
+
+        let index2 = await stakingProxylogic.getIndex();
+        console.log('index2',index2);
+        if(index.eq(index2)) console.log('*** rebaseIndex didn\'t run. we need to check rebaseIndex function.');
+
+      });
+      */
       it("#3-1-2. claimForNonLock :  when it is lockup status, it's fail  ", async () => {
         let depositor = user2;
         let depositorUser = "user2";
