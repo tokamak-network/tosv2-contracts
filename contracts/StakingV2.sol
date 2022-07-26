@@ -601,21 +601,10 @@ contract StakingV2 is
                         ABDKMath64x64.fromUInt(1)
                     ));
 
-        int128 b = ABDKMath64x64.ln(
-                    ABDKMath64x64.add(
-                        ABDKMath64x64.fromUInt(1e18),
-                        ABDKMath64x64.fromUInt(rebasePerEpoch)
-                    ));
-
-        int128 c = ABDKMath64x64.sub(
-                        b,
-                        ABDKMath64x64.mul(
-                            ABDKMath64x64.fromUInt(18),
-                            ABDKMath64x64.ln(ABDKMath64x64.fromUInt(10))
-                        )
-                    );
-
-        int128 maxNum = ABDKMath64x64.div(a, c);
+        int128 b = ABDKMath64x64.ln(fromInt(1e18+rebasePerEpoch));
+        // ln(10^18) in 64.64 hard coded
+        int128 c = 764553562531198000000;
+        int128 maxNum = a/c;
         int64 rebaseCount = ABDKMath64x64.toInt(maxNum);
         return uint256(uint64(rebaseCount));
     }
