@@ -344,12 +344,17 @@ contract Treasury is
     ) external override {
         require(isStaker(msg.sender), notApproved);
 
+        console.log("------------ requestTrasfer ---------------------");
+
         require(_recipient != address(0), "zero recipient");
         require(_amount > 0, "zero amount");
 
         require(TOS.balanceOf(address(this)) >= _amount, "treasury balance is insufficient");
 
-        TOS.safeTransfer(_recipient, _amount);
+        console.log("requestTrasfer _recipient %s", _recipient);
+        console.log("requestTrasfer _amount %s", _amount);
+
+        TOS.transfer(_recipient, _amount);
     }
 
 

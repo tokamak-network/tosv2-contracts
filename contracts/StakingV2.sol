@@ -282,24 +282,30 @@ contract StakingV2 is
         uint256 _periodWeeks
     )
         public override
-        nonZero(_periodWeeks)
     {
+        require(_addAmount > 0 || _claimAmount > 0 ||  _periodWeeks > 0, "all zero input");
+
         uint256 lockId = connectId[_stakeId];
-        require(lockId > 0, "zero lockId");
+        //require(lockId > 0, "zero lockId");
 
         LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
         address staker = _stakeInfo.staker;
         require(staker == msg.sender, "caller is not staker");
-
-        (, uint256 end, ) = ILockTosV2(lockTOS).locksInfo(lockId);
-        require(end < block.timestamp && _stakeInfo.endTime < block.timestamp, "lock end time has not passed");
+        require(userStakingIndex[staker][_stakeId] > 1, "it's not for simple stake or empty.");
 
         uint256 depositPlusAmount = getLtosToTos(_stakeInfo.LTOS);
         require(_claimAmount <= depositPlusAmount, "remainedTos is insufficient");
 
-        ILockTosV2(lockTOS).withdrawByStaker(staker, lockId);
-        delete connectId[_stakeId];
-        delete lockTOSId[lockId];
+        if(lockId > 0){
+            (, uint256 end, ) = ILockTosV2(lockTOS).locksInfo(lockId);
+            require(end < block.timestamp && _stakeInfo.endTime < block.timestamp, "lock end time has not passed");
+
+            ILockTosV2(lockTOS).withdrawByStaker(staker, lockId);
+            delete connectId[_stakeId];
+            delete lockTOSId[lockId];
+        } else {
+            require(_stakeInfo.endTime < block.timestamp, "lock end time has not passed");
+        }
 
         if (_addAmount > 0) {
             require (TOS.allowance(msg.sender, address(this)) >= _addAmount, "allowance is insufficient.");
@@ -311,9 +317,10 @@ contract StakingV2 is
         if (_periodWeeks > 0) {
             unlockTime = _getUnlockTime(block.timestamp, _periodWeeks) ;
         } else {
-            unlockTime = block.timestamp + 1;
+            unlockTime = _stakeInfo.endTime;
         }
-        require(unlockTime > 0, "zero unlockTime");
+
+        // require(unlockTime > 0, "zero unlockTime");
         _checkStakeId(staker);
         rebaseIndex();
 
@@ -488,14 +495,20 @@ contract StakingV2 is
     /// @inheritdoc IStaking
     function rebaseIndex() public override {
         console.log("rebaseIndex epoch.end : %s", epoch.end);
+        console.log("rebaseIndex block.timestamp : %s", block.timestamp);
+        console.log("rebaseIndex epoch.length_ : %s", epoch.length_);
         console.log("rebaseIndex index_ : %s", index_);
 
-        if(epoch.end <= block.timestamp) {
+        if(epoch.end <= block.timestamp  ) {
 
-            uint256 epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
+            uint256 epochNumber = 0;
 
-            epoch.end += (epoch.length_ * (1+ epochNumber));
+            if ((block.timestamp - epoch.end) > epoch.length_){
+                epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
+            }
 
+            console.log("rebaseIndex epochNumber : %s", epochNumber);
+            epoch.end += (epoch.length_ * (1 + epochNumber));
             epochNumber++;
             console.log("rebaseIndex epochNumber : %s", epochNumber);
             console.log("rebaseIndex epoch.end : %s", epoch.end);
@@ -893,12 +906,15 @@ contract StakingV2 is
         uint256 _addAmount,
         uint256 _claimAmount
     ) internal ifFree {
+
+        console.log("_updateStakeInfo start %s", _stakeId);
+
         require(allStakings[_stakeId].staker != address(0), "non-exist stakeInfo");
         require(_addAmount > 0 || _claimAmount > 0, "zero Amounts");
 
         require(allStakings[_stakeId].LTOS > 0, "zero LTOS");
         uint256 stakedAmount = getLtosToTos(allStakings[_stakeId].LTOS);
-
+        console.log("_updateStakeInfo 1");
         require(_claimAmount <= stakedAmount, "stake amount is insufficient");
 
         uint256 addLtos = 0;
@@ -909,14 +925,32 @@ contract StakingV2 is
         if (_claimAmount > 0) claimLtos = getTosToLtos(_claimAmount);
 
         _stakeInfo.endTime = _unlockTime;
-        uint256 profit = stakedAmount - _stakeInfo.deposit;
-        _stakeInfo.deposit = _stakeInfo.deposit + _addAmount + profit - _claimAmount;
-        _stakeInfo.LTOS += addLtos;
-        _stakeInfo.LTOS -= claimLtos;
+        console.log("_updateStakeInfo _stakeInfo.endTime : %s", _stakeInfo.endTime);
+        console.log("_updateStakeInfo stakedAmount %s", stakedAmount);
+        console.log("_updateStakeInfo _stakeInfo.deposit %s", _stakeInfo.deposit);
 
-        stakingPrincipal = stakingPrincipal + _addAmount + profit - _claimAmount;
-        totalLTOS += addLtos;
-        totalLTOS -= claimLtos;
+        uint256 profit = 0;
+        if(stakedAmount > _stakeInfo.deposit) profit = stakedAmount - _stakeInfo.deposit;
+
+        console.log("_updateStakeInfo 3");
+        if (addLtos > 0){
+            _stakeInfo.LTOS += addLtos;
+            totalLTOS += addLtos;
+        }
+        if (claimLtos > 0) {
+            _stakeInfo.LTOS -= claimLtos;
+            totalLTOS -= claimLtos;
+        }
+        if (_addAmount > 0 || profit > 0 || _claimAmount > 0) {
+            _stakeInfo.deposit = _stakeInfo.deposit + _addAmount + profit - _claimAmount;
+            stakingPrincipal = stakingPrincipal + _addAmount + profit - _claimAmount;
+        }
+
+        console.log("-----------_updateStakeInfo ------------------");
+        console.log("_updateStakeInfo profit %s", profit);
+        console.log("_updateStakeInfo stakingPrincipal %s", stakingPrincipal);
+        console.log("_updateStakeInfo claimLtos %s", claimLtos);
+        console.log("_updateStakeInfo totalLTOS %s", totalLTOS);
 
         if (profit > 0) {
             IITreasury(treasury).requestTrasfer(address(this), profit);
