@@ -604,33 +604,23 @@ contract StakingV2 is
         return index_;
     }
 
+   /**
+   * Calculate the maximum possible # of epochs that can be rebased while keeping LTOS solvency
+   * equation = ln(runwayTOS/getLtosToTos+1) / ln(1+rebasePerEpoch)
+   *
+   * @return rebaseCount unsigned 256-bit integer number
+   */
     function possibleEpochNumber() public view returns (uint256 ){
-
-        uint256 _runwayTOS = runwayTOS();
-        uint256 _totalTOS = getLtosToTos(totalLTOS);
+        uint256 _runwayTOS = runwayTOS(); 
+        uint256 _totalTOS = getLtosToTos(totalLTOS); 
         int128 a = ABDKMath64x64.ln(
                     ABDKMath64x64.add(
                         ABDKMath64x64.divu(_runwayTOS,_totalTOS),
                         ABDKMath64x64.fromUInt(1)
-                    ));
-
-        int128 b = ABDKMath64x64.ln(
-                    ABDKMath64x64.add(
-                        ABDKMath64x64.fromUInt(1e18),
-                        ABDKMath64x64.fromUInt(rebasePerEpoch)
-                    ));
-
-        int128 c = ABDKMath64x64.sub(
-                        b,
-                        ABDKMath64x64.mul(
-                            ABDKMath64x64.fromUInt(18),
-                            ABDKMath64x64.ln(ABDKMath64x64.fromUInt(10))
-                        )
-                    );
-
-        int128 maxNum = ABDKMath64x64.div(a, c);
-        int64 rebaseCount = ABDKMath64x64.toInt(maxNum);
-        return uint256(uint64(rebaseCount));
+                    )); //a = ln(runwayTOS/getLtosToTos+1)
+        int128 b = ABDKMath64x64.ln(fromUInt(1e18+rebasePerEpoch))-764553562531198000000; //b = ln(1+rebasePerEpoch). rebasePerEpoch is internally scaled by 10^18 to keep the decimal positions=> instead of adding 1, 1e18 has to be added + subtract ln(10^18) 64.64 hardcoded, subtracting this value from 'b' offsets the 10^18 scaling
+        uint256 rebaseCount = ABDKMath64x64.toInt(a/b); //recasts 64 bit output to uint256
+        return rebaseCount;
     }
 
     /// @inheritdoc IStaking
