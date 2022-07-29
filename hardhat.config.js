@@ -1,4 +1,4 @@
-// require("@nomiclabs/hardhat-waffle");
+require('solidity-coverage')
 require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
@@ -63,6 +63,10 @@ module.exports = {
         runs: 10,
       },
     },
+  },
+  gasReporter: {
+    currency: 'USD',
+    gasPrice: 21
   },
   paths: {
     sources: "./contracts",

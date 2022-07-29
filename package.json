@@ -14,6 +14,7 @@
     "hardhat": "^2.9.3",
     "hardhat-gas-reporter": "^1.0.8",
     "jsbi": "^4.3.0",
+    "solidity-coverage": "^0.7.21",
     "web3-eth-abi": "^1.7.3"
   },
   "dependencies": {

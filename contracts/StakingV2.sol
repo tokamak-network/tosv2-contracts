@@ -436,7 +436,7 @@ contract StakingV2 is
         uint256 amount = claimableTos(_stakeId);
         require(amount > 0, "zero claimable amount");
 
-        uint256 addProfitRemainedTos = remainedLTOSToTos(_stakeId);
+        uint256 addProfitRemainedTos = getLtosToTos(remainedLTOS(_stakeId));
         uint256 principal = _stakeInfo.deposit;
         // uint256 profit = addProfitRemainedTos - principal;
         uint256 sTOSid = connectId[_stakeId];
@@ -636,12 +636,6 @@ contract StakingV2 is
         else return (epoch.end - block.timestamp);
     }
 
-    /*
-    /// @inheritdoc IStaking
-    function secondsToNextEpoch() external override view returns (uint256) {
-        return ((block.timestamp - startEpochTime / epoch.length_)  + epoch.length_);
-    }
-    */
 
 
     // LTOS를 TOS로 보상해주고 남은 TOS 물량
@@ -655,54 +649,11 @@ contract StakingV2 is
         else return (treasuryAmount + balanceTos - debtTos);
     }
 
-    // /// @inheritdoc IStaking
-    // function LTOSinterest() public override view returns (uint256) {
-    //     uint256 total = getLtosToTos(totalLTOS);
-    //     if(total < stakingPrincipal) return 0;
-    //     else return (total - stakingPrincipal);
-    // }
-
-    // // 다음 TOS이자 (다음 index를 구한뒤 -> LTOS -> TOS로 변경 여기서 staking 된 TOS를 뺴줌)
-    // /// @inheritdoc IStaking
-    // function nextLTOSinterest() public override view returns (uint256) {
-
-    //     // LTOS - 원금 stakingPrincipal()
-    //     if( ((totalLTOS * nextIndex())/1e18) < totalDepositTOS()) {
-    //         return 0;
-    //     } else {
-    //         return ((totalLTOS * nextIndex())/1e18) - totalDepositTOS();
-    //     }
-    // }
 
     /// @inheritdoc IStaking
     function totalDepositTOS() public override view returns (uint256) {
         return TOS.balanceOf(address(this));
     }
-
-    // function pow (int128 x, uint n) public pure returns (int128 r) {
-    //     r = ABDKMath64x64.fromUInt (1);
-    //     while (n > 0) {
-    //         if (n % 2 == 1) {
-    //             r = ABDKMath64x64.mul (r, x);
-    //             n -= 1;
-    //         } else {
-    //             x = ABDKMath64x64.mul (x, x);
-    //             n /= 2;
-    //         }
-    //     }
-    // }
-
-    // function compound (uint principal, uint ratio, uint n) public pure returns (uint) {
-    //     return ABDKMath64x64.mulu (
-    //             pow (
-    //             ABDKMath64x64.add (
-    //                 ABDKMath64x64.fromUInt (1),
-    //                 ABDKMath64x64.divu (
-    //                 ratio,
-    //                 10**18)),
-    //             n),
-    //             principal);
-    // }
 
     /// @inheritdoc IStaking
     function getTosToLtos(uint256 amount) public override view returns (uint256) {
@@ -962,7 +913,4 @@ contract StakingV2 is
         return stakingIdCounter++;
     }
 
-    function isBonder(address account) public view virtual returns (bool) {
-        return IITreasury(treasury).hasPermission(uint(LibTreasury.STATUS.BONDER), account);
-    }
 }

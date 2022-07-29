@@ -340,6 +340,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
+
     function tickCheck(uint256 _tokenId)
         public
         view

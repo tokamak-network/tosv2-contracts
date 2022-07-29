@@ -796,6 +796,48 @@ describe("TOSv2 Phase1", function () {
 
       })
 
+
+      it("#1-2-3. setAddressInfos : user can't call setAddressInfos", async () => {
+
+        await expect(
+          stakingProxylogic.connect(user1).setAddressInfos(
+            treasuryContract.address,
+            treasuryContract.address,
+            treasuryContract.address
+          )
+        ).to.be.revertedWith("Accessible: Caller is not an policy admin")
+      })
+
+
+      it("#1-2-3. setAddressInfos : admin can call setAddressInfos", async () => {
+
+        expect(await stakingProxylogic.TOS()).to.be.eq(uniswapInfo.tos);
+        expect(await stakingProxylogic.lockTOS()).to.be.eq(lockTosContract.address);
+        expect(await stakingProxylogic.treasury()).to.be.eq(treasuryProxy.address);
+
+        await  stakingProxylogic.connect(admin1).setAddressInfos(
+            treasuryContract.address,
+            treasuryContract.address,
+            treasuryProxy.address
+        );
+
+        expect(await stakingProxylogic.TOS()).to.be.eq(treasuryContract.address);
+        expect(await stakingProxylogic.lockTOS()).to.be.eq(treasuryContract.address);
+        expect(await stakingProxylogic.treasury()).to.be.eq(treasuryProxy.address);
+
+        await  stakingProxylogic.connect(admin1).setAddressInfos(
+            uniswapInfo.tos,
+            lockTosContract.address,
+            treasuryProxy.address
+        );
+
+        expect(await stakingProxylogic.TOS()).to.be.eq(uniswapInfo.tos);
+        expect(await stakingProxylogic.lockTOS()).to.be.eq(lockTosContract.address);
+        expect(await stakingProxylogic.treasury()).to.be.eq(treasuryProxy.address);
+
+      })
+
+
       it("#1-2-3. setRebasePerEpoch : user can't call setRebasePerEpoch", async () => {
         let rebasePerEpoch = ethers.utils.parseUnits("1", 17) //index가 0.1크기만큼 증가
         await expect(

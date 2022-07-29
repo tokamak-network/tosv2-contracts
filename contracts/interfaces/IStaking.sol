@@ -189,6 +189,10 @@ interface IStaking {
     /// @dev Returns the index when rebase is executed once in the current index.
     function nextIndex() external view returns (uint256);
 
+
+    function getIndex() external view returns(uint256) ;
+
+
     /// @dev 특정 계정이 보유하고 있는 스테이킹아이디 리스트를 리턴함.
     /// @param _addr 계정 주소
     /// @return return 보유하고 있는 스테이킹 아이디 리스트
@@ -249,7 +253,5 @@ interface IStaking {
         uint256 marketId
     );
 
-
-    function getIndex() external view returns(uint256) ;
 
 }
