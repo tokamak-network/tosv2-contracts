@@ -140,7 +140,7 @@ interface IStaking {
     /// @dev 락업되어 있지 않은 스테이킹 아이템인경우, 클래임할때 사용
     /// @param _stakeId  the stake id
     /// @param _claimAmount 클래임 하려는 양
-    function claimForNonLock(
+    function claimForSimpleType(
         uint256 _stakeId,
         uint256 _claimAmount
     ) external;
@@ -222,14 +222,6 @@ interface IStaking {
     /// @dev  treasury가지고 있는 TOS  - staking 이자 빼기
     /// @return
     function runwayTOS() external view returns (uint256);
-
-    /// @dev LTOS에 대한 현재 이자
-    /// @return
-    function LTOSinterest() external view returns (uint256);
-
-    /// @dev
-    /// @return
-    function nextLTOSinterest() external view returns (uint256);
 
     /// @dev
     /// @return

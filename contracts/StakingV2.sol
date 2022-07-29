@@ -4,9 +4,8 @@ pragma solidity ^0.8.4;
 import "./StakingV2Storage.sol";
 import "./common/StakeProxyAccess.sol";
 
-import "./libraries/SafeMath.sol";
 import "./libraries/SafeERC20.sol";
-import "./libraries/ABDKMath64x64.sol";
+// import "./libraries/ABDKMath64x64.sol";
 import {DSMath} from "./libraries/DSMath.sol";
 
 import "./libraries/LibTreasury.sol";
@@ -28,9 +27,7 @@ interface ILockTosV2 {
         );
     function createLockByStaker(address user, uint256 _value, uint256 _unlockWeeks) external returns (uint256 lockId);
     function increaseAmountByStaker(address user, uint256 _lockId, uint256 _value) external;
-    // function increaseUnlockTimeByStaker(address user, uint256 _lockId, uint256 unlockTime) external;
     function increaseAmountUnlockTimeByStaker(address user, uint256 _lockId, uint256 _value, uint256 _unlockWeeks) external;
-    // function withdrawAllByStaker(address user) external;
     function withdrawByStaker(address user, uint256 _lockId) external;
     function epochUnit() external view returns(uint256);
 }
@@ -50,7 +47,6 @@ contract StakingV2 is
     IStakingEvent
 {
     /* ========== DEPENDENCIES ========== */
-    //using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
 
@@ -108,10 +104,10 @@ contract StakingV2 is
 
     /// @inheritdoc IStaking
     function syncSTOS(
-        address[] memory accounts,
-        uint256[] memory balances,
-        uint256[] memory period,
-        uint256[] memory tokenId
+        address[] calldata accounts,
+        uint256[] calldata balances,
+        uint256[] calldata period,
+        uint256[] calldata tokenId
     )
         external
         override
@@ -172,11 +168,9 @@ contract StakingV2 is
         nonZero(_marketId)
         returns (uint256 stakeId)
     {
-        uint256 sTosEpochUnit = ILockTosV2(lockTOS).epochUnit();
+        // uint256 sTosEpochUnit = ILockTosV2(lockTOS).epochUnit();
+        (uint256 sTosEpochUnit, uint256 unlockTime) = LibStaking.getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
         require (sTosEpochUnit > 0, "zero sTosEpochUnit");
-
-        uint256 unlockTime = _getUnlockTime(block.timestamp, _periodWeeks) ;
-
         require (unlockTime > 0, "zero unlockTime");
 
         _checkStakeId(_to);
@@ -231,11 +225,10 @@ contract StakingV2 is
     {
         require (TOS.allowance(msg.sender, address(this)) >= _amount, "allowance is insufficient.");
 
-        uint256 sTosEpochUnit = ILockTosV2(lockTOS).epochUnit();
+        // uint256 sTosEpochUnit = ILockTosV2(lockTOS).epochUnit();
+
+        (uint256 sTosEpochUnit, uint256 unlockTime) = LibStaking.getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
         require (sTosEpochUnit > 0, "zero sTosEpochUnit");
-
-        uint256 unlockTime = _getUnlockTime(block.timestamp, _periodWeeks) ;
-
         require(unlockTime > 0, "zero unlockTime");
 
         TOS.safeTransferFrom(msg.sender, address(this), _amount);
@@ -312,11 +305,14 @@ contract StakingV2 is
             TOS.safeTransferFrom(msg.sender, address(this), _addAmount);
         }
 
-        uint256 sTosEpochUnit = ILockTosV2(lockTOS).epochUnit();
+        // uint256 sTosEpochUnit = ILockTosV2(lockTOS).epochUnit();
+        uint256 sTosEpochUnit = 0;
         uint256 unlockTime = 0;
         if (_periodWeeks > 0) {
-            unlockTime = _getUnlockTime(block.timestamp, _periodWeeks) ;
+            // unlockTime = _getUnlockTime(block.timestamp, _periodWeeks) ;
+            (sTosEpochUnit, unlockTime) = LibStaking.getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
         } else {
+            sTosEpochUnit = ILockTosV2(lockTOS).epochUnit();
             unlockTime = _stakeInfo.endTime;
         }
 
@@ -337,7 +333,7 @@ contract StakingV2 is
         }
 
         if (_claimAmount > 0) {
-            TOS.safeTransferFrom(address(this), msg.sender, _claimAmount);
+            TOS.safeTransfer(msg.sender, _claimAmount);
         }
 
         emit ResetStakedGetStosAfterLock(staker, _addAmount, _claimAmount, _periodWeeks, stakeId, sTOSid);
@@ -377,7 +373,7 @@ contract StakingV2 is
 
             if (_unlockWeeks == 0) { // 물량만 늘릴때 이자도 같이 늘린다.
                 uint256 n = (allStakings[_stakeId].endTime - block.timestamp) / epoch.length_;
-                uint256 amountCompound = compound(_amount, rebasePerEpoch, n);
+                uint256 amountCompound = LibStaking.compound(_amount, rebasePerEpoch, n);
                 require (amountCompound > 0, "zero compounded amount");
                 ILockTosV2(lockTOS).increaseAmountByStaker(staker, lockId, amountCompound);
 
@@ -386,12 +382,12 @@ contract StakingV2 is
                 uint256 amountCompound2 = 0; // 추가금액이 있을경우, 늘어나는 부분
 
                 uint256 n1 = (_unlockWeeks * sTosEpochUnit) / epoch.length_;
-                amountCompound1 = compound(principalsAmount, rebasePerEpoch, n1);
+                amountCompound1 = LibStaking.compound(principalsAmount, rebasePerEpoch, n1);
                 amountCompound1 = amountCompound1 - principalsAmount;
 
                 if (_amount > 0) {
                     uint256 n2 = (end - block.timestamp  + (_unlockWeeks * sTosEpochUnit)) / epoch.length_;
-                    amountCompound2 = compound(_amount, rebasePerEpoch, n2);
+                    amountCompound2 = LibStaking.compound(_amount, rebasePerEpoch, n2);
                 }
 
                 ILockTosV2(lockTOS).increaseAmountUnlockTimeByStaker(staker, lockId, amountCompound1 + amountCompound2, _unlockWeeks);
@@ -402,7 +398,7 @@ contract StakingV2 is
     }
 
     /// @inheritdoc IStaking
-    function claimForNonLock(
+    function claimForSimpleType(
         uint256 _stakeId,
         uint256 _claimAmount
     )
@@ -442,13 +438,15 @@ contract StakingV2 is
 
         uint256 addProfitRemainedTos = remainedLTOSToTos(_stakeId);
         uint256 principal = _stakeInfo.deposit;
+        // uint256 profit = addProfitRemainedTos - principal;
         uint256 sTOSid = connectId[_stakeId];
 
         console.log("unstake amount %s", amount);
         console.log("unstake _stakeInfo.deposit  %s", _stakeInfo.deposit);
         console.log("unstake _stakeInfo.LTOS  %s", _stakeInfo.LTOS);
+        console.log("unstake stakingPrincipal  %s", stakingPrincipal);
 
-        stakingPrincipal -= amount;
+        stakingPrincipal -= principal;
         totalLTOS -= _stakeInfo.LTOS;
 
         if (sTOSid > 0) {
@@ -458,6 +456,7 @@ contract StakingV2 is
         }
 
         uint256 userStakeIdIndex  = _deleteUserStakeId(staker, _stakeId);
+        console.log("unstake userStakeIdIndex   %s", userStakeIdIndex);
         _deleteStakeId(_stakeId, userStakeIdIndex) ;
 
         if (addProfitRemainedTos > principal) {
@@ -481,16 +480,6 @@ contract StakingV2 is
         }
     }
 
-    // /// @inheritdoc IStaking
-    // function allUnstake() public override {
-    //     uint256[] memory _stakeIds = stakingOf(msg.sender);
-    //     require(_stakeIds.length > 0, "no stakeIds");
-
-    //     uint256 len = _stakeIds.length;
-    //     for(uint256 i = 0; i < len; i++) {
-    //         unstake(_stakeIds[i]);
-    //     }
-    // }
 
     /// @inheritdoc IStaking
     function rebaseIndex() public override {
@@ -514,7 +503,7 @@ contract StakingV2 is
             console.log("rebaseIndex epoch.end : %s", epoch.end);
 
             uint256 newIndex = index_;
-            if(epochNumber > 1) newIndex = compound(index_, rebasePerEpoch, epochNumber) ;
+            if(epochNumber > 1) newIndex = LibStaking.compound(index_, rebasePerEpoch, epochNumber) ;
             else if(epochNumber == 1)  newIndex = nextIndex();
             console.log("rebaseIndex newIndex : %s", newIndex);
 
@@ -539,11 +528,11 @@ contract StakingV2 is
 
             } else if (epochNumber > 1) {
 
-                uint256 _possibleEpochNumber = possibleEpochNumber();
+                uint256 _possibleEpochNumber = LibStaking.possibleEpochNumber(runwayTOS(), getLtosToTos(totalLTOS), rebasePerEpoch);
                 console.log("rebaseIndex _possibleEpochNumber : %s", _possibleEpochNumber);
 
                 if (_possibleEpochNumber < epochNumber) {
-                    newIndex = compound(index_, rebasePerEpoch, _possibleEpochNumber);
+                    newIndex = LibStaking.compound(index_, rebasePerEpoch, _possibleEpochNumber);
                     console.log("rebaseIndex compound newIndex : %s", newIndex);
 
                     needTos = totalLTOS * (newIndex-index_) / 1e18;
@@ -590,8 +579,9 @@ contract StakingV2 is
     )
         public view override nonZero(_stakeId) returns (uint256)
     {
-        if (allStakings[_stakeId].endTime < block.timestamp)
+        if (allStakings[_stakeId].endTime < block.timestamp){
             return getLtosToTos(remainedLTOS(_stakeId));
+        }
         else return 0;
     }
 
@@ -602,25 +592,6 @@ contract StakingV2 is
 
     function getIndex() public view override returns(uint256){
         return index_;
-    }
-
-   /**
-   * Calculate the maximum possible # of epochs that can be rebased while keeping LTOS solvency
-   * equation = ln(runwayTOS/getLtosToTos+1) / ln(1+rebasePerEpoch)
-   *
-   * @return rebaseCount unsigned 256-bit integer number
-   */
-    function possibleEpochNumber() public view returns (uint256 ){
-        uint256 _runwayTOS = runwayTOS();
-        uint256 _totalTOS = getLtosToTos(totalLTOS);
-        int128 a = ABDKMath64x64.ln(
-                    ABDKMath64x64.add(
-                        ABDKMath64x64.divu(_runwayTOS,_totalTOS),
-                        ABDKMath64x64.fromUInt(1)
-                    )); //a = ln(runwayTOS/getLtosToTos+1)
-        int128 b = ABDKMath64x64.ln(ABDKMath64x64.fromUInt(1e18+rebasePerEpoch))-764553562531198000000; //b = ln(1+rebasePerEpoch). rebasePerEpoch is internally scaled by 10^18 to keep the decimal positions=> instead of adding 1, 1e18 has to be added + subtract ln(10^18) 64.64 hardcoded, subtracting this value from 'b' offsets the 10^18 scaling
-        int64 rebaseCount = ABDKMath64x64.toInt(ABDKMath64x64.div(a,b)); //recasts 64 bit output to uint256
-        return uint256(int256(rebaseCount));
     }
 
     /// @inheritdoc IStaking
@@ -684,54 +655,54 @@ contract StakingV2 is
         else return (treasuryAmount + balanceTos - debtTos);
     }
 
-    /// @inheritdoc IStaking
-    function LTOSinterest() public override view returns (uint256) {
-        uint256 total = getLtosToTos(totalLTOS);
-        if(total < stakingPrincipal) return 0;
-        else return (total - stakingPrincipal);
-    }
+    // /// @inheritdoc IStaking
+    // function LTOSinterest() public override view returns (uint256) {
+    //     uint256 total = getLtosToTos(totalLTOS);
+    //     if(total < stakingPrincipal) return 0;
+    //     else return (total - stakingPrincipal);
+    // }
 
-    // 다음 TOS이자 (다음 index를 구한뒤 -> LTOS -> TOS로 변경 여기서 staking 된 TOS를 뺴줌)
-    /// @inheritdoc IStaking
-    function nextLTOSinterest() public override view returns (uint256) {
+    // // 다음 TOS이자 (다음 index를 구한뒤 -> LTOS -> TOS로 변경 여기서 staking 된 TOS를 뺴줌)
+    // /// @inheritdoc IStaking
+    // function nextLTOSinterest() public override view returns (uint256) {
 
-        // LTOS - 원금 stakingPrincipal()
-        if( ((totalLTOS * nextIndex())/1e18) < totalDepositTOS()) {
-            return 0;
-        } else {
-            return ((totalLTOS * nextIndex())/1e18) - totalDepositTOS();
-        }
-    }
+    //     // LTOS - 원금 stakingPrincipal()
+    //     if( ((totalLTOS * nextIndex())/1e18) < totalDepositTOS()) {
+    //         return 0;
+    //     } else {
+    //         return ((totalLTOS * nextIndex())/1e18) - totalDepositTOS();
+    //     }
+    // }
 
     /// @inheritdoc IStaking
     function totalDepositTOS() public override view returns (uint256) {
         return TOS.balanceOf(address(this));
     }
 
-    function pow (int128 x, uint n) public pure returns (int128 r) {
-        r = ABDKMath64x64.fromUInt (1);
-        while (n > 0) {
-            if (n % 2 == 1) {
-                r = ABDKMath64x64.mul (r, x);
-                n -= 1;
-            } else {
-                x = ABDKMath64x64.mul (x, x);
-                n /= 2;
-            }
-        }
-    }
+    // function pow (int128 x, uint n) public pure returns (int128 r) {
+    //     r = ABDKMath64x64.fromUInt (1);
+    //     while (n > 0) {
+    //         if (n % 2 == 1) {
+    //             r = ABDKMath64x64.mul (r, x);
+    //             n -= 1;
+    //         } else {
+    //             x = ABDKMath64x64.mul (x, x);
+    //             n /= 2;
+    //         }
+    //     }
+    // }
 
-    function compound (uint principal, uint ratio, uint n) public pure returns (uint) {
-        return ABDKMath64x64.mulu (
-                pow (
-                ABDKMath64x64.add (
-                    ABDKMath64x64.fromUInt (1),
-                    ABDKMath64x64.divu (
-                    ratio,
-                    10**18)),
-                n),
-                principal);
-    }
+    // function compound (uint principal, uint ratio, uint n) public pure returns (uint) {
+    //     return ABDKMath64x64.mulu (
+    //             pow (
+    //             ABDKMath64x64.add (
+    //                 ABDKMath64x64.fromUInt (1),
+    //                 ABDKMath64x64.divu (
+    //                 ratio,
+    //                 10**18)),
+    //             n),
+    //             principal);
+    // }
 
     /// @inheritdoc IStaking
     function getTosToLtos(uint256 amount) public override view returns (uint256) {
@@ -790,13 +761,6 @@ contract StakingV2 is
         lockTOSId[sTOSid] = stakeId;
     }
 
-    function _getUnlockTime(uint256 start, uint256 _periodWeeks) internal view returns (uint256 unlockTime) {
-        uint256 sTosEpochUnit = ILockTosV2(lockTOS).epochUnit();
-        unlockTime = start + (_periodWeeks * sTosEpochUnit);
-        unlockTime = unlockTime / sTosEpochUnit * sTosEpochUnit ;
-    }
-
-
     function _increaseAmountAndPeriodStake(
         address sender,
         uint256 _stakeId,
@@ -811,7 +775,8 @@ contract StakingV2 is
         }
 
         uint256 _periodSeconds = 0;
-        if (_unlockWeeks > 0) _periodSeconds = _getUnlockTime(0, _unlockWeeks);
+        uint256 sTosEpochUnit = 0;
+        if (_unlockWeeks > 0) ( sTosEpochUnit, _periodSeconds ) = LibStaking.getUnlockTime(lockTOS, 0, _unlockWeeks);
 
         _increaseStakeInfo(_stakeId, _amount, _periodSeconds);
     }
@@ -820,7 +785,7 @@ contract StakingV2 is
     function _createStos(address _to, uint256 _amount, uint256 _periodWeeks, uint256 sTosEpochUnit)
          internal ifFree returns (uint256 sTOSid)
     {
-        uint256 amountCompound = compound(_amount, rebasePerEpoch, (_periodWeeks * sTosEpochUnit / epoch.length_));
+        uint256 amountCompound = LibStaking.compound(_amount, rebasePerEpoch, (_periodWeeks * sTosEpochUnit / epoch.length_));
         require (amountCompound > 0, "zero compounded amount");
 
         sTOSid = ILockTosV2(lockTOS).createLockByStaker(_to, amountCompound, _periodWeeks);
@@ -900,7 +865,7 @@ contract StakingV2 is
         console.log("_updateStakeInfo start %s", _stakeId);
 
         require(allStakings[_stakeId].staker != address(0), "non-exist stakeInfo");
-        require(_addAmount > 0 || _claimAmount > 0, "zero Amounts");
+        require(_addAmount > 0 || _claimAmount > 0 || _unlockTime > 0, "zero Amounts");
 
         require(allStakings[_stakeId].LTOS > 0, "zero LTOS");
         uint256 stakedAmount = getLtosToTos(allStakings[_stakeId].LTOS);
@@ -955,12 +920,16 @@ contract StakingV2 is
 
 
     function _deleteUserStakeId(address to, uint256 _id) internal  returns (uint256 curIndex){
+        console.log("_deleteUserStakeId %s %s", to, _id);
 
         curIndex = userStakingIndex[to][_id];
-
+        console.log("_deleteUserStakeId  curIndex %s", curIndex);
         if (curIndex > 1 ) {
+            console.log("_deleteUserStakeId  userStakings[to].length %s", userStakings[to].length);
             if (curIndex < userStakings[to].length-1){
                 uint256 lastId = userStakings[to][userStakings[to].length-1];
+                console.log("_deleteUserStakeId  lastId %s", lastId);
+
                 userStakings[to][curIndex] = lastId;
                 userStakingIndex[to][lastId] = curIndex;
             }

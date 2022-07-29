@@ -183,4 +183,7 @@ interface IBondDepository {
             uint256 marketId,
             uint256 stakeId
             );
+
+    function isOpend(uint256 _index) external view returns (bool closedBool);
+
 }

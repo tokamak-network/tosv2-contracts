@@ -144,13 +144,14 @@ contract BondDepository is
         uint256 _marketId,
         uint256 _amount
     )   external override onlyPolicyOwner
-        nonEndMarket(_marketId)
+        // nonEndMarket(_marketId)
         nonZero(_amount)
     {
         LibBondDepository.Market storage _info = markets[_marketId];
         _info.capacity += _amount;
 
         LibBondDepository.Metadata storage _metadata = metadata[_marketId];
+        require(_info.maxPayout > 0, "non-exist market");
         _metadata.totalSaleAmount += _amount;
 
         emit IncreasedCapacity(_marketId, _amount);
@@ -160,11 +161,13 @@ contract BondDepository is
         uint256 _marketId,
         uint256 _amount
     ) external override onlyPolicyOwner
-        nonEndMarket(_marketId)
+        // nonEndMarket(_marketId)
         nonZero(_amount)
     {
         require(markets[_marketId].capacity > _amount, "not enough capacity");
         LibBondDepository.Market storage _info = markets[_marketId];
+        require(_info.maxPayout > 0, "non-exist market");
+
         _info.capacity -= _amount;
 
         LibBondDepository.Metadata storage _metadata = metadata[_marketId];
@@ -177,11 +180,12 @@ contract BondDepository is
         uint256 _marketId,
         uint256 closeTime
     )   external override onlyPolicyOwner
-        nonEndMarket(_marketId)
-        nonZero(closeTime)
+        //nonEndMarket(_marketId)
+        //nonZero(closeTime)
     {
         require(closeTime > block.timestamp, "past closeTime");
         LibBondDepository.Market storage _info = markets[_marketId];
+        require(_info.maxPayout > 0, "non-exist market");
         _info.endSaleTime = closeTime;
 
         emit ChangedCloseTime(_marketId, closeTime);
@@ -219,7 +223,7 @@ contract BondDepository is
     /// @inheritdoc IBondDepository
     function close(uint256 _id) external override onlyPolicyOwner {
         require(markets[_id].endSaleTime > 0, "empty market");
-        require(markets[_id].endSaleTime > block.timestamp , "already closed");
+        require(markets[_id].endSaleTime > block.timestamp || markets[_id].capacity == 0, "already closed");
         markets[_id].endSaleTime = block.timestamp;
         markets[_id].capacity = 0;
         emit ClosedMarket(_id);
@@ -470,6 +474,16 @@ contract BondDepository is
             markets[_index].maxPayout
         );
     }
+
+    function isOpend(uint256 _index) public override view returns (bool closedBool)
+    {
+        if (block.timestamp < markets[_index].endSaleTime && markets[_index].capacity > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
 
     function getMetadataList() public override view returns (uint256[] memory) {
         return metadataList;
