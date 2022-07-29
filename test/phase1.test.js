@@ -1388,7 +1388,6 @@ describe("TOSv2 Phase1", function () {
 
   });
 
-  /*
   describe("#3-2. StakingV2 function test", async () => {
 
     describe("#3-2-1. simple stake product case ", async () => {
@@ -2802,5 +2801,5 @@ describe("TOSv2 Phase1", function () {
     });
 
   });
-  */
+
 });
