@@ -2,6 +2,7 @@ const fs = require('fs');
 // const { ethers } = require('hardhat');
 let treasuryLogicAbi = require('../abis/Treasury.json');
 let stakingV2LogicAbi = require('../abis/StakingV2.json');
+const save = require("../save_deployed");
 const { ethers } = require('ethers');
 
 
@@ -15,7 +16,7 @@ task("deploy-tos-v2", "Deploy TOSV2")
 
         const npmAddress = "0xC36442b4a4522E871399CD717aBDD847Ab11FE88"
         const uniswapFactoryAddress = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
-        
+
         //TOSCalculator
         //1. tosAddress
         //2. wethAddress
@@ -142,7 +143,6 @@ task("deploy-tos-v2", "Deploy TOSV2")
         )
         console.log("tosCalculator initialized");
 
-        
         //treasury initialize
         let minimumTOSPrice; //설정값 필요
 

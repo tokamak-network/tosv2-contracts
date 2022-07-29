@@ -1276,6 +1276,10 @@ describe("TOSv2 Phase1", function () {
 
   });
 
+  describe("#3-2. stake function test", async () => {
+      
+  })
+
 
   /*
 
