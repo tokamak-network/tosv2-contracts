@@ -186,4 +186,13 @@ interface IBondDepository {
 
     function isOpend(uint256 _index) external view returns (bool closedBool);
 
+    function getBonds() external view
+        returns (
+            uint256[] memory marketIds,
+            address[] memory quoteTokens,
+            uint256[] memory capacities,
+            uint256[] memory endSaleTimes,
+            uint256[] memory pricesToken,
+            uint256[] memory pricesTos
+        );
 }
