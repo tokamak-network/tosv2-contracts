@@ -2,9 +2,16 @@ const { ethers, run } = require("hardhat");
 const save = require("../save_deployed");
 const loadDeployed = require("../load_deployed");
 
-let treasuryLogicAbi = require('../artifacts/contracts/Treasury.sol/Treasury.json');
-let bondDepositoryLogicAbi = require('../artifacts/contracts/BondDepository.sol/BondDepository.json');
-let stakingV2LogicAbi = require('../artifacts/contracts/StakingV2.sol/StakingV2.json');
+let treasuryLogicAbi = require('../../artifacts/contracts/Treasury.sol/Treasury.json');
+let bondDepositoryLogicAbi = require('../../artifacts/contracts/BondDepository.sol/BondDepository.json');
+let stakingV2LogicAbi = require('../../artifacts/contracts/StakingV2.sol/StakingV2.json');
+
+let calculatorAbi = require('../../artifacts/contracts/TOSValueCalculator.sol/TOSValueCalculator.json');
+
+let treasuryProxyAbi = require('../../artifacts/contracts/TreasuryProxy.sol/TreasuryProxy.json');
+let bondDepositoryProxyAbi = require('../../artifacts/contracts/BondDepositoryProxy.sol/BondDepositoryProxy.json');
+let stakingV2ProxyAbi = require('../../artifacts/contracts/StakingV2Proxy.sol/StakingV2Proxy.json');
+
 
 //rinkeby
 let rinkeby_address = {
@@ -19,6 +26,11 @@ let rinkeby_address = {
     tosDOCPool: "0x831a1f01ce17b6123a7d1ea65c26783539747d6d"
 }
 
+//rinkeby
+let lockTOSaddr = "0x5adc7de3a0B4A4797f02C3E99265cd7391437568"
+
+//mainnet
+// let lockTOSaddr = "0x69b4A202Fa4039B42ab23ADB725aA7b1e9EEBD79"
 
 async function main() {
     const accounts = await ethers.getSigners();
@@ -32,7 +44,11 @@ async function main() {
 
     
     const tosCalculatorAddress = loadDeployed(networkName, "TOSValueCalculator");
-    const calculatorContract = new ethers.Contract( tosCalculatorAddress, stakingV2LogicAbi.abi, ethers.provider);
+    const treasuryProxyAddress = loadDeployed(networkName, "TreasuryProxy");
+    const stakingProxyAddress = loadDeployed(networkName, "StakingV2Proxy");
+    const bondDepositoryProxyAddress = loadDeployed(networkName, "BondDepositoryProxy");
+
+    const calculatorContract = new ethers.Contract( tosCalculatorAddress, calculatorAbi.abi, ethers.provider);
 
     await calculatorContract.connect(deployer).initialize(
         rinkeby_address.tos,
@@ -43,8 +59,51 @@ async function main() {
     )
     console.log("tosCalculator initialized");
 
-    const tosCalculatorAddress = loadDeployed(networkName, "TreasuryProxy");
+    const terasuryProxyContract = new ethers.Contract( treasuryProxyAddress, treasuryProxyAbi.abi, ethers.provider);
 
+    let minimumTOSPrice = 1;
+
+    await terasuryProxyContract.connect(deployer).initialize(
+      rinkeby_address.tos,
+      tosCalculatorAddress,
+      rinkeby_address.weth,
+      rinkeby_address.poolfactory,
+      stakingProxyAddress,
+      rinkeby_address.tosethPool,
+      minimumTOSPrice
+    )
+
+    console.log("treasury initialized");
+
+    const stakingProxyContract = new ethers.Contract( stakingProxyAddress, stakingV2ProxyAbi.abi, ethers.provider);
+    
+    const block = await ethers.provider.getBlock('latest')
+
+    let epochLength = 3600 * 8;
+    let epochNumber = 0;
+    let epochEnd = Number(block.timestamp) + Number(epochLength);
+    let basicBondPeriod = (86400*5);
+
+    await stakingProxyContract.connect(deployer).initialize(
+      rinkeby_address.tos,
+      [epochLength,epochNumber,epochEnd],
+      lockTOSaddr,
+      treasuryProxyAddress,
+      basicBondPeriod
+    )
+    console.log("StakingV2 initialized");
+
+    const bondProxyContract = new ethers.Contract( bondDepositoryProxyAddress, bondDepositoryProxyAbi.abi, ethers.provider);
+
+    await bondProxyContract.connect(deployer).initialize(
+      rinkeby_address.tos,
+      stakingProxyAddress,
+      treasuryProxyAddress,
+      tosCalculatorAddress,
+      rinkeby_address.poolfactory
+    )
+
+    console.log("bondDepository initialized");
 
 }
 

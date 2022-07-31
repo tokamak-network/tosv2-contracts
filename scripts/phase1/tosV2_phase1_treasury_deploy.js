@@ -17,9 +17,21 @@ async function main() {
         address: ""
     }
 
-    const treasuryLogic = await (await ethers.getContractFactory("Treasury"))
-        .connect(deployer)
-        .deploy();
+    const LibTreasury = await ethers.getContractFactory("LibTreasury");
+    let libTreasury = await LibTreasury.connect(deployer).deploy();
+
+    deployInfo = {
+      name: "LibTreasury",
+      address: libTreasury.address
+    }
+    
+    save(networkName, deployInfo);
+
+    const treasuryLogic = await (await ethers.getContractFactory("Treasury", {
+      libraries: {
+        LibTreasury: libTreasury.address
+      }
+    })).connect(deployer).deploy();
 
     let tx = await treasuryLogic.deployed();
     console.log("treasuryLogic: ", treasuryLogic.address);

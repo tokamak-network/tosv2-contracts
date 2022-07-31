@@ -40,7 +40,7 @@ async function main() {
         .deploy();
     tx = await bondDepositoryProxy.deployed();
 
-    await bondDepositoryProxy.connect(deployer).upgradeTo(bondDepositoryLogicAddress);
+    await bondDepositoryProxy.connect(deployer).upgradeTo(bondDepositoryLogic.address);
 
     console.log("bondDepositoryProxy: ", bondDepositoryProxy.address);
 

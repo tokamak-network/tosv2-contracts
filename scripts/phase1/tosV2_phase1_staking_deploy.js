@@ -17,9 +17,22 @@ async function main() {
         address: ""
     }
 
-    const stakingLogic = await (await ethers.getContractFactory("StakingV2"))
-        .connect(deployer)
-        .deploy();
+    const LibStaking = await ethers.getContractFactory("LibStaking");
+    let libStaking = await LibStaking.connect(deployer).deploy();
+
+    deployInfo = {
+      name: "LibStaking",
+      address: libStaking.address
+    }
+
+    save(networkName, deployInfo);
+
+    const stakingLogic = await (await ethers.getContractFactory("StakingV2", {
+      libraries: {
+        LibStaking: libStaking.address
+      }
+    })).connect(deployer).deploy();
+
     let tx = await stakingLogic.deployed();
 
     console.log("stakingLogic: ", stakingLogic.address);
