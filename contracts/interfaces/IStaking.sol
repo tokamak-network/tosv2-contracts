@@ -241,10 +241,15 @@ interface IStaking {
     /// @return return TOS 양
     function getLtosToTos(uint256 ltos) external view returns (uint256);
 
+    /// @dev 사용자가 스테이킹한 TOS 양
+    /// @param stakeId  the stakeId
     function stakedOf(uint256 stakeId) external view returns (uint256);
 
+    /// @dev 전체 스테이킹 되어 있는 토스양 (전체사용자의 원금+이자)
     function stakedOfAll() external view returns (uint256) ;
 
+    /// @dev 특정스테이킹 아이디의 상세 정보
+    /// @param stakeId  the stakeId
     function stakeInfo(uint256 stakeId) external view returns (
         address staker,
         uint256 deposit,
