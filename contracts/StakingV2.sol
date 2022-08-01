@@ -604,7 +604,6 @@ contract StakingV2 is
         return userStakings[_addr];
     }
 
-
     /// @inheritdoc IStaking
     function balanceOfId(uint256 _stakeId)
         public
@@ -678,6 +677,7 @@ contract StakingV2 is
         address staker,
         uint256 deposit,
         uint256 LTOS,
+        uint256 startTime,
         uint256 endTime,
         uint256 marketId
     ) {
@@ -686,6 +686,7 @@ contract StakingV2 is
             _stakeInfo.staker,
             _stakeInfo.deposit,
             _stakeInfo.LTOS,
+            _stakeInfo.startTime,
             _stakeInfo.endTime,
             _stakeInfo.marketId
         );
@@ -761,6 +762,7 @@ contract StakingV2 is
                 staker: _addr,
                 deposit: _amount,
                 LTOS: ltos,
+                startTime: block.timestamp,
                 endTime: _unlockTime,
                 marketId: _marketId
             });
@@ -778,6 +780,7 @@ contract StakingV2 is
             _stakeInfo.staker = address(0);
             _stakeInfo.deposit = 0;
             _stakeInfo.LTOS = 0;
+            _stakeInfo.startTime = 0;
             _stakeInfo.endTime = 0;
             _stakeInfo.marketId = 0;
         }
@@ -830,6 +833,7 @@ contract StakingV2 is
         if (_addAmount > 0)  addLtos = getTosToLtos(_addAmount);
         if (_claimAmount > 0) claimLtos = getTosToLtos(_claimAmount);
 
+        _stakeInfo.startTime = block.timestamp;
         _stakeInfo.endTime = _unlockTime;
         console.log("_updateStakeInfo _stakeInfo.endTime : %s", _stakeInfo.endTime);
         console.log("_updateStakeInfo stakedAmount %s", stakedAmount);

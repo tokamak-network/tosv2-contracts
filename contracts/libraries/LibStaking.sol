@@ -4,15 +4,6 @@ import "./ABDKMath64x64.sol";
 
 interface IILockTosV2 {
 
-    // function locksInfo(uint256 _lockId)
-    //     external
-    //     view
-    //     returns (
-    //         uint256,
-    //         uint256,
-    //         uint256
-    //     );
-
     function epochUnit() external view returns(uint256);
 }
 
@@ -30,6 +21,7 @@ library LibStaking
         address staker;
         uint256 deposit;    //tos staking 양
         uint256 LTOS;       //변환된 LTOS 양
+        uint256 startTime;  //스테이킹한 시간 startTime
         uint256 endTime;    //끝나는 endTime
         uint256 marketId;   //bondMarketId
     }
