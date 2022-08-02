@@ -371,7 +371,7 @@ contract BondDepository is
         uint256 _ethValue = 0; // _payout tos 를 이더로 바꿈.
 
         if(!_eth) {
-            (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) =
+            (bool existedWethPool, , , uint256 convertedAmmount) =
                 IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(address(tos), _payout);
 
             if(existedWethPool){
