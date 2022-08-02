@@ -151,9 +151,10 @@ contract StakingV2 is
 
         rebaseIndex();
 
-        _createStakeInfo(to, stakeId, _amount, block.timestamp + basicBondPeriod, _marketId);
+        uint256 ltos = _createStakeInfo(to, stakeId, _amount, block.timestamp + basicBondPeriod, _marketId);
 
-        emit StakedByBond(to, _amount, _marketId, stakeId, tokenPrice, tosPrice);
+
+        emit StakedByBond(to, _amount, ltos, _marketId, stakeId, tokenPrice, tosPrice);
     }
 
     /// @inheritdoc IStaking
@@ -181,13 +182,13 @@ contract StakingV2 is
 
         rebaseIndex();
 
-        _createStakeInfo(_to, stakeId, _amount, unlockTime, _marketId);
+        uint256 ltos = _createStakeInfo(_to, stakeId, _amount, unlockTime, _marketId);
 
         uint256 sTOSid = _createStos(_to, _amount, _periodWeeks, sTosEpochUnit);
         connectId[stakeId] = sTOSid;
         lockTOSId[sTOSid] = stakeId;
 
-        emit StakedGetStosByBond(_to, _amount, _periodWeeks, _marketId, stakeId, sTOSid, tokenPrice, tosPrice);
+        emit StakedGetStosByBond(_to, _amount, ltos, _periodWeeks, _marketId, stakeId, sTOSid, tokenPrice, tosPrice);
     }
 
     /* ========== Anyone can execute ========== */
@@ -752,7 +753,7 @@ contract StakingV2 is
         uint256 _amount,
         uint256 _unlockTime,
         uint256 _marketId
-    ) internal ifFree {
+    ) internal ifFree returns (uint256){
 
         require(allStakings[_stakeId].staker == address(0), "non-empty stakeInfo");
 
@@ -772,6 +773,8 @@ contract StakingV2 is
         stakingPrincipal += _amount;
         // cummulatedLTOS += ltos;
         totalLTOS += ltos;
+
+        return ltos;
     }
 
     function _deleteStakeId(uint256 _stakeId, uint256 userStakeIdIndex) internal {

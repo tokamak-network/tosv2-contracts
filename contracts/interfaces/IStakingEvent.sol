@@ -3,11 +3,12 @@ pragma solidity ^0.8.4;
 
 interface IStakingEvent{
 
-    event StakedByBond(address to, uint256 amount, uint256 marketId, uint256 stakeId, uint256 tokenPrice, uint256 tosPrice);
+    event StakedByBond(address to, uint256 amount, uint256 ltos, uint256 marketId, uint256 stakeId, uint256 tokenPrice, uint256 tosPrice);
 
     event StakedGetStosByBond(
         address to,
         uint256 amount,
+        uint256 ltos,
         uint256 periodWeeks,
         uint256 marketId,
         uint256 stakeId,
