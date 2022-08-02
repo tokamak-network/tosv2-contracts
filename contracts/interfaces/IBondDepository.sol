@@ -88,35 +88,6 @@ interface IBondDepository {
     /// Anyone can use.
     //////////////////////////////////////
 
-    /// @dev deposit with erc20 token
-    /// @param _id  the market id
-    /// @param _amount  the amount of deposit
-    /// @return payout_  the amount of staking
-    /// @return index_  the index of user's staking
-    function ERC20Deposit(
-        uint256 _id,
-        uint256 _amount
-    ) external returns (
-            uint256 payout_,
-            uint256 index_
-        );
-
-    /// @dev deposit with erc20 token
-    /// @param _id  the market id
-    /// @param _amount  the amount of deposit
-    /// @param _lockWeeks  the number of weeks for lock
-    /// @return payout_  the amount of staking
-    /// @return index_  the index of user's staking
-    function ERC20DepositWithSTOS(
-        uint256 _id,
-        uint256 _amount,
-        uint256 _lockWeeks
-    ) external returns (
-            uint256 payout_,
-            uint256 index_
-        );
-
-
     /// @dev deposit with ether
     /// @param _id  the market id
     /// @param _amount  the amount of deposit

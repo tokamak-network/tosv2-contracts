@@ -134,7 +134,9 @@ contract StakingV2 is
     function stakeByBond(
         address to,
         uint256 _amount,
-        uint256 _marketId
+        uint256 _marketId,
+        uint256 tokenPrice,
+        uint256 tosPrice
     )
         public override onlyBonder
         nonZeroAddress(to)
@@ -151,7 +153,7 @@ contract StakingV2 is
 
         _createStakeInfo(to, stakeId, _amount, block.timestamp + basicBondPeriod, _marketId);
 
-        emit StakedByBond(to, _amount, _marketId, stakeId);
+        emit StakedByBond(to, _amount, _marketId, stakeId, tokenPrice, tosPrice);
     }
 
     /// @inheritdoc IStaking
@@ -159,16 +161,16 @@ contract StakingV2 is
         address _to,
         uint256 _amount,
         uint256 _marketId,
-        uint256 _periodWeeks
+        uint256 _periodWeeks,
+        uint256 tokenPrice,
+        uint256 tosPrice
     )
         public override onlyBonder
         nonZeroAddress(_to)
-        nonZero(_amount)
-        nonZero(_periodWeeks)
-        nonZero(_marketId)
         returns (uint256 stakeId)
     {
-        // uint256 sTosEpochUnit = ILockTosV2(lockTOS).epochUnit();
+        require(_amount > 0 && _periodWeeks > 0 && _marketId > 0, "zero input");
+
         (uint256 sTosEpochUnit, uint256 unlockTime) = LibStaking.getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
         require (sTosEpochUnit > 0, "zero sTosEpochUnit");
         require (unlockTime > 0, "zero unlockTime");
@@ -185,7 +187,7 @@ contract StakingV2 is
         connectId[stakeId] = sTOSid;
         lockTOSId[sTOSid] = stakeId;
 
-        emit StakedGetStosByBond(_to, _amount, _periodWeeks, _marketId, stakeId, sTOSid);
+        emit StakedGetStosByBond(_to, _amount, _periodWeeks, _marketId, stakeId, sTOSid, tokenPrice, tosPrice);
     }
 
     /* ========== Anyone can execute ========== */

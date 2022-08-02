@@ -60,11 +60,15 @@ interface IStaking {
     /// @param to  the user address
     /// @param _amount  the tos amount
     /// @param _marketId  the market id
+    /// @param tokenPrice  the token price per TOS
+    /// @param tosPrice  the tos price per Token
     /// @return stakeId  the stake id
     function stakeByBond(
         address to,
         uint256 _amount,
-        uint256 _marketId
+        uint256 _marketId,
+        uint256 tokenPrice,
+        uint256 tosPrice
     ) external returns (uint256 stakeId);
 
 
@@ -74,12 +78,16 @@ interface IStaking {
     /// @param _amount  the tos amount
     /// @param _marketId  the market id
     /// @param _periodWeeks  the number of lockup weeks
+    /// @param tokenPrice  the token price per TOS
+    /// @param tosPrice  the tos price per Token
     /// @return stakeId  the stake id
     function stakeGetStosByBond(
         address _to,
         uint256 _amount,
         uint256 _marketId,
-        uint256 _periodWeeks
+        uint256 _periodWeeks,
+        uint256 tokenPrice,
+        uint256 tosPrice
     ) external returns (uint256 stakeId);
 
 

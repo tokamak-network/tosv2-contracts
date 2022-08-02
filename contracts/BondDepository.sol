@@ -234,66 +234,6 @@ contract BondDepository is
     //////////////////////////////////////
 
     /// @inheritdoc IBondDepository
-    function ERC20Deposit(
-        uint256 _id,
-        uint256 _amount
-    )
-        external override
-        nonEndMarket(_id)
-        nonEthMarket(_id)
-        nonZero(_amount)
-        returns (
-            uint256 payout_,
-            uint256 index_
-        )
-    {
-        address _token = markets[_id].quoteToken;
-        require(IERC20(_token).allowance(msg.sender, address(this)) >= _amount, "Depository : allowance is insufficient");
-        IERC20(_token).transferFrom(msg.sender, address(treasury), _amount);
-
-        (payout_) = _deposit(msg.sender, _amount, _id, false);
-
-        uint256 stakeId = staking.stakeByBond(msg.sender, payout_, _id);
-
-        index_ = deposits[msg.sender].length;
-
-        deposits[msg.sender].push(LibBondDepository.Deposit(_id, stakeId));
-
-        emit ERC20Deposited(msg.sender, _id, stakeId, _token, _amount, payout_);
-    }
-
-    /// @inheritdoc IBondDepository
-    function ERC20DepositWithSTOS(
-        uint256 _id,
-        uint256 _amount,
-        uint256 _lockWeeks
-    )
-        external override
-        nonEndMarket(_id)
-        nonEthMarket(_id)
-        nonZero(_amount)
-        nonZero(_lockWeeks)
-        returns (
-            uint256 payout_,
-            uint256 index_
-        )
-    {
-        address _token = markets[_id].quoteToken;
-        require(IERC20(_token).allowance(msg.sender, address(this)) >= _amount, "Depository : allowance is insufficient");
-        IERC20(_token).transferFrom(msg.sender, address(treasury), _amount);
-
-        (payout_) = _deposit(msg.sender, _amount, _id, false);
-
-        uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, _id, _lockWeeks);
-
-        index_ = deposits[msg.sender].length;
-
-        deposits[msg.sender].push(LibBondDepository.Deposit(_id, stakeId));
-
-        emit ERC20DepositedWithSTOS(msg.sender, _id, stakeId, _token, _amount, _lockWeeks, payout_);
-    }
-
-    /// @inheritdoc IBondDepository
     function ETHDeposit(
         uint256 _id,
         uint256 _amount
@@ -311,15 +251,16 @@ contract BondDepository is
 
         (payout_) = _deposit(msg.sender, _amount, _id, true);
 
-        uint256 stakeId = staking.stakeByBond(msg.sender, payout_, _id);
+        uint256 id = _id;
+        uint256 stakeId = staking.stakeByBond(msg.sender, payout_, id, metadata[id].tokenPrice, metadata[id].tosPrice);
 
         index_ = deposits[msg.sender].length;
 
-        deposits[msg.sender].push(LibBondDepository.Deposit(_id, stakeId));
+        deposits[msg.sender].push(LibBondDepository.Deposit(id, stakeId));
 
         payable(treasury).transfer(msg.value);
 
-        emit ETHDeposited(msg.sender, _id, stakeId, _amount, payout_);
+        emit ETHDeposited(msg.sender, id, stakeId, _amount, payout_);
     }
 
     /// @inheritdoc IBondDepository
@@ -342,15 +283,16 @@ contract BondDepository is
 
         (payout_) = _deposit(msg.sender, _amount, _id, true);
 
-        uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, _id, _lockWeeks);
+        uint256 id = _id;
+        uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, id, _lockWeeks, metadata[id].tokenPrice, metadata[id].tosPrice);
 
         index_ = deposits[msg.sender].length;
 
-        deposits[msg.sender].push(LibBondDepository.Deposit(_id, stakeId));
+        deposits[msg.sender].push(LibBondDepository.Deposit(id, stakeId));
 
         payable(treasury).transfer(msg.value);
 
-        emit ETHDepositedWithSTOS(msg.sender, _id, stakeId, _amount, _lockWeeks, payout_);
+        emit ETHDepositedWithSTOS(msg.sender, id, stakeId, _amount, _lockWeeks, payout_);
     }
 
 
