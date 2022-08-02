@@ -1,4 +1,4 @@
-// require("@nomiclabs/hardhat-waffle");
+require('solidity-coverage')
 require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
@@ -8,15 +8,18 @@ require("dotenv/config");
 
 require("dotenv").config();
 
+require("./tasks/tosV2_deploy");
+
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
-task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
-  const accounts = await hre.ethers.getSigners();
 
-  for (const account of accounts) {
-    console.log(account.address);
-  }
-});
+// task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
+//   const accounts = await hre.ethers.getSigners();
+
+//   for (const account of accounts) {
+//     console.log(account.address);
+//   }
+// });
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -33,7 +36,8 @@ module.exports = {
     local: {
       chainId: 31337,
       url: `http://127.0.0.1:8545/`,
-      accounts: [`${process.env.PRIVATE_KEY}`,`${process.env.PRIVATE_KEY_2}`,`${process.env.PRIVATE_KEY_3}`,`${process.env.PRIVATE_KEY_4}`,`${process.env.PRIVATE_KEY_5}`],
+      accounts: [`${process.env.PRIVATE_KEY}`,`${process.env.LOCAL_KEY}`,`${process.env.LOCAL_KEY2}`,`${process.env.LOCAL_KEY3}`,`${process.env.LOCAL_KEY4}`,`${process.env.LOCAL_KEY5}`,`${process.env.LOCAL_KEY6}`,`${process.env.LOCAL_KEY7}`]
+
     },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
@@ -57,9 +61,13 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 100,
+        runs: 10,
       },
     },
+  },
+  gasReporter: {
+    currency: 'USD',
+    gasPrice: 21
   },
   paths: {
     sources: "./contracts",

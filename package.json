@@ -6,6 +6,7 @@
     "@nomiclabs/hardhat-waffle": "^2.0.3",
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@thanpolas/univ3prices": "^3.0.2",
+    "@uniswap/v3-core": "^1.0.1",
     "chai": "^4.3.6",
     "dotenv": "^16.0.1",
     "ethereum-waffle": "^3.4.4",
@@ -13,6 +14,7 @@
     "hardhat": "^2.9.3",
     "hardhat-gas-reporter": "^1.0.8",
     "jsbi": "^4.3.0",
+    "solidity-coverage": "^0.7.21",
     "web3-eth-abi": "^1.7.3"
   },
   "dependencies": {

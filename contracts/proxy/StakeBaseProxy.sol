@@ -6,12 +6,12 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import "../interfaces/IProxyEvent.sol";
 import "../interfaces/IProxyAction.sol";
 
-import "./VaultStorage.sol";
-import "../common/ProxyAccessCommon.sol";
+import "./StakeBaseStorage.sol";
+import "../common/StakeProxyAccess.sol";
 
 import "hardhat/console.sol";
 
-contract VaultProxy is ProxyAccessCommon, VaultStorage, IProxyEvent, IProxyAction
+contract StakeBaseProxy is StakeProxyAccess, StakeBaseStorage, IProxyEvent, IProxyAction
 {
 
     /**

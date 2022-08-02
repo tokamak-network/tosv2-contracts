@@ -9,9 +9,8 @@ import "../interfaces/IProxyAction.sol";
 import "./VaultStorage.sol";
 import "../common/ProxyAccessCommon.sol";
 
-import "hardhat/console.sol";
 
-contract VaultProxy is ProxyAccessCommon, VaultStorage, IProxyEvent, IProxyAction
+contract TreasuryVaultProxy is ProxyAccessCommon, VaultStorage, IProxyEvent, IProxyAction
 {
 
     /**
@@ -143,7 +142,7 @@ contract VaultProxy is ProxyAccessCommon, VaultStorage, IProxyEvent, IProxyActio
 
     /// @dev receive ether
     receive() external payable {
-        revert("cannot receive Ether");
+
     }
 
     /// @dev fallback function , execute on undefined function call

@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "./AccessRoleCommon.sol";
+import "./StakeAccessRole.sol";
 
-contract ProxyAccessCommon is AccessRoleCommon, AccessControl {
+contract StakeProxyAccess is StakeAccessRole, AccessControl {
     modifier onlyOwner() {
         require(isAdmin(msg.sender) || isProxyAdmin(msg.sender), "Accessible: Caller is not an admin");
         _;
@@ -98,4 +98,6 @@ contract ProxyAccessCommon is AccessRoleCommon, AccessControl {
     function isPolicy(address account) public view virtual returns (bool) {
         return hasRole(POLICY_ROLE, account);
     }
+
+
 }

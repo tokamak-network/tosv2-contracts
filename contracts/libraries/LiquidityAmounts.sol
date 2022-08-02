@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+// import '@uniswap/v3-core/contracts/libraries/FixedPoint96.sol';
 import './FullMath.sol';
 import './FixedPoint96.sol';
-import './FixedPoint128.sol';
-import './SafeMath512.sol';
+
 import "hardhat/console.sol";
+
 
 /// @title Liquidity amount functions
 /// @notice Provides functions for computing liquidity amounts from token amounts and prices
@@ -144,7 +145,6 @@ library LiquidityAmounts {
         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
 
         return FullMath.mulDiv(liquidity, sqrtRatioBX96 - sqrtRatioAX96, FixedPoint96.Q96);
-        //return FullMath.mulDiv(liquidity, sqrtRatioBX96 - sqrtRatioAX96, FixedPoint128.Q128);
     }
 
     /// @notice Computes the token0 and token1 value for a given amount of liquidity, the current
@@ -161,7 +161,6 @@ library LiquidityAmounts {
         uint160 sqrtRatioBX96,
         uint128 liquidity
     ) internal pure returns (uint256 amount0, uint256 amount1) {
-
         if (sqrtRatioAX96 > sqrtRatioBX96) (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
 
         if (sqrtRatioX96 <= sqrtRatioAX96) {

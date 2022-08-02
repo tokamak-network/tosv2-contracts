@@ -1,182 +1,86 @@
-// SPDX-License-Identifier: AGPL-3.0
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: AGPL-3.0-or-later
+pragma solidity ^0.8.4;
 
-import "./libraries/SafeMath.sol";
-import "./libraries/SafeERC20.sol";
-
-import "./interfaces/IERC20.sol";
-import "./interfaces/IERC20Metadata.sol";
-import "./interfaces/ITOS.sol";
-import "./interfaces/ITreasury.sol";
-import "./interfaces/ITOSValueCalculator.sol";
-
+import "./TreasuryStorage.sol";
 import "./common/ProxyAccessCommon.sol";
 
+import "./libraries/SafeERC20.sol";
+import "./libraries/LibTreasury.sol";
 
-contract Treasury is ITreasury, ProxyAccessCommon {
-    using SafeMath for uint256;
+import "./interfaces/ITreasury.sol";
+import "./interfaces/ITreasuryEvent.sol";
+
+import "hardhat/console.sol";
+
+interface IIERC20 {
+    function burn(address account, uint256 amount) external returns (bool);
+}
+
+interface IITOSValueCalculator {
+
+    function getTOSERC20PoolERC20Price(
+        address _erc20address,
+        address _tosERC20Pool,
+        uint24 fee
+    )
+        external
+        view
+        returns (uint256 price);
+
+    function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
+        external view
+        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmmount);
+
+    function getTOSPricePerETH() external view returns (uint256 price);
+
+    function getETHPricePerTOS() external view returns (uint256 price);
+}
+
+interface IIStaking {
+    function stakedOfAll() external view returns (uint256) ;
+}
+
+interface IIIUniswapV3Pool {
+    function liquidity() external view returns (uint128);
+}
+
+contract Treasury is
+    TreasuryStorage,
+    ProxyAccessCommon,
+    ITreasury,
+    ITreasuryEvent
+{
     using SafeERC20 for IERC20;
 
-    event Deposit(address indexed token, uint256 amount, uint256 value);
-    event Withdrawal(address indexed token, uint256 amount, uint256 value);
-    event Minted(address indexed caller, address indexed recipient, uint256 amount);
-    event Permissioned(address addr, STATUS indexed status, bool result);
-    event ReservesAudited(uint256 indexed totalReserves);
 
-    enum STATUS {
-        RESERVEDEPOSITOR,
-        RESERVESPENDER,
-        RESERVETOKEN,
-        RESERVEMANAGER,
-        LIQUIDITYDEPOSITOR,
-        LIQUIDITYTOKEN,
-        LIQUIDITYMANAGER,
-        REWARDMANAGER
+    constructor() {
     }
 
-    struct Backing {
-        address erc20Address;
-        address tosPoolAddress;
-        uint24 fee;
-    }
-
-    IERC20 public TOS;
-
-    address public calculator;
-
-    mapping(STATUS => address[]) public registry;
-    mapping(STATUS => mapping(address => bool)) public permissions;
-    mapping(address => address) public bondCalculator;
-
-    uint256 public totalReserves;
-    uint256 public ETHbacking;
-    uint256 public tosBacking;
-
-    Backing[] public backings;
-
-    address[] public backingLists;
-    mapping(uint256 => uint256) public backingList;
-
-    string internal notAccepted = "Treasury: not accepted";
-    string internal notApproved = "Treasury: not approved";
-    string internal invalidToken = "Treasury: invalid token";
-    string internal insufficientReserves = "Treasury: insufficient reserves";
-
-    constructor(
-        address _tos,
-        address _calculator
-    ) {
-        require(_tos != address(0), "Zero address: TOS");
-
-        _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
-        _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-
-        TOS = IERC20(_tos);
-        calculator = _calculator;
-    }
-
-    /**
-     * @notice allow approved address to deposit an asset for TOS (token의 현재 시세에 맞게 입금하고 TOS를 받음)
-     * @param _amount uint256
-     * @param _token address
-     * @param _profit uint256
-     * @return send_ uint256
-     */
-    function deposit(
-        uint256 _amount,
-        address _token,
-        uint256 _profit
-    ) external override returns (uint256 send_) {
-        if (permissions[STATUS.RESERVETOKEN][_token]) {
-            require(permissions[STATUS.RESERVEDEPOSITOR][msg.sender], notApproved);
-        } else if (permissions[STATUS.LIQUIDITYTOKEN][_token]) {
-            require(permissions[STATUS.LIQUIDITYDEPOSITOR][msg.sender], notApproved);
-        } else {
-            revert(invalidToken);
-        }
-
-        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
-
-        uint256 value = tokenValue(_token, _amount);
-        // mint TOS needed and store amount of rewards for distribution
-        send_ = value.sub(_profit);
-        ITOS(address(TOS)).mint(msg.sender, send_);
-
-        totalReserves = totalReserves.add(value);
-
-        emit Deposit(_token, _amount, value);
-    }
-
-    //자기가 보유하고 있는 TOS를 burn시키구 그가치에 해당하는 token의 amount를 가지고 간다.
-    function withdraw(uint256 _amount, address _token) external override {
-        require(permissions[STATUS.RESERVETOKEN][_token], notAccepted); // Only reserves can be used for redemptions
-        require(permissions[STATUS.RESERVESPENDER][msg.sender], notApproved);
-
-        uint256 value = tokenValue(_token, _amount);
-        ITOS(address(TOS)).burn(msg.sender, value);
-
-        totalReserves = totalReserves.sub(value);
-
-        IERC20(_token).safeTransfer(msg.sender, _amount);
-
-        emit Withdrawal(_token, _amount, value);
-    }
-
-    //TOS mint 권한 및 통제? 설정 필요
-    function mint(address _recipient, uint256 _amount) external override {
-        require(permissions[STATUS.REWARDMANAGER][msg.sender], notApproved);
-        ITOS(address(TOS)).mint(_recipient, _amount);
-        emit Minted(msg.sender, _recipient, _amount);
-    }
-
-    /* ========== MANAGERIAL FUNCTIONS ========== */
-
-    /**
-     * @notice takes inventory of all tracked assets
-     * @notice always consolidate to recognized reserves before audit
-     */
-    function auditReserves() external onlyPolicyOwner {
-        uint256 reserves;
-        address[] memory reserveToken = registry[STATUS.RESERVETOKEN];
-
-        for (uint256 i = 0; i < reserveToken.length; i++) {
-            if (permissions[STATUS.RESERVETOKEN][reserveToken[i]]) {
-                reserves = reserves.add(tokenValue(reserveToken[i], IERC20(reserveToken[i]).balanceOf(address(this))));
-            }
-        }
-
-        address[] memory liquidityToken = registry[STATUS.LIQUIDITYTOKEN];
-
-        for (uint256 i = 0; i < liquidityToken.length; i++) {
-            if (permissions[STATUS.LIQUIDITYTOKEN][liquidityToken[i]]) {
-                reserves = reserves.add(
-                    tokenValue(liquidityToken[i], IERC20(liquidityToken[i]).balanceOf(address(this)))
-                );
-            }
-        }
-
-        totalReserves = reserves;
-        emit ReservesAudited(reserves);
-    }
+    /* ========== onlyPolicyOwner ========== */
 
     /**
      * @notice enable permission from queue
-     * @param _status STATUS
+     * @param _status uint(STATUS)
      * @param _address address
-     * @param _calculator address
      */
     function enable(
-        STATUS _status,
-        address _address,
-        address _calculator
-    ) external onlyPolicyOwner {
-        permissions[_status][_address] = true;
+        uint _status,
+        address _address
+    )
+        external override
+        onlyPolicyOwner
+    {
+        LibTreasury.STATUS role = LibTreasury.getSatatus(_status);
 
-        (bool registered, ) = indexInRegistry(_address, _status);
+        require(role != LibTreasury.STATUS.NONE, "NONE permission");
+        require(permissions[role][_address] == false, "already set");
+
+        permissions[role][_address] = true;
+
+        (bool registered, ) = indexInRegistry(_address, role);
 
         if (!registered) {
-            registry[_status].push(_address);
+            registry[role].push(_address);
         }
 
         emit Permissioned(_address, _status, true);
@@ -184,19 +88,296 @@ contract Treasury is ITreasury, ProxyAccessCommon {
 
     /**
      *  @notice disable permission from address
-     *  @param _status STATUS
+     *  @param _status uint(STATUS)
      *  @param _toDisable address
      */
-    function disable(STATUS _status, address _toDisable) external onlyPolicyOwner {
-        permissions[_status][_toDisable] = false;
-        emit Permissioned(_toDisable, _status, false);
+    function disable(uint _status, address _toDisable)
+        external override onlyPolicyOwner
+    {
+        LibTreasury.STATUS role = LibTreasury.getSatatus(_status);
+        require(role != LibTreasury.STATUS.NONE, "NONE permission");
+        require(permissions[role][_toDisable] == true, "hasn't permissions");
+
+        permissions[role][_toDisable] = false;
+
+        (bool registered, uint256 _index) = indexInRegistry(_toDisable, role);
+        if (registered && registry[role].length > 0) {
+            if (_index < registry[role].length-1) registry[role][_index] = registry[role][registry[role].length-1];
+            registry[role].pop();
+        }
+
+        emit Permissioned(_toDisable, uint(role), false);
+    }
+
+    function approve(
+        address _addr
+    ) external override onlyPolicyOwner {
+        TOS.approve(_addr, 1e45);
+    }
+
+    function setMR(uint256 _mrRate, uint256 amount) external override onlyPolicyOwner {
+
+        require(mintRate != _mrRate || amount > 0, "check input value");
+
+        require(checkTosSolvencyAfterTOSMint(_mrRate, amount), "unavailable mintRate");
+
+        if (mintRate != _mrRate) mintRate = _mrRate;
+        if (amount > 0) TOS.mint(address(this), amount);
+    }
+
+    function setMinimumTOSPricePerETH(uint256 _minimumTOSPricePerETH) external onlyPolicyOwner
+    {
+        require(_minimumTOSPricePerETH > 0 && minimumTOSPricePerETH != _minimumTOSPricePerETH, "wrong _mininumValue") ;
+
+        minimumTOSPricePerETH = _minimumTOSPricePerETH;
+    }
+
+    function setPoolAddressTOSETH(address _poolAddressTOSETH) external onlyPolicyOwner {
+        require(poolAddressTOSETH != _poolAddressTOSETH, "same address");
+        poolAddressTOSETH = _poolAddressTOSETH;
+    }
+
+    function setUniswapV3Factory(address _uniswapFactory) external onlyPolicyOwner {
+        require(uniswapV3Factory != _uniswapFactory, "same address");
+        uniswapV3Factory = _uniswapFactory;
+    }
+
+    function setMintRateDenominator(uint256 _mintRateDenominator) external onlyPolicyOwner {
+        require(mintRateDenominator != _mintRateDenominator && _mintRateDenominator > 0, "check input value");
+        mintRateDenominator = _mintRateDenominator;
+    }
+
+    function totalBacking() public override view returns(uint256) {
+         return backings.length;
+    }
+
+    function viewBackingInfo(uint256 _index)
+        public override view
+        returns (address erc20Address, address tosPoolAddress, uint24 fee)
+    {
+         return (
+                backings[_index].erc20Address,
+                backings[_index].tosPoolAddress,
+                backings[_index].fee
+            );
+    }
+
+    function allBacking() public override view
+        returns (
+            address[] memory erc20Address,
+            address[] memory tosPoolAddress,
+            uint24[] memory fee)
+    {
+        uint256 len = backings.length;
+        erc20Address = new address[](len);
+        tosPoolAddress = new address[](len);
+        fee = new uint24[](len);
+
+        for (uint256 i = 0; i < len; i++){
+            erc20Address[i] = backings[i].erc20Address;
+            tosPoolAddress[i] = backings[i].tosPoolAddress;
+            fee[i] = backings[i].fee;
+        }
+    }
+
+    function addBondAsset(
+        address _address,
+        address _tosPooladdress,
+        uint24 _fee
+    )
+        external override
+    {
+        require(isBonder(msg.sender), "caller is not bonder");
+
+        if (backingsIndex[_address] == 0 && _address != address(0) ){
+            addBackingList(
+                _address,
+                _tosPooladdress,
+                _fee
+            );
+        }
+    }
+
+    function addBackingList(
+        address _address,
+        address _tosPooladdress,
+        uint24 _fee
+    )
+        public override onlyPolicyOwner
+        nonZeroAddress(_address)
+        nonZeroAddress(_tosPooladdress)
+    {
+
+        if(backings.length == 0) {
+            // add dummy
+            backings.push(
+                LibTreasury.Backing({
+                    erc20Address: address(0),
+                    tosPoolAddress: address(0),
+                    fee: 0
+                })
+            );
+        }
+        require(backingsIndex[_address] == 0, "already added");
+
+        backingsIndex[_address] = backings.length;
+
+        backings.push(
+            LibTreasury.Backing({
+                erc20Address: _address,
+                tosPoolAddress: _tosPooladdress,
+                fee: _fee
+            })
+        );
+    }
+
+
+    function deleteBackingList(
+        address _address
+    )
+        external override onlyPolicyOwner
+        nonZeroAddress(_address)
+    {
+        require(backingsIndex[_address] > 0, "not registered");
+
+        uint256 curIndex = backingsIndex[_address];
+        if (curIndex < backings.length-1) {
+            LibTreasury.Backing storage info = backings[curIndex];
+            info.erc20Address = backings[backings.length-1].erc20Address;
+            info.tosPoolAddress = backings[backings.length-1].tosPoolAddress;
+            info.fee = backings[backings.length-1].fee;
+
+            backingsIndex[info.erc20Address] = curIndex;
+        }
+        backingsIndex[_address] = 0;
+        backings.pop();
+    }
+
+    function totalMinting() public override view returns(uint256) {
+         return mintings.length;
+    }
+
+    function viewMintingInfo(uint256 _index)
+        public override view returns(address mintAddress, uint256 mintPercents)
+    {
+         return (mintings[_index].mintAddress, mintings[_index].mintPercents);
+    }
+
+    function allMintingg() public override view
+        returns (
+            address[] memory mintAddress,
+            uint256[] memory mintPercents
+            )
+    {
+        uint256 len = mintings.length;
+        mintAddress = new address[](len);
+        mintPercents = new uint256[](len);
+
+        for (uint256 i = 0; i < len; i++){
+            mintAddress[i] = mintings[i].mintAddress;
+            mintPercents[i] = mintings[i].mintPercents;
+        }
+    }
+
+
+    //TOS mint
+    function setFoundationDistributeInfo(
+        address[] memory  _addr,
+        uint256[] memory _percents
+    )
+        external override onlyPolicyOwner
+    {
+        uint256 total = 0;
+        require(_addr.length > 0, "zero length");
+        require(_addr.length == _percents.length, "wrong length");
+
+        uint256 len = _addr.length;
+        for (uint256 i = 0; i< len ; i++){
+            require(_addr[i] != address(0), "zero address");
+            require(_percents[i] > 0, "zero _percents");
+            total += _percents[i];
+        }
+        require(total < 100, "wrong _percents");
+
+        delete mintings;
+
+        for (uint256 i = 0; i< len ; i++) {
+            mintings.push(
+                LibTreasury.Minting({
+                    mintAddress: _addr[i],
+                    mintPercents: _percents[i]
+                })
+            );
+        }
+    }
+
+    /* ========== permissions : LibTreasury.STATUS.RESERVEDEPOSITOR ========== */
+
+
+    function requestMintAndTransfer(
+        uint256 _mintAmount,
+        address _recipient,
+        uint256 _transferAmount,
+        bool _distribute
+    )
+        external override
+    {
+        require(isBonder(msg.sender), notApproved);
+
+        require(_mintAmount > 0, "zero amount");
+        require(_mintAmount >= _transferAmount, "_mintAmount is less than _transferAmount");
+
+        TOS.mint(address(this), _mintAmount);
+
+        if (_transferAmount > 0) {
+            require(_recipient != address(0), "zero recipient");
+            TOS.safeTransfer(_recipient, _transferAmount);
+        }
+
+        uint256 remainedAmount = _mintAmount - _transferAmount;
+        if(remainedAmount > 0 && _distribute) _foundationDistribute(remainedAmount);
+    }
+
+    function requestTrasfer(
+        address _recipient,
+        uint256 _amount
+    ) external override {
+        require(isStaker(msg.sender), notApproved);
+
+        console.log("------------ requestTrasfer ---------------------");
+
+        require(_recipient != address(0), "zero recipient");
+        require(_amount > 0, "zero amount");
+
+        require(TOS.balanceOf(address(this)) >= _amount, "treasury balance is insufficient");
+
+        console.log("requestTrasfer _recipient %s", _recipient);
+        console.log("requestTrasfer _amount %s", _amount);
+
+        TOS.transfer(_recipient, _amount);
+    }
+
+
+    function _foundationDistribute(uint256 remainedAmount) internal {
+        if (mintings.length > 0) {
+            for (uint256 i = 0; i < mintings.length ; i++) {
+                TOS.safeTransfer(
+                    mintings[i].mintAddress, remainedAmount *  mintings[i].mintPercents / 100
+                );
+            }
+        }
     }
 
     /**
      * @notice check if registry contains address
      * @return (bool, uint256)
      */
-    function indexInRegistry(address _address, STATUS _status) public view returns (bool, uint256) {
+    function indexInRegistry(
+        address _address,
+        LibTreasury.STATUS _status
+    )
+        public override view returns (bool, uint256)
+    {
         address[] memory entries = registry[_status];
         for (uint256 i = 0; i < entries.length; i++) {
             if (_address == entries[i]) {
@@ -206,62 +387,127 @@ contract Treasury is ITreasury, ProxyAccessCommon {
         return (false, 0);
     }
 
-    //지원하는 자산을 추가 시킴
-    function addbackingList(address _address,address _tosPooladdress, uint24 _fee) external onlyPolicyOwner {
-        uint256 amount = IERC20(_address).balanceOf(address(this));
-        backingList[backings.length] = amount;
-        // backingList[backingLists.length] = amount;
-        // backingLists.push(_address);
-        backings.push(
-            Backing({
-                erc20Address: _address,
-                tosPoolAddress: _tosPooladdress,
-                fee: _fee
-            })
-        );
+    /* ========== VIEW ========== */
+
+    function getMintRate() public view returns (uint256) {
+        return mintRate;
     }
 
-    //현재 지원하는 자산을 최신으로 업데이트 시킴
-    function backingUpdate() public override {
-        ETHbacking = address(this).balance;
-        for (uint256 i = 0; i < backings.length; i++) {
-            uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));
-            backingList[i] = amount;
+    function checkTosSolvencyAfterTOSMint(uint256 _checkMintRate, uint256 amount)
+        public override view returns (bool)
+    {
+        if (TOS.totalSupply() + amount  <= backingReserveTOS() * _checkMintRate / mintRateDenominator)  return true;
+        else return false;
+    }
+
+    function  checkTosSolvency(uint256 amount)
+        public override view returns (bool)
+    {
+        if ( TOS.totalSupply() + amount <= backingReserveTOS() * mintRate / mintRateDenominator)  return true;
+        else return false;
+    }
+
+
+    function isTreasuryHealthyAfterTOSMint(uint256 amount)
+        public override view returns (bool)
+    {
+        if (TOS.totalSupply() + amount <= backingReserveTOS())  return true;
+        else return false;
+    }
+
+    function backingReserveETH() public view returns (uint256) {
+        return backingReserve();
+    }
+
+    function backingReserveTOS() public view returns (uint256) {
+
+        return backingReserve() * getTOSPricePerETH() / 1e18;
+    }
+
+    function getETHPricePerTOS() public view returns (uint256) {
+        console.log("getETHPricePerTOS poolAddressTOSETH %s",poolAddressTOSETH);
+        console.log("getETHPricePerTOS liquidity %s",IIIUniswapV3Pool(poolAddressTOSETH).liquidity());
+        if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
+            return  (mintRateDenominator / mintRate);
+        } else {
+            console.log("getETHPricePerTOS liquidity is not zero ");
+            return IITOSValueCalculator(calculator).getETHPricePerTOS();
         }
     }
 
-    /**
-     * @notice returns TOS valuation of asset (해당 토큰의 amount만큼의 TOS amount return)
-     * @param _token address
-     * @param _amount uint256
-     * @return value_ uint256
-     */
-    function tokenValue(address _token, uint256 _amount) public override view returns (uint256 value_) {
-        value_ = _amount.mul(10**IERC20Metadata(address(TOS)).decimals()).div(10**IERC20Metadata(_token).decimals());
+    function getTOSPricePerETH() public view returns (uint256) {
 
-        //erc20일때
-        // value_ = IBondingCalculator(bondCalculator[_token]).valuation(_token, _amount);
-        //uniswapV3일때
-        // value_ = IBondingCalculator(bondCalculator[_token]).valuation(_token, _amount);
-        // value_ = IBondingCalculator(address).valuation(address, uint256);
+        console.log("getTOSPricePerETH poolAddressTOSETH %s",poolAddressTOSETH);
+
+        if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
+            return  minimumTOSPricePerETH;
+        } else {
+            return IITOSValueCalculator(calculator).getTOSPricePerETH();
+        }
     }
 
-    //eth, weth, market에서 받은 자산 다 체크해야함
-    //환산은 eth단위로
-    //Treasury에 있는 자산을 ETH로 환산하여서 합하여 리턴함
-    function backingReserve() public view returns (uint256) {
-        uint256 totalValue;
-        uint256 tosETHPrice = ITOSValueCalculator(calculator).getWETHPoolTOSPrice();
+    function backingReserve() public override view returns (uint256) {
+        uint256 totalValue = 0;
+
+        bool applyWTON = false;
+        uint256 tosETHPricePerTOS = IITOSValueCalculator(calculator).getETHPricePerTOS();
+        console.log("tosETHPricePerTOS %s", tosETHPricePerTOS) ;
+
         for(uint256 i = 0; i < backings.length; i++) {
-            uint256 amount = IERC20(backings[i].erc20Address).balanceOf(address(this));
-            uint256 tosERC20Price = ITOSValueCalculator(calculator).getTOSERC20PoolTOSPrice(backings[i].erc20Address,backings[i].tosPoolAddress,backings[i].fee);
-            totalValue = totalValue + (amount * tosERC20Price * tosETHPrice);
+
+            if (backings[i].erc20Address == wethAddress)  {
+                totalValue += IERC20(wethAddress).balanceOf(address(this));
+                applyWTON = true;
+
+            } else if (backings[i].erc20Address != address(0) && backings[i].erc20Address != address(TOS))  {
+
+                (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) =
+                    IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(backings[i].erc20Address, IERC20(backings[i].erc20Address).balanceOf(address(this)));
+
+                if (existedWethPool) totalValue += convertedAmmount;
+
+                else if (existedTosPool){
+
+                    if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
+                        // 확인필요
+                        totalValue +=  (convertedAmmount * mintRateDenominator / mintRate );
+                    } else {
+                        totalValue += (convertedAmmount * tosETHPricePerTOS / 1e18);
+                    }
+                }
+            }
         }
-        totalValue = totalValue + ETHbacking;
+
+
+        if (!applyWTON && wethAddress != address(0)) totalValue += IERC20(wethAddress).balanceOf(address(this));
+
+        //0.000004124853366489 ETH/TOS ,  242427 TOS /ETH
+        totalValue += address(this).balance;
+
+        console.log("backingReserve %s", totalValue);
+
         return totalValue;
     }
 
-    function enableStaking() public view override returns (uint256) {
+
+    function backingRateETHPerTOS() public override view returns (uint256) {
+        return (backingReserve() / TOS.totalSupply()) ;
+    }
+
+    function enableStaking() public override view returns (uint256) {
         return TOS.balanceOf(address(this));
     }
+
+    function hasPermission(uint role, address account) public override view returns (bool) {
+        return permissions[LibTreasury.getSatatus(role)][account];
+    }
+
+    function isBonder(address account) public view virtual returns (bool) {
+        return permissions[LibTreasury.STATUS.BONDER][account];
+    }
+
+    function isStaker(address account) public view virtual returns (bool) {
+        return permissions[LibTreasury.STATUS.STAKER][account];
+    }
+
 }
