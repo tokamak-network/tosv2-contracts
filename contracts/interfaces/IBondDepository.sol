@@ -10,8 +10,7 @@ interface IBondDepository {
     //////////////////////////////////////
 
     /**
-     * @notice             creates a new market type
-     * @dev
+     * @dev                creates a new market type
      * @param _check       ETH를 받을려면(true), token을 받으면(false)
      * @param _token       토큰 주소
      * @param _poolAddress 토큰과 ETH주소의 pool주소
@@ -27,32 +26,58 @@ interface IBondDepository {
         uint256[5] calldata _market
     ) external returns (uint256 id_);
 
-     /**
-     * @dev 이더
+    /**
+     * @dev        close the market
      * @param _id  ID of market to close
      */
     function close(uint256 _id) external;
 
+    /**
+     * @dev                increase the market Capacity
+     * @param _marketId    marketId
+     * @param amount       increase amount
+     */
     function increaseCapacity(
         uint256 _marketId,
         uint256 amount
     )   external;
 
+    /**
+     * @dev                decrease the market Capacity
+     * @param _marketId    marketId
+     * @param amount       decrease amount
+     */
     function decreaseCapacity(
         uint256 _marketId,
         uint256 amount
     ) external;
-
+    
+    /**
+     * @dev                change the market closeTime
+     * @param _marketId    marketId
+     * @param closeTime    closeTime
+     */
     function changeCloseTime(
         uint256 _marketId,
         uint256 closeTime
     )   external ;
 
+    /**
+     * @dev                change the market maxpayout(Maximum amount that can be purchased at one time)
+     * @param _marketId    marketId
+     * @param _amount      maxPayout Amount
+     */
     function changeMaxPayout(
         uint256 _marketId,
         uint256 _amount
     )   external;
 
+    /**
+     * @dev                change the market price
+     * @param _marketId    marketId
+     * @param _tokenPrice  tokenPrice
+     * @param _tosPrice  tosPrice
+     */
     function changePrice(
         uint256 _marketId,
         uint256 _tokenPrice,
@@ -145,8 +170,22 @@ interface IBondDepository {
     /// @return maxpayout_  the asset amount
     function purchasableAseetAmountAtOneTime(uint256 _id) external view returns (uint256 maxpayout_);
 
+    /// @dev Returns all generated marketIDs.
+    /// @return memory[]  marketList
     function getMarketList() external view returns (uint256[] memory) ;
+
+    /// @dev Returns the number of created markets.
+    /// @return Total number of markets
     function totalMarketCount() external view returns (uint256) ;
+
+    /// @dev Returns information about the market.
+    /// @param _index  the market id
+    /// @return method  market check ETHmarket, ERC20market
+    /// @return quoteToken  saleToken Address
+    /// @return capacity  tokenSaleAmount
+    /// @return endSaleTime  market endTime
+    /// @return sold  Token sale volume in the market 
+    /// @return maxPayout  Amount of tokens that can be purchased for one tx in the market
     function viewMarket(uint256 _index) external view
         returns (
             bool method,
@@ -157,11 +196,24 @@ interface IBondDepository {
             uint256 maxPayout
             );
 
+    /// @dev Returns all generated Metadata.
+    /// @return memory[] metadatalist
     function getMetadataList() external view returns (uint256[] memory);
+
+    /// @dev Returns the number of created Metadata.
+    /// @return memory[] Total number of metadata
     function totalMetadataCount() external view returns (uint256);
+    
+    /// @dev Returns information about the metadata.
+    /// @param _index  the metadata id
+    /// @return poolAddress  poolAddress
+    /// @return _tokenPrice  tokenPrice
+    /// @return _tosPrice  tosPrice
+    /// @return _totalSaleAmount  The amount of tokens you want to sell on the market
+    /// @return fee  fee of pool
+    /// @return ethMarket  check the ethMarket
     function viewMetadata(uint256 _index) external view
-        returns
-        (
+        returns (
             address poolAddress,
             uint256 _tokenPrice,
             uint256 _tosPrice,
@@ -170,22 +222,44 @@ interface IBondDepository {
             bool ethMarket
             );
 
+    /// @dev Return The market ID and token ID that I deposited 
+    /// @param account  depositAddress
+    /// @return _marketIds Array of MarketIDs I deposited
+    /// @return _stakeIds Array of stakeIDs I deposited
     function getDepositList(address account) external view returns (
         uint256[] memory _marketIds,
         uint256[] memory _stakeIds
     );
 
+    /// @dev Returns the number of tokens deposited in the market
+    /// @param account  depositAddress
+    /// @return uint256 totalDepositCount
     function totalDepositCountOfAddress(address account) external view returns (uint256);
 
+    /// @dev Return The market ID and token ID that I deposited 
+    /// @param account  depositAddress
+    /// @param _index  Index deposited in the market
+    /// @return marketId MarketIDs
+    /// @return stakeId stakeIDs
     function viewDeposit(address account, uint256 _index) external view
-        returns
-            (
+        returns (
             uint256 marketId,
             uint256 stakeId
             );
 
+    /// @dev Return Whether The index market Whether is closed
+    /// @param _index  Index in the market
+    /// @return closedBool Whether the market is closed
     function isOpend(uint256 _index) external view returns (bool closedBool);
 
+    /// @dev Return information from all markets
+    /// @return marketIds Array of total MarketIDs
+    /// @return quoteTokens Array of total market's quoteTokens
+    /// @return capacities Array of total market's capacities
+    /// @return maxpayouts Array of total market's maxpayouts
+    /// @return endSaleTimes Array of total market's endSaleTimes
+    /// @return pricesToken Array of total market's pricesToken
+    /// @return pricesTos Array of total market's pricesTos
     function getBonds() external view
         returns (
             uint256[] memory marketIds,
