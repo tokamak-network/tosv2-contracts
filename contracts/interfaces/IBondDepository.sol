@@ -51,7 +51,7 @@ interface IBondDepository {
         uint256 _marketId,
         uint256 amount
     ) external;
-    
+
     /**
      * @dev                change the market closeTime
      * @param _marketId    marketId
@@ -184,7 +184,7 @@ interface IBondDepository {
     /// @return quoteToken  saleToken Address
     /// @return capacity  tokenSaleAmount
     /// @return endSaleTime  market endTime
-    /// @return sold  Token sale volume in the market 
+    /// @return sold  Token sale volume in the market
     /// @return maxPayout  Amount of tokens that can be purchased for one tx in the market
     function viewMarket(uint256 _index) external view
         returns (
@@ -203,7 +203,7 @@ interface IBondDepository {
     /// @dev Returns the number of created Metadata.
     /// @return memory[] Total number of metadata
     function totalMetadataCount() external view returns (uint256);
-    
+
     /// @dev Returns information about the metadata.
     /// @param _index  the metadata id
     /// @return poolAddress  poolAddress
@@ -222,7 +222,7 @@ interface IBondDepository {
             bool ethMarket
             );
 
-    /// @dev Return The market ID and token ID that I deposited 
+    /// @dev Return The market ID and token ID that I deposited
     /// @param account  depositAddress
     /// @return _marketIds Array of MarketIDs I deposited
     /// @return _stakeIds Array of stakeIDs I deposited
@@ -236,7 +236,7 @@ interface IBondDepository {
     /// @return uint256 totalDepositCount
     function totalDepositCountOfAddress(address account) external view returns (uint256);
 
-    /// @dev Return The market ID and token ID that I deposited 
+    /// @dev Return The market ID and token ID that I deposited
     /// @param account  depositAddress
     /// @param _index  Index deposited in the market
     /// @return marketId MarketIDs
@@ -268,6 +268,7 @@ interface IBondDepository {
             uint256[] memory maxpayouts,
             uint256[] memory endSaleTimes,
             uint256[] memory pricesToken,
-            uint256[] memory pricesTos
+            uint256[] memory pricesTos,
+            uint256[] memory totalSaleAmounts
         );
 }
