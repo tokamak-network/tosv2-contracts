@@ -369,7 +369,7 @@ contract BondDepository is
     /// VIEW
     //////////////////////////////////////
 
-    //  토큰양_amount에 해당하는 토스의 양을 리턴
+    /// @inheritdoc IBondDepository
     function calculateTosAmountForAsset(
         uint256 _id,
         uint256 _amount
@@ -388,6 +388,7 @@ contract BondDepository is
         return ( markets[_id].maxPayout * metadata[_id].tokenPrice / 1e18 );
     }
 
+    /// @inheritdoc IBondDepository
     function getBonds() public override view
         returns (
             uint256[] memory,
@@ -422,14 +423,17 @@ contract BondDepository is
         return (_marketIds, _quoteTokens, _capacities, _endSaleTimes, _pricesToken, _pricesTos, _totalSaleAmounts);
     }
 
+    /// @inheritdoc IBondDepository
     function getMarketList() public override view returns (uint256[] memory) {
         return marketList;
     }
 
+    /// @inheritdoc IBondDepository
     function totalMarketCount() public override view returns (uint256) {
         return marketList.length;
     }
 
+    /// @inheritdoc IBondDepository
     function viewMarket(uint256 _index) public override view
         returns (
             bool method,
@@ -450,6 +454,7 @@ contract BondDepository is
         );
     }
 
+    /// @inheritdoc IBondDepository
     function isOpend(uint256 _index) public override view returns (bool closedBool)
     {
         if (block.timestamp < markets[_index].endSaleTime && markets[_index].capacity > 0) {
@@ -459,15 +464,17 @@ contract BondDepository is
         }
     }
 
-
+    /// @inheritdoc IBondDepository
     function getMetadataList() public override view returns (uint256[] memory) {
         return metadataList;
     }
 
+    /// @inheritdoc IBondDepository
     function totalMetadataCount() public override view returns (uint256) {
         return metadataList.length;
     }
 
+    /// @inheritdoc IBondDepository
     function viewMetadata(uint256 _index) public override view
         returns
             (
@@ -489,6 +496,7 @@ contract BondDepository is
         );
     }
 
+    /// @inheritdoc IBondDepository
     function getDepositList(address account) public override view returns (
         uint256[] memory _marketIds,
         uint256[] memory _stakeIds
@@ -503,10 +511,12 @@ contract BondDepository is
         }
     }
 
+    /// @inheritdoc IBondDepository
     function totalDepositCountOfAddress(address account) public override view returns (uint256) {
         return deposits[account].length;
     }
 
+    /// @inheritdoc IBondDepository
     function viewDeposit(address account, uint256 _index) public override view
         returns
             (

@@ -61,11 +61,30 @@ interface IBondDepositoryEvent{
     /// @param tosValuation  the tos evaluate amount of sending
     event ETHDepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint256 lockWeeks, uint256 tosValuation);
 
-
+    /// @dev Event that occurs when the market capacity is increased
+    /// @param _marketId the market id
+    /// @param _amount increase capacity amount
     event IncreasedCapacity(uint256 _marketId, uint256  _amount);
+
+    /// @dev Event that occurs when the market capacity is decreased
+    /// @param _marketId the market id
+    /// @param _amount decrease capacity amount
     event DecreasedCapacity(uint256 _marketId, uint256 _amount);
+
+    /// @dev Event that occurs when the closeTime of the market is change
+    /// @param _marketId the market id
+    /// @param closeTime the close time
     event ChangedCloseTime(uint256 _marketId, uint256 closeTime);
+
+    /// @dev Event that occurs when the market price changes
+    /// @param _marketId the market id
+    /// @param _amount maxPayout
     event ChangedMaxPayout(uint256 _marketId, uint256 _amount);
+
+    /// @dev Event that gives a lockout period and is emitted when purchasing bonding with Ether
+    /// @param _marketId the market id
+    /// @param _tokenPrice The price of the token (price shown in uniswap)
+    /// @param _tosPrice The price of the tos (price shown in uniswap)
     event ChangedPrice(uint256 _marketId, uint256 _tokenPrice, uint256 _tosPrice);
 
 }

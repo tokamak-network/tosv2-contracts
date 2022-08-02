@@ -58,11 +58,7 @@ contract Treasury is
 
     /* ========== onlyPolicyOwner ========== */
 
-    /**
-     * @notice enable permission from queue
-     * @param _status uint(STATUS)
-     * @param _address address
-     */
+    /// @inheritdoc ITreasury
     function enable(
         uint _status,
         address _address
@@ -86,11 +82,7 @@ contract Treasury is
         emit Permissioned(_address, _status, true);
     }
 
-    /**
-     *  @notice disable permission from address
-     *  @param _status uint(STATUS)
-     *  @param _toDisable address
-     */
+    /// @inheritdoc ITreasury
     function disable(uint _status, address _toDisable)
         external override onlyPolicyOwner
     {
@@ -109,12 +101,14 @@ contract Treasury is
         emit Permissioned(_toDisable, uint(role), false);
     }
 
+    /// @inheritdoc ITreasury
     function approve(
         address _addr
     ) external override onlyPolicyOwner {
         TOS.approve(_addr, 1e45);
     }
 
+    /// @inheritdoc ITreasury
     function setMR(uint256 _mrRate, uint256 amount) external override onlyPolicyOwner {
 
         require(mintRate != _mrRate || amount > 0, "check input value");
@@ -147,10 +141,12 @@ contract Treasury is
         mintRateDenominator = _mintRateDenominator;
     }
 
+    /// @inheritdoc ITreasury
     function totalBacking() public override view returns(uint256) {
          return backings.length;
     }
 
+    /// @inheritdoc ITreasury
     function viewBackingInfo(uint256 _index)
         public override view
         returns (address erc20Address, address tosPoolAddress, uint24 fee)
@@ -162,6 +158,7 @@ contract Treasury is
             );
     }
 
+    /// @inheritdoc ITreasury
     function allBacking() public override view
         returns (
             address[] memory erc20Address,
@@ -180,6 +177,7 @@ contract Treasury is
         }
     }
 
+    /// @inheritdoc ITreasury
     function addBondAsset(
         address _address,
         address _tosPooladdress,
@@ -198,6 +196,7 @@ contract Treasury is
         }
     }
 
+    /// @inheritdoc ITreasury
     function addBackingList(
         address _address,
         address _tosPooladdress,
@@ -231,7 +230,7 @@ contract Treasury is
         );
     }
 
-
+    /// @inheritdoc ITreasury
     function deleteBackingList(
         address _address
     )
@@ -253,16 +252,19 @@ contract Treasury is
         backings.pop();
     }
 
+    /// @inheritdoc ITreasury
     function totalMinting() public override view returns(uint256) {
          return mintings.length;
     }
 
+    /// @inheritdoc ITreasury
     function viewMintingInfo(uint256 _index)
         public override view returns(address mintAddress, uint256 mintPercents)
     {
          return (mintings[_index].mintAddress, mintings[_index].mintPercents);
     }
 
+    /// @inheritdoc ITreasury
     function allMintingg() public override view
         returns (
             address[] memory mintAddress,
@@ -279,8 +281,7 @@ contract Treasury is
         }
     }
 
-
-    //TOS mint
+    /// @inheritdoc ITreasury
     function setFoundationDistributeInfo(
         address[] memory  _addr,
         uint256[] memory _percents
@@ -313,7 +314,7 @@ contract Treasury is
 
     /* ========== permissions : LibTreasury.STATUS.RESERVEDEPOSITOR ========== */
 
-
+    /// @inheritdoc ITreasury
     function requestMintAndTransfer(
         uint256 _mintAmount,
         address _recipient,
@@ -338,6 +339,7 @@ contract Treasury is
         if(remainedAmount > 0 && _distribute) _foundationDistribute(remainedAmount);
     }
 
+    /// @inheritdoc ITreasury
     function requestTrasfer(
         address _recipient,
         uint256 _amount
@@ -368,10 +370,7 @@ contract Treasury is
         }
     }
 
-    /**
-     * @notice check if registry contains address
-     * @return (bool, uint256)
-     */
+    /// @inheritdoc ITreasury
     function indexInRegistry(
         address _address,
         LibTreasury.STATUS _status
@@ -393,6 +392,7 @@ contract Treasury is
         return mintRate;
     }
 
+    /// @inheritdoc ITreasury
     function checkTosSolvencyAfterTOSMint(uint256 _checkMintRate, uint256 amount)
         public override view returns (bool)
     {
@@ -400,6 +400,7 @@ contract Treasury is
         else return false;
     }
 
+    /// @inheritdoc ITreasury
     function  checkTosSolvency(uint256 amount)
         public override view returns (bool)
     {
@@ -407,7 +408,7 @@ contract Treasury is
         else return false;
     }
 
-
+    /// @inheritdoc ITreasury
     function isTreasuryHealthyAfterTOSMint(uint256 amount)
         public override view returns (bool)
     {
@@ -446,6 +447,7 @@ contract Treasury is
         }
     }
 
+    /// @inheritdoc ITreasury
     function backingReserve() public override view returns (uint256) {
         uint256 totalValue = 0;
 
@@ -489,15 +491,17 @@ contract Treasury is
         return totalValue;
     }
 
-
+    /// @inheritdoc ITreasury
     function backingRateETHPerTOS() public override view returns (uint256) {
         return (backingReserve() / TOS.totalSupply()) ;
     }
 
+    /// @inheritdoc ITreasury
     function enableStaking() public override view returns (uint256) {
         return TOS.balanceOf(address(this));
     }
 
+    /// @inheritdoc ITreasury
     function hasPermission(uint role, address account) public override view returns (bool) {
         return permissions[LibTreasury.getSatatus(role)][account];
     }

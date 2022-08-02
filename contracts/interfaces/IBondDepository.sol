@@ -121,8 +121,7 @@ interface IBondDepository {
     ///////////////////////////////////////
     /// VIEW
     //////////////////////////////////////
-
-
+    
     /// @dev How much tokens are valued as TOS
     /// @param _id  the market id
     /// @param _amount the amount of asset
