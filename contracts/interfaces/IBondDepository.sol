@@ -256,16 +256,15 @@ interface IBondDepository {
     /// @return marketIds Array of total MarketIDs
     /// @return quoteTokens Array of total market's quoteTokens
     /// @return capacities Array of total market's capacities
-    /// @return maxpayouts Array of total market's maxpayouts
     /// @return endSaleTimes Array of total market's endSaleTimes
     /// @return pricesToken Array of total market's pricesToken
     /// @return pricesTos Array of total market's pricesTos
+    /// @return totalSaleAmounts Array of total market's totalSaleAmounts
     function getBonds() external view
         returns (
             uint256[] memory marketIds,
             address[] memory quoteTokens,
             uint256[] memory capacities,
-            uint256[] memory maxpayouts,
             uint256[] memory endSaleTimes,
             uint256[] memory pricesToken,
             uint256[] memory pricesTos,

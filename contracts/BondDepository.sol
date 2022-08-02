@@ -454,7 +454,6 @@ contract BondDepository is
             uint256[] memory,
             uint256[] memory,
             uint256[] memory,
-            uint256[] memory,
             uint256[] memory
         )
     {
@@ -465,20 +464,20 @@ contract BondDepository is
         uint256[] memory _endSaleTimes = new uint256[](len);
         uint256[] memory _pricesToken = new uint256[](len);
         uint256[] memory _pricesTos = new uint256[](len);
-        uint256[] memory _maxpayouts = new uint256[](len);
+        //uint256[] memory _maxpayouts = new uint256[](len);
         uint256[] memory _totalSaleAmounts = new uint256[](len);
 
         for (uint256 i = 0; i< len; i++){
             _marketIds[i] = marketList[i];
             _quoteTokens[i] = markets[i].quoteToken;
             _capacities[i] = markets[i].capacity;
-            _maxpayouts[i] = markets[i].maxPayout;
+            //_maxpayouts[i] = markets[i].maxPayout;
             _endSaleTimes[i] = markets[i].endSaleTime;
             _pricesToken[i] = metadata[i].tokenPrice;
             _pricesTos[i] = metadata[i].tosPrice;
             _totalSaleAmounts[i] = metadata[i].totalSaleAmount;
         }
-        return (_marketIds, _quoteTokens, _capacities, _maxpayouts, _endSaleTimes, _pricesToken, _pricesTos, _totalSaleAmounts);
+        return (_marketIds, _quoteTokens, _capacities, _endSaleTimes, _pricesToken, _pricesTos, _totalSaleAmounts);
     }
 
     function getMarketList() public override view returns (uint256[] memory) {
