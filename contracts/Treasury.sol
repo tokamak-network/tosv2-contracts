@@ -117,21 +117,30 @@ contract Treasury is
 
         if (mintRate != _mrRate) mintRate = _mrRate;
         if (amount > 0) TOS.mint(address(this), amount);
+
+        emit SetMintRate(_mrRate, amount);
     }
+
 
     function setPoolAddressTOSETH(address _poolAddressTOSETH) external onlyPolicyOwner {
         require(poolAddressTOSETH != _poolAddressTOSETH, "same address");
         poolAddressTOSETH = _poolAddressTOSETH;
+
+        emit SetPoolAddressTOSETH(_poolAddressTOSETH);
     }
 
     function setUniswapV3Factory(address _uniswapFactory) external onlyPolicyOwner {
         require(uniswapV3Factory != _uniswapFactory, "same address");
         uniswapV3Factory = _uniswapFactory;
+
+        emit SetUniswapV3Factory(_uniswapFactory);
     }
 
     function setMintRateDenominator(uint256 _mintRateDenominator) external onlyPolicyOwner {
         require(mintRateDenominator != _mintRateDenominator && _mintRateDenominator > 0, "check input value");
         mintRateDenominator = _mintRateDenominator;
+
+        emit SetMintRateDenominator(_mintRateDenominator);
     }
 
     /// @inheritdoc ITreasury
@@ -187,6 +196,8 @@ contract Treasury is
                 _fee
             );
         }
+
+        emit AddedBondAsset(_address, _tosPooladdress, _fee);
     }
 
     /// @inheritdoc ITreasury
@@ -221,6 +232,8 @@ contract Treasury is
                 fee: _fee
             })
         );
+
+        emit AddedBackingList(_address, _tosPooladdress, _fee);
     }
 
     /// @inheritdoc ITreasury
@@ -243,6 +256,8 @@ contract Treasury is
         }
         backingsIndex[_address] = 0;
         backings.pop();
+
+        emit DeletedBackingList(_address);
     }
 
     /// @inheritdoc ITreasury
@@ -303,6 +318,8 @@ contract Treasury is
                 })
             );
         }
+
+        emit SetFoundationDistributeInfo(_addr, _percents);
     }
 
     /* ========== permissions : LibTreasury.STATUS.RESERVEDEPOSITOR ========== */
@@ -330,6 +347,10 @@ contract Treasury is
 
         uint256 remainedAmount = _mintAmount - _transferAmount;
         if(remainedAmount > 0 && _distribute) _foundationDistribute(remainedAmount);
+
+
+        emit RquestedMintAndTransfer(_mintAmount, _recipient, _transferAmount, _distribute);
+
     }
 
     /// @inheritdoc ITreasury
@@ -350,6 +371,9 @@ contract Treasury is
         console.log("requestTrasfer _amount %s", _amount);
 
         TOS.transfer(_recipient, _amount);
+
+         emit RequestedTrasfer(_recipient, _amount);
+
     }
 
 
