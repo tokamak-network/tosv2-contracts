@@ -17,22 +17,12 @@ library LibBondDepository
     // Additional info about market.
     struct Metadata {
         address poolAddress;
-        uint256 tokenPrice;
         uint256 tosPrice;
         uint256 totalSaleAmount; //tos sales volume
         uint24 fee;
         bool ethMarket;
     }
 
-    /*
-    struct User {
-        uint256 tokenAmount;
-        uint256 tosAmount;
-        uint256 marketID;
-        uint256 endTime;
-        uint256 dTOSuse;
-    }
-    */
     struct Deposit {
         uint256 marketId;
         uint256 stakeId;

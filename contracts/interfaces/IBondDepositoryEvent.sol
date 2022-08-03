@@ -18,8 +18,8 @@ interface IBondDepositoryEvent{
     /// @param token  available token address
     /// @param pool  Pool address from which you can get the price ratio of tokens and TOS or tokens and Ether
     /// @param fee  Pool's fee
-    /// @param market  [팔려고 하는 tos의 목표치, close time, 받는 token의 가격, tos token의 가격, 한번에 구매 가능한 TOS물량]
-    event CreatedMarket(uint256 marketId, bool isEth, address token, address pool, uint24 fee, uint256[5] market);
+    /// @param market  [팔려고 하는 tos의 목표치, close time,  tos token의 가격, 한번에 구매 가능한 TOS물량]
+    event CreatedMarket(uint256 marketId, bool isEth, address token, address pool, uint24 fee, uint256[4] market);
 
     /// @dev This event occurs when a specific market product is closed.
     /// @param marketId the market id
@@ -83,8 +83,7 @@ interface IBondDepositoryEvent{
 
     /// @dev Event that gives a lockout period and is emitted when purchasing bonding with Ether
     /// @param _marketId the market id
-    /// @param _tokenPrice The price of the token (price shown in uniswap)
     /// @param _tosPrice The price of the tos (price shown in uniswap)
-    event ChangedPrice(uint256 _marketId, uint256 _tokenPrice, uint256 _tosPrice);
+    event ChangedPrice(uint256 _marketId, uint256 _tosPrice);
 
 }

@@ -36,7 +36,7 @@ interface IStaking {
 
     /* ========== onlyOwner ========== */
 
-
+    /*
     /// @dev set basic lock period
     /// @param accounts  the array of account for sync
     /// @param balances  the array of tos amount for sync
@@ -49,6 +49,7 @@ interface IStaking {
         uint256[] memory tokenId
     ) external ;
 
+    */
 
     /* ========== onlyBonder ========== */
 
@@ -60,14 +61,12 @@ interface IStaking {
     /// @param to  the user address
     /// @param _amount  the tos amount
     /// @param _marketId  the market id
-    /// @param tokenPrice  the token price per TOS
     /// @param tosPrice  the tos price per Token
     /// @return stakeId  the stake id
     function stakeByBond(
         address to,
         uint256 _amount,
         uint256 _marketId,
-        uint256 tokenPrice,
         uint256 tosPrice
     ) external returns (uint256 stakeId);
 
@@ -78,7 +77,6 @@ interface IStaking {
     /// @param _amount  the tos amount
     /// @param _marketId  the market id
     /// @param _periodWeeks  the number of lockup weeks
-    /// @param tokenPrice  the token price per TOS
     /// @param tosPrice  the tos price per Token
     /// @return stakeId  the stake id
     function stakeGetStosByBond(
@@ -86,7 +84,6 @@ interface IStaking {
         uint256 _amount,
         uint256 _marketId,
         uint256 _periodWeeks,
-        uint256 tokenPrice,
         uint256 tosPrice
     ) external returns (uint256 stakeId);
 
@@ -172,10 +169,12 @@ interface IStaking {
 
     /* ========== VIEW ========== */
 
+    /*
     /// @dev 특정 스테이킹아이디의 남아있는 토스 양을 리턴함.
     /// @param _stakeId  the stake id
     /// @return return 남아있는 토스 양
     function remainedLTOSToTos(uint256 _stakeId) external view returns (uint256) ;
+    */
 
     /// @dev 특정 스테이킹아이디의 남아있는 LTOS 양을 리턴함.
     /// @param _stakeId  the stake id

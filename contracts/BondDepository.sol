@@ -90,7 +90,7 @@ contract BondDepository is
         address _token,
         address _poolAddress,
         uint24 _fee,
-        uint256[5] memory _market
+        uint256[4] memory _market
     )
         external
         override
@@ -98,7 +98,6 @@ contract BondDepository is
         nonZero(_market[0])
         nonZero(_market[2])
         nonZero(_market[3])
-        nonZero(_market[4])
         returns (uint256 id_)
     {
         id_ = staking.generateMarketId();  // BondDepository는 staking의 오너로 등록이 되어야 함.
@@ -120,13 +119,12 @@ contract BondDepository is
                             capacity: _market[0],
                             endSaleTime: _market[1],
                             sold: 0,
-                            maxPayout: _market[4]
+                            maxPayout: _market[3]
                         });
 
         metadata[id_] = LibBondDepository.Metadata({
                     poolAddress: _poolAddress,
-                    tokenPrice: _market[2],
-                    tosPrice: _market[3],
+                    tosPrice: _market[2],
                     totalSaleAmount: _market[0],
                     fee: _fee,
                     ethMarket: _check
@@ -144,7 +142,6 @@ contract BondDepository is
         uint256 _marketId,
         uint256 _amount
     )   external override onlyPolicyOwner
-        // nonEndMarket(_marketId)
         nonZero(_amount)
     {
         LibBondDepository.Market storage _info = markets[_marketId];
@@ -206,18 +203,15 @@ contract BondDepository is
 
     function changePrice(
         uint256 _marketId,
-        uint256 _tokenPrice,
         uint256 _tosPrice
     )   external override onlyPolicyOwner
         nonEndMarket(_marketId)
-        nonZero(_tokenPrice)
         nonZero(_tosPrice)
     {
         LibBondDepository.Metadata storage _metadata = metadata[_marketId];
-        _metadata.tokenPrice = _tokenPrice;
         _metadata.tosPrice = _tosPrice;
 
-        emit ChangedPrice(_marketId, _tokenPrice, _tosPrice);
+        emit ChangedPrice(_marketId, _tosPrice);
     }
 
     /// @inheritdoc IBondDepository
@@ -252,7 +246,7 @@ contract BondDepository is
         (payout_) = _deposit(msg.sender, _amount, _id, true);
 
         uint256 id = _id;
-        uint256 stakeId = staking.stakeByBond(msg.sender, payout_, id, metadata[id].tokenPrice, metadata[id].tosPrice);
+        uint256 stakeId = staking.stakeByBond(msg.sender, payout_, id, metadata[id].tosPrice);
 
         index_ = deposits[msg.sender].length;
 
@@ -284,7 +278,7 @@ contract BondDepository is
         (payout_) = _deposit(msg.sender, _amount, _id, true);
 
         uint256 id = _id;
-        uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, id, _lockWeeks, metadata[id].tokenPrice, metadata[id].tosPrice);
+        uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, id, _lockWeeks, metadata[id].tosPrice);
 
         index_ = deposits[msg.sender].length;
 
@@ -384,8 +378,8 @@ contract BondDepository is
 
     /// @inheritdoc IBondDepository
     function purchasableAseetAmountAtOneTime(uint256 _id) public override view returns (uint256 maxpayout_) {
-        console.log("purchasableAseetAmountAtOneTime metadata[_id].tokenPrice : %s", metadata[_id].tokenPrice);
-        return ( markets[_id].maxPayout * metadata[_id].tokenPrice / 1e18 );
+
+        return ( markets[_id].maxPayout *  1e18 / metadata[_id].tosPrice );
     }
 
     /// @inheritdoc IBondDepository
@@ -414,9 +408,7 @@ contract BondDepository is
             _marketIds[i] = marketList[i];
             _quoteTokens[i] = markets[i].quoteToken;
             _capacities[i] = markets[i].capacity;
-            //_maxpayouts[i] = markets[i].maxPayout;
             _endSaleTimes[i] = markets[i].endSaleTime;
-            _pricesToken[i] = metadata[i].tokenPrice;
             _pricesTos[i] = metadata[i].tosPrice;
             _totalSaleAmounts[i] = metadata[i].totalSaleAmount;
         }
@@ -479,7 +471,6 @@ contract BondDepository is
         returns
             (
             address poolAddress,
-            uint256 _tokenPrice,
             uint256 _tosPrice,
             uint256 totalSaleAmount,
             uint24 fee,
@@ -488,7 +479,6 @@ contract BondDepository is
     {
         return (
             metadata[_index].poolAddress,
-            metadata[_index].tokenPrice,
             metadata[_index].tosPrice,
             metadata[_index].totalSaleAmount,
             metadata[_index].fee,

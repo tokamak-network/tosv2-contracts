@@ -365,15 +365,28 @@ contract Treasury is
         require(_recipient != address(0), "zero recipient");
         require(_amount > 0, "zero amount");
 
-        require(TOS.balanceOf(address(this)) >= _amount, "treasury balance is insufficient");
+        // 확인 필요
+        // 토스가 모자르면 기존에 있던 이더 및 다른 에셋을 토스로 바꿔서 주어야 하는가?
+        // 또는 토스를 민트해서 보내주어야 하는가?
+        uint256 _tosBalance = TOS.balanceOf(address(this));
+
+        if (_tosBalance < _amount){
+
+            console.log("requestTrasfer _tosBalance %s", _tosBalance);
+            console.log("requestTrasfer _amount %s", _amount);
+
+            require(checkTosSolvency(_amount-_tosBalance), "treasury balance is insufficient");
+            TOS.mint(address(this), (_amount-_tosBalance));
+
+        }
+        // require(TOS.balanceOf(address(this)) >= _amount, "treasury balance is insufficient");
 
         console.log("requestTrasfer _recipient %s", _recipient);
         console.log("requestTrasfer _amount %s", _amount);
 
         TOS.transfer(_recipient, _amount);
 
-         emit RequestedTrasfer(_recipient, _amount);
-
+        emit RequestedTrasfer(_recipient, _amount);
     }
 
 

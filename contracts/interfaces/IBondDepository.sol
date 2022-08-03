@@ -15,7 +15,7 @@ interface IBondDepository {
      * @param _token       토큰 주소
      * @param _poolAddress 토큰과 ETH주소의 pool주소
      * @param _fee         pool의 _fee
-     * @param _market      [팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격, 한번에 구매 가능한 TOS물량]
+     * @param _market      [팔려고 하는 tos의 목표치, 판매 끝나는 시간, tos token의 가격, 한번에 구매 가능한 TOS물량]
      * @return id_         ID of new bond market
      */
     function create(
@@ -23,7 +23,7 @@ interface IBondDepository {
         address _token,
         address _poolAddress,
         uint24 _fee,
-        uint256[5] calldata _market
+        uint256[4] calldata _market
     ) external returns (uint256 id_);
 
     /**
@@ -75,12 +75,10 @@ interface IBondDepository {
     /**
      * @dev                change the market price
      * @param _marketId    marketId
-     * @param _tokenPrice  tokenPrice
      * @param _tosPrice  tosPrice
      */
     function changePrice(
         uint256 _marketId,
-        uint256 _tokenPrice,
         uint256 _tosPrice
     )   external ;
 
@@ -121,7 +119,7 @@ interface IBondDepository {
     ///////////////////////////////////////
     /// VIEW
     //////////////////////////////////////
-    
+
     /// @dev How much tokens are valued as TOS
     /// @param _id  the market id
     /// @param _amount the amount of asset
@@ -177,7 +175,6 @@ interface IBondDepository {
     /// @dev Returns information about the metadata.
     /// @param _index  the metadata id
     /// @return poolAddress  poolAddress
-    /// @return _tokenPrice  tokenPrice
     /// @return _tosPrice  tosPrice
     /// @return _totalSaleAmount  The amount of tokens you want to sell on the market
     /// @return fee  fee of pool
@@ -185,7 +182,6 @@ interface IBondDepository {
     function viewMetadata(uint256 _index) external view
         returns (
             address poolAddress,
-            uint256 _tokenPrice,
             uint256 _tosPrice,
             uint256 _totalSaleAmount,
             uint24 fee,
