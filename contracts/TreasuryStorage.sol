@@ -30,7 +30,7 @@ contract TreasuryStorage {
     uint256 public mintRate;
     uint256 public mintRateDenominator;
 
-    uint256 public minimumTOSPricePerETH; //1e18
+    // uint256 public minimumTOSPricePerETH; //1e18
 
     uint256 public totalPercents;
 

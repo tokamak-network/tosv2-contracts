@@ -119,13 +119,6 @@ contract Treasury is
         if (amount > 0) TOS.mint(address(this), amount);
     }
 
-    function setMinimumTOSPricePerETH(uint256 _minimumTOSPricePerETH) external onlyPolicyOwner
-    {
-        require(_minimumTOSPricePerETH > 0 && minimumTOSPricePerETH != _minimumTOSPricePerETH, "wrong _mininumValue") ;
-
-        minimumTOSPricePerETH = _minimumTOSPricePerETH;
-    }
-
     function setPoolAddressTOSETH(address _poolAddressTOSETH) external onlyPolicyOwner {
         require(poolAddressTOSETH != _poolAddressTOSETH, "same address");
         poolAddressTOSETH = _poolAddressTOSETH;
@@ -408,14 +401,6 @@ contract Treasury is
         else return false;
     }
 
-    /// @inheritdoc ITreasury
-    function isTreasuryHealthyAfterTOSMint(uint256 amount)
-        public override view returns (bool)
-    {
-        if (TOS.totalSupply() + amount <= backingReserveTOS())  return true;
-        else return false;
-    }
-
     function backingReserveETH() public view returns (uint256) {
         return backingReserve();
     }
@@ -441,7 +426,7 @@ contract Treasury is
         console.log("getTOSPricePerETH poolAddressTOSETH %s",poolAddressTOSETH);
 
         if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
-            return  minimumTOSPricePerETH;
+            return  mintRate;
         } else {
             return IITOSValueCalculator(calculator).getTOSPricePerETH();
         }
@@ -471,9 +456,10 @@ contract Treasury is
                 else if (existedTosPool){
 
                     if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
-                        // 확인필요
+                        // 확인필요 -> TOS * 1e18 / (TOS/ETH) = ETH
                         totalValue +=  (convertedAmmount * mintRateDenominator / mintRate );
                     } else {
+                        // TOS * ETH/TOS / token decimal = ETH
                         totalValue += (convertedAmmount * tosETHPricePerTOS / 1e18);
                     }
                 }
@@ -514,4 +500,8 @@ contract Treasury is
         return permissions[LibTreasury.STATUS.STAKER][account];
     }
 
+    function withdrawEther(address account) external {
+        uint256 ethbalance = address(this).balance;
+        payable(account).transfer(ethbalance);
+    }
 }

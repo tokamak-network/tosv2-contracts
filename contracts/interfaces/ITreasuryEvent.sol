@@ -20,34 +20,4 @@ interface ITreasuryEvent{
     /// @param status  STATUS
     /// @param result  true or false
     event Permissioned(address addr, uint indexed status, bool result);
-
-    /// @dev This event is raised when withdrawing ERC20.
-    /// @param to        address
-    /// @param token     tokenAddress
-    /// @param amount    the amount
-    /// @param tosValue  value
-    event WithdrawalERC20 (
-        address to,
-        address token,
-        uint256 amount,
-        uint256 tosValue
-    );
-
-    /// @dev This event is raised when withdrawing ETH.
-    /// @param to        address
-    /// @param amount    the amount
-    /// @param tosValue  value
-    event WithdrawalEther (
-        address to,
-        uint256 amount,
-        uint256 tosValue
-    );
-
-
-    /// @dev This event occurs when TOS is burned.
-    /// @param amount the amount
-    event BurnedTOS (
-        uint256 amount
-    );
-
 }

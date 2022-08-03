@@ -152,10 +152,6 @@ interface ITreasury {
     /// @param amount              mint Amount
     /// @return bool               true or false
     function checkTosSolvency (uint256 amount) external view returns (bool);
-    
-    /// @dev Check if it is okay to mint as much as the amount
-    /// @param amount              mint Amount
-    /// @return bool               true or false
-    function isTreasuryHealthyAfterTOSMint (uint256 amount) external view returns (bool);
+
 
 }
