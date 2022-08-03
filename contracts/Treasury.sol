@@ -121,14 +121,15 @@ contract Treasury is
         emit SetMintRate(_mrRate, amount);
     }
 
-
-    function setPoolAddressTOSETH(address _poolAddressTOSETH) external onlyPolicyOwner {
+    /// @inheritdoc ITreasury
+    function setPoolAddressTOSETH(address _poolAddressTOSETH) external override onlyPolicyOwner {
         require(poolAddressTOSETH != _poolAddressTOSETH, "same address");
         poolAddressTOSETH = _poolAddressTOSETH;
 
         emit SetPoolAddressTOSETH(_poolAddressTOSETH);
     }
 
+    /// @inheritdoc ITreasury
     function setUniswapV3Factory(address _uniswapFactory) external onlyPolicyOwner {
         require(uniswapV3Factory != _uniswapFactory, "same address");
         uniswapV3Factory = _uniswapFactory;
@@ -136,6 +137,7 @@ contract Treasury is
         emit SetUniswapV3Factory(_uniswapFactory);
     }
 
+    /// @inheritdoc ITreasury
     function setMintRateDenominator(uint256 _mintRateDenominator) external onlyPolicyOwner {
         require(mintRateDenominator != _mintRateDenominator && _mintRateDenominator > 0, "check input value");
         mintRateDenominator = _mintRateDenominator;
@@ -372,7 +374,7 @@ contract Treasury is
 
         TOS.transfer(_recipient, _amount);
 
-         emit RequestedTrasfer(_recipient, _amount);
+        emit RequestedTrasfer(_recipient, _amount);
 
     }
 
@@ -404,8 +406,9 @@ contract Treasury is
     }
 
     /* ========== VIEW ========== */
-
-    function getMintRate() public view returns (uint256) {
+    
+    /// @inheritdoc ITreasury
+    function getMintRate() public override view returns (uint256) {
         return mintRate;
     }
 
@@ -425,15 +428,18 @@ contract Treasury is
         else return false;
     }
 
+    /// @inheritdoc ITreasury
     function backingReserveETH() public view returns (uint256) {
         return backingReserve();
     }
 
+    /// @inheritdoc ITreasury
     function backingReserveTOS() public view returns (uint256) {
 
         return backingReserve() * getTOSPricePerETH() / 1e18;
     }
 
+    /// @inheritdoc ITreasury
     function getETHPricePerTOS() public view returns (uint256) {
         console.log("getETHPricePerTOS poolAddressTOSETH %s",poolAddressTOSETH);
         console.log("getETHPricePerTOS liquidity %s",IIIUniswapV3Pool(poolAddressTOSETH).liquidity());
@@ -445,6 +451,7 @@ contract Treasury is
         }
     }
 
+    /// @inheritdoc ITreasury
     function getTOSPricePerETH() public view returns (uint256) {
 
         console.log("getTOSPricePerETH poolAddressTOSETH %s",poolAddressTOSETH);

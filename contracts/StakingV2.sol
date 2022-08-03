@@ -593,6 +593,7 @@ contract StakingV2 is
         return (index_*(1 ether+rebasePerEpoch) / 1e18);
     }
 
+    /// @inheritdoc IStaking
     function getIndex() public view override returns(uint256){
         return index_;
     }
@@ -638,9 +639,6 @@ contract StakingV2 is
         else return (epoch.end - block.timestamp);
     }
 
-
-
-    // LTOS를 TOS로 보상해주고 남은 TOS 물량
     /// @inheritdoc IStaking
     function runwayTOS() public override view returns (uint256) {
         uint256 treasuryAmount = IITreasury(treasury).enableStaking() ;
@@ -667,15 +665,17 @@ contract StakingV2 is
         return (ltos * index_) / 1e18;
     }
 
+    /// @inheritdoc IStaking
     function stakedOf(uint256 stakeId) public override view returns (uint256) {
         return getLtosToTos(allStakings[stakeId].LTOS);
     }
 
+    /// @inheritdoc IStaking
     function stakedOfAll() public override view returns (uint256) {
         return getLtosToTos(totalLTOS);
     }
 
-
+    /// @inheritdoc IStaking
     function stakeInfo(uint256 stakeId) public override view returns (
         address staker,
         uint256 deposit,
@@ -898,10 +898,6 @@ contract StakingV2 is
         }
     }
 
-    /**
-     * @notice returns the sOHM index, which tracks rebase growth
-     * @return uint
-     */
     //index는 ether단위이다.
     function index() internal returns (uint256) {
         index_ = (index_*(1 ether+rebasePerEpoch) / 1e18);
