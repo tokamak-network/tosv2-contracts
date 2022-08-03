@@ -6,7 +6,10 @@ interface IStaking {
 
     /* ========== onlyPolicyOwner ========== */
 
-
+    /// @dev set the tos, lockTOS, treasury Address
+    /// @param _tos       tosAddress
+    /// @param _lockTOS   lockTOSAddress
+    /// @param _treasury  treausryAddress
     function setAddressInfos(
         address _tos,
         address _lockTOS,
@@ -14,7 +17,7 @@ interface IStaking {
     ) external;
 
     /// @dev set setRebasePerEpoch
-    /// @param _rebasePerEpoch  the rate for rebase per epoch
+    /// @param _rebasePerEpoch  the rate for rebase per epoch (eth uint)
     ///                         If input the 0.9 -> 900000000000000000
     function setRebasePerEpoch(
         uint256 _rebasePerEpoch
@@ -22,17 +25,14 @@ interface IStaking {
 
 
     /// @dev set index
-    /// @param _index  index ( eth unit)
+    /// @param _index  index (eth uint)
     function setIndex(
         uint256 _index
     ) external;
 
-    /// @dev set basic lock period
+    /// @dev set bond staking
     /// @param _period  _period (seconds)
     function setBasicBondPeriod(uint256 _period) external ;
-
-
-
 
     /* ========== onlyOwner ========== */
 
@@ -117,11 +117,11 @@ interface IStaking {
         uint256 _amount
     )   external;
 
-    /// @dev 잠금기간 종료 후에 스테이킹 양을 조절하려고 할때 사용
-    /// @param _stakeId  the stake id
-    /// @param _addAmount 토스 추가 금액
-    /// @param _claimAmount 클래임 하려는 금액
-    /// @param _periodWeeks 다시 잠금하려는 주 수
+    /// @dev Used to adjust the amount of staking after the lockout period ends
+    /// @param _stakeId     the stake id
+    /// @param _addAmount   addAmount
+    /// @param _claimAmount claimAmount
+    /// @param _periodWeeks add lock Weeks
     function resetStakeGetStosAfterLock(
         uint256 _stakeId,
         uint256 _addAmount,
@@ -131,10 +131,10 @@ interface IStaking {
 
 
 
-    /// @dev 잠금 기간 종료 전에 토스양을 추가하거나, 기간을 늘리고자 할 때 사용
+    /// @dev Used to add a toss amount before the end of the lock period or to extend the period
     /// @param _stakeId  the stake id
-    /// @param _amount 추가하려는 토스양
-    /// @param _unlockWeeks 늘리려는 기간의 주수
+    /// @param _amount   add amount
+    /// @param _unlockWeeks add lock weeks
     function increaseBeforeEndOrNonEnd(
         uint256 _stakeId,
         uint256 _amount,
@@ -142,120 +142,119 @@ interface IStaking {
     ) external;
 
 
-    /// @dev 락업되어 있지 않은 스테이킹 아이템인경우, 클래임할때 사용
+    /// @dev For staking items that are not locked up, use when claiming
     /// @param _stakeId  the stake id
-    /// @param _claimAmount 클래임 하려는 양
+    /// @param _claimAmount claimAmount
     function claimForSimpleType(
         uint256 _stakeId,
         uint256 _claimAmount
     ) external;
 
 
-    /// @dev 특정 스테이킹 아이디를 언스테이킹 하려고 할때 사용
+    /// @dev Used to unstake a specific staking ID
     /// @param _stakeId  the stake id
     function unstake(
         uint256 _stakeId
     ) external;
 
-    /// @dev 여러개의 스테이킹 아이디를 언스테이킹 하려고 할 때 사용
+    /// @dev Used when unstaking multiple staking IDs
     /// @param _stakeIds  the stake id
     function multiUnstake(
         uint256[] calldata _stakeIds
     ) external;
 
 
-     /// @dev 인덱스 조절, 복리 적용
+    /// @dev Index adjustment, compound interest
     function rebaseIndex() external;
 
     /* ========== VIEW ========== */
-
     /*
-    /// @dev 특정 스테이킹아이디의 남아있는 토스 양을 리턴함.
+    /// @dev Returns the remaining toss amount of a specific staking ID.
     /// @param _stakeId  the stake id
-    /// @return return 남아있는 토스 양
+    /// @return return remain tos Amount
     function remainedLTOSToTos(uint256 _stakeId) external view returns (uint256) ;
     */
 
-    /// @dev 특정 스테이킹아이디의 남아있는 LTOS 양을 리턴함.
+    /// @dev Returns the remaining amount of LTOS for a specific staking ID.
     /// @param _stakeId  the stake id
-    /// @return return 남아있는 LTOS 양
+    /// @return return Amount of LTOS remaining
     function remainedLTOS(uint256 _stakeId) external view returns (uint256) ;
 
 
-    /// @dev 특정 스테이킹아이디의 클래임가능한 LTOS 양을 리턴함.
+    /// @dev Returns the claimable amount of LTOS for a specific staking ID.
     /// @param _stakeId  the stake id
-    /// @return return 클래임가능한 LTOS 양
+    /// @return return Claimable amount of LTOS
     function claimableLtos(uint256 _stakeId) external view returns (uint256);
 
-    /// @dev 특정 스테이킹아이디의 클래임가능한 TOS 양을 리턴함.
+    /// @dev Returns the claimable TOS amount of a specific staking ID.
     /// @param _stakeId  the stake id
-    /// @return return 클래임가능한 TOS 양
+    /// @return return Claimable amount of TOS
     function claimableTos(uint256 _stakeId) external view returns (uint256);
 
 
     /// @dev Returns the index when rebase is executed once in the current index.
     function nextIndex() external view returns (uint256);
 
-
+    /// @dev Returns the current Index value
     function getIndex() external view returns(uint256) ;
 
 
-    /// @dev 특정 계정이 보유하고 있는 스테이킹아이디 리스트를 리턴함.
-    /// @param _addr 계정 주소
-    /// @return return 보유하고 있는 스테이킹 아이디 리스트
+    /// @dev Returns a list of staking IDs owned by a specific account.
+    /// @param _addr ownerAddress
+    /// @return return List of staking IDs you have
     function stakingOf(address _addr)
         external
         view
         returns (uint256[] memory);
 
 
-    /// @dev _stakeId 의 남아있는 LTOS 양 리턴
-    /// @param _stakeId 스테이크 아이디
-    /// @return return 남아있는 LTOS 양
+    /// @dev Returns the amount of remaining LTOS in _stakeId
+    /// @param _stakeId stakeId
+    /// @return return Amount of LTOS remaining
     function balanceOfId(uint256 _stakeId)
         external
         view
         returns (uint256);
 
 
-    /// @dev 계정이 남아있는 LTOS 양 리턴
-    /// @param _addr 계정 주소
-    /// @return balance 남아있는 LTOS 양 리턴
+    /// @dev Returns the amount of LTOS remaining on the account
+    /// @param _addr address
+    /// @return balance Returns the amount of LTOS remaining
     function balanceOf(address _addr)
         external
         view
         returns (uint256 balance);
 
-    /// @dev
-    /// @return
+    /// @dev Returns the time remaining until the next rebase time
+    /// @return time
     function secondsToNextEpoch() external view returns (uint256);
 
-    /// @dev  treasury가지고 있는 TOS  - staking 이자 빼기
-    /// @return
+    /// @dev  Compensation for LTOS with TOS and the remaining amount of TOS
+    /// @return TOS with treasury - minus staking interest
     function runwayTOS() external view returns (uint256);
 
-    /// @dev
-    /// @return
+    /// @dev Total amount of Staking TOS
+    /// @return tosAmount
     function totalDepositTOS() external view returns (uint256);
 
-    /// @dev 토스양을 LTOS 로 변환 (현재 인덱스 기준 )
-    /// @param amount  토스 양
-    /// @return return LTOS 양
+    /// @dev Convert tos amount to LTOS (based on current index)
+    /// @param amount  tosAmount
+    /// @return return LTOS Amount
     function getTosToLtos(uint256 amount) external view returns (uint256);
 
-    /// @dev LTOS을 TOS 로 변환 (현재 인덱스 기준 )
-    /// @param ltos  LTOS 양
-    /// @return return TOS 양
+    /// @dev Convert LTOS to TOS (based on current index)
+    /// @param ltos  LTOS Amount
+    /// @return return TOS Amount
     function getLtosToTos(uint256 ltos) external view returns (uint256);
 
-    /// @dev 사용자가 스테이킹한 TOS 양
+    /// @dev Amount of TOS staked by users
     /// @param stakeId  the stakeId
     function stakedOf(uint256 stakeId) external view returns (uint256);
 
-    /// @dev 전체 스테이킹 되어 있는 토스양 (전체사용자의 원금+이자)
+    /// @dev Total staked toss amount (principal + interest of all users)
     function stakedOfAll() external view returns (uint256) ;
 
-    /// @dev 특정스테이킹 아이디의 상세 정보
+    /// @dev Detailed information of specific staking ID
     /// @param stakeId  the stakeId
     function stakeInfo(uint256 stakeId) external view returns (
         address staker,
@@ -265,6 +264,5 @@ interface IStaking {
         uint256 endTime,
         uint256 marketId
     );
-
 
 }

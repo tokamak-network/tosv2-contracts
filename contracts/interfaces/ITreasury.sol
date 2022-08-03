@@ -26,6 +26,19 @@ interface ITreasury {
     /// @param amount  mint amount (After checking whether backing is performed even after mint by amount, mint TOS in treasury.)
     function setMR(uint256 _mrRate, uint256 amount) external;
 
+
+    /// @dev set the TOS-ETH Pool address 
+    /// @param _poolAddressTOSETH  TOS-ETH Pool address 
+    function setPoolAddressTOSETH(address _poolAddressTOSETH) external;
+
+    /// @dev set the uniswapV3Factory address 
+    /// @param _uniswapFactory  uniswapV3factory address 
+    function setUniswapV3Factory(address _uniswapFactory) external;
+
+    /// @dev set the mintRateDenominator
+    /// @param _mintRateDenominator  mintRateDenominator
+    function setMintRateDenominator(uint256 _mintRateDenominator) external;
+
     /// @dev Add erc20 token, which is used as a backing asset in treasury.
     /// @param _address  erc20 Address
     /// @param _tosPooladdress  erc20-tos Pool Address
@@ -75,6 +88,10 @@ interface ITreasury {
     /* ========== Anyone can execute ========== */
 
     /* ========== VIEW ========== */
+
+    /// @dev return the now mintRate
+    /// @return uint256  mintRate
+    function getMintRate() external view returns (uint256);
 
     /// @dev How much tokens are valued as TOS
     /// @return uint256  the amount evaluated as TOS
@@ -153,5 +170,29 @@ interface ITreasury {
     /// @return bool               true or false
     function checkTosSolvency (uint256 amount) external view returns (bool);
 
+    /// @dev return The value calculated by converting the value of all assets held by the treasury into ETH
+    /// @return uint256 ETH Value
+    function backingReserveETH() external view returns (uint256);
+    
+    /// @dev return The value calculated by converting the value of all assets owned by the treasury into TOS
+    /// @return uint256 TOS Value
+    function backingReserveTOS() external view returns (uint256);
+    
+    /// @dev Return the current ETH/TOS price
+    /// @return uint256 ETH/TOS
+    function getETHPricePerTOS() external view returns (uint256);
 
+    /// @dev Return the current TOS/ETH price
+    /// @return uint256 TOS/ETH
+    function getTOSPricePerETH() external view returns (uint256);
+
+    /// @dev Check if the account is bond permission
+    /// @param account   BonderAddress
+    /// @return bool     true or false
+    function isBonder(address account) external view returns (bool);
+
+    /// @dev Check if the account has staker permission
+    /// @param account   stakerAddress
+    /// @return bool     true or false
+    function isStaker(address account) external view returns (bool);
 }
