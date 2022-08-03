@@ -9,7 +9,6 @@ interface IStakingEvent{
     /// @param ltos get LTOS
     /// @param marketId  marketId
     /// @param stakeId  stakeId
-    /// @param tokenPrice  TOKEN/TOS
     /// @param tosPrice    TOS/TOKEN
     event StakedByBond(
         address to,
@@ -17,7 +16,6 @@ interface IStakingEvent{
         uint256 ltos,
         uint256 marketId,
         uint256 stakeId,
-        uint256 tokenPrice,
         uint256 tosPrice
     );
 
@@ -29,7 +27,6 @@ interface IStakingEvent{
     /// @param marketId  marketId
     /// @param stakeId  stakeId
     /// @param stosId   sTOSId
-    /// @param tokenPrice  TOKEN/TOS
     /// @param tosPrice    TOS/TOKEN
     event StakedGetStosByBond(
         address to,

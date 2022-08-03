@@ -21,18 +21,18 @@ interface ITreasury {
     /// @param _addr  approve Address
     function approve(address _addr) external ;
 
-    /// @dev Set mintRate. mintRate is the ratio of setting how many TOS mint per 1 ETH as TOS/ETH. 
+    /// @dev Set mintRate. mintRate is the ratio of setting how many TOS mint per 1 ETH as TOS/ETH.
     /// @param _mrRate mintRate
     /// @param amount  mint amount (After checking whether backing is performed even after mint by amount, mint TOS in treasury.)
     function setMR(uint256 _mrRate, uint256 amount) external;
 
 
-    /// @dev set the TOS-ETH Pool address 
-    /// @param _poolAddressTOSETH  TOS-ETH Pool address 
+    /// @dev set the TOS-ETH Pool address
+    /// @param _poolAddressTOSETH  TOS-ETH Pool address
     function setPoolAddressTOSETH(address _poolAddressTOSETH) external;
 
-    /// @dev set the uniswapV3Factory address 
-    /// @param _uniswapFactory  uniswapV3factory address 
+    /// @dev set the uniswapV3Factory address
+    /// @param _uniswapFactory  uniswapV3factory address
     function setUniswapV3Factory(address _uniswapFactory) external;
 
     /// @dev set the mintRateDenominator
@@ -98,12 +98,12 @@ interface ITreasury {
     function backingRateETHPerTOS() external view returns (uint256);
 
     /// @dev check if registry contains address
-    /// @return (bool, uint256)  
+    /// @return (bool, uint256)
     function indexInRegistry(address _address, LibTreasury.STATUS _status) external view returns (bool, uint256);
 
 
     /// @dev return treasury tos balance
-    /// @return uint256 
+    /// @return uint256
     function enableStaking() external view returns (uint256);
 
     /// @dev The assets held by the treasury are converted into ETH and returned
@@ -165,7 +165,7 @@ interface ITreasury {
     /// @return bool               true or false
     function checkTosSolvencyAfterTOSMint (uint256 _checkMintRate, uint256 amount) external view returns (bool);
 
-    /// @dev Check if mint can be added as much as amount when now mintRate 
+    /// @dev Check if mint can be added as much as amount when now mintRate
     /// @param amount              mint Amount
     /// @return bool               true or false
     function checkTosSolvency (uint256 amount) external view returns (bool);
@@ -173,11 +173,11 @@ interface ITreasury {
     /// @dev return The value calculated by converting the value of all assets held by the treasury into ETH
     /// @return uint256 ETH Value
     function backingReserveETH() external view returns (uint256);
-    
+
     /// @dev return The value calculated by converting the value of all assets owned by the treasury into TOS
     /// @return uint256 TOS Value
     function backingReserveTOS() external view returns (uint256);
-    
+
     /// @dev Return the current ETH/TOS price
     /// @return uint256 ETH/TOS
     function getETHPricePerTOS() external view returns (uint256);

@@ -296,42 +296,35 @@ contract BondDepository is
         uint256 _marketId,
         bool _eth
     ) internal nonReentrant returns (uint256 _payout) {
-        console.log("_deposit _amount : %s", _amount);
+        // console.log("_deposit _amount : %s", _amount);
         require(_amount <= purchasableAseetAmountAtOneTime(_marketId), "Depository : over maxPay");
 
         _payout = calculateTosAmountForAsset(_marketId, _amount);
 
-        console.log("_deposit payoutAmount : %s", _payout);
+        // console.log("_deposit payoutAmount : %s", _payout);
 
         require(_payout > 0, "zero staking amount");
         uint256 _ethValue = 0; // _payout tos 를 이더로 바꿈.
 
         if(!_eth) {
-            (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) =
+            (bool existedWethPool, , , uint256 convertedAmmount) =
                 IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(address(tos), _payout);
 
             if(existedWethPool){
                 _ethValue =  convertedAmmount;
-                console.log("_deposit existedWethPool : %s", convertedAmmount);
+                // console.log("_deposit existedWethPool : %s", convertedAmmount);
             }
-            /*
-            else if(existedTosPool) {
-                uint256 _price = IITreasury(treasury).getETHPricePerTOS();
-                console.log("_deposit getETHPricePerTOS : %s", _price);
-                _ethValue =  convertedAmmount * _price / 1e18 ;
-                console.log("_deposit existedTosPool : %s", convertedAmmount);
-            }
-            */
+
         } else {
             _ethValue = _amount;
         }
 
-        console.log("_deposit _ethValue : %s", _ethValue);
+        // console.log("_deposit _ethValue : %s", _ethValue);
 
         require(_ethValue > 0, "zero _ethValue");
         uint256 _mintRate = IITreasury(treasury).getMintRate();
 
-        console.log("_deposit _mintRate : %s", _mintRate);
+        // console.log("_deposit _mintRate : %s", _mintRate);
         require(_mintRate > 0, "zero mintRate");
 
         uint256 mrAmount = _ethValue * _mintRate / IITreasury(treasury).mintRateDenominator() ;
@@ -372,7 +365,7 @@ contract BondDepository is
         view
         returns (uint256 payout)
     {
-        console.log("calculateTosAmountForAsset metadata[_id].tosPrice : %s", metadata[_id].tosPrice);
+        // console.log("calculateTosAmountForAsset metadata[_id].tosPrice : %s", metadata[_id].tosPrice);
         return (_amount * metadata[_id].tosPrice / 1e18);
     }
 

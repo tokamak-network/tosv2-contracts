@@ -130,7 +130,7 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
-    function setUniswapV3Factory(address _uniswapFactory) external onlyPolicyOwner {
+    function setUniswapV3Factory(address _uniswapFactory) external override onlyPolicyOwner {
         require(uniswapV3Factory != _uniswapFactory, "same address");
         uniswapV3Factory = _uniswapFactory;
 
@@ -138,7 +138,7 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
-    function setMintRateDenominator(uint256 _mintRateDenominator) external onlyPolicyOwner {
+    function setMintRateDenominator(uint256 _mintRateDenominator) external override onlyPolicyOwner {
         require(mintRateDenominator != _mintRateDenominator && _mintRateDenominator > 0, "check input value");
         mintRateDenominator = _mintRateDenominator;
 
@@ -443,18 +443,18 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
-    function backingReserveETH() public view returns (uint256) {
+    function backingReserveETH() public override view returns (uint256) {
         return backingReserve();
     }
 
     /// @inheritdoc ITreasury
-    function backingReserveTOS() public view returns (uint256) {
+    function backingReserveTOS() public override view returns (uint256) {
 
         return backingReserve() * getTOSPricePerETH() / 1e18;
     }
 
     /// @inheritdoc ITreasury
-    function getETHPricePerTOS() public view returns (uint256) {
+    function getETHPricePerTOS() public override view returns (uint256) {
         console.log("getETHPricePerTOS poolAddressTOSETH %s",poolAddressTOSETH);
         console.log("getETHPricePerTOS liquidity %s",IIIUniswapV3Pool(poolAddressTOSETH).liquidity());
         if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
@@ -466,7 +466,7 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
-    function getTOSPricePerETH() public view returns (uint256) {
+    function getTOSPricePerETH() public override view returns (uint256) {
 
         console.log("getTOSPricePerETH poolAddressTOSETH %s",poolAddressTOSETH);
 
@@ -501,7 +501,7 @@ contract Treasury is
                 else if (existedTosPool){
 
                     if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
-                        // 확인필요 -> TOS * 1e18 / (TOS/ETH) = ETH
+                        //  TOS * 1e18 / (TOS/ETH) = ETH
                         totalValue +=  (convertedAmmount * mintRateDenominator / mintRate );
                     } else {
                         // TOS * ETH/TOS / token decimal = ETH
@@ -537,11 +537,11 @@ contract Treasury is
         return permissions[LibTreasury.getSatatus(role)][account];
     }
 
-    function isBonder(address account) public view virtual returns (bool) {
+    function isBonder(address account) public override view virtual returns (bool) {
         return permissions[LibTreasury.STATUS.BONDER][account];
     }
 
-    function isStaker(address account) public view virtual returns (bool) {
+    function isStaker(address account) public override view virtual returns (bool) {
         return permissions[LibTreasury.STATUS.STAKER][account];
     }
 

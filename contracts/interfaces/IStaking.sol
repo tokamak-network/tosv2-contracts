@@ -34,9 +34,9 @@ interface IStaking {
     /// @param _period  _period (seconds)
     function setBasicBondPeriod(uint256 _period) external ;
 
+
     /* ========== onlyOwner ========== */
 
-    /*
     /// @dev set basic lock period
     /// @param accounts  the array of account for sync
     /// @param balances  the array of tos amount for sync
@@ -49,7 +49,7 @@ interface IStaking {
         uint256[] memory tokenId
     ) external ;
 
-    */
+
 
     /* ========== onlyBonder ========== */
 
