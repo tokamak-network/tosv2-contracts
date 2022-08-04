@@ -35,7 +35,7 @@ interface ILockTosV2 {
 interface IITreasury {
 
     function enableStaking() external view returns (uint256);
-    function requestTrasfer(address _recipient, uint256 _amount)  external;
+    function requestTransfer(address _recipient, uint256 _amount)  external;
     function hasPermission(uint role, address account) external view returns (bool);
 }
 
@@ -424,12 +424,7 @@ contract StakingV2 is
 
         _updateStakeInfo(_stakeId, 0, 0, _claimAmount);
 
-
-        // 아래 확인 필요
-        // uint256 _tosBalance = TOS.balanceOf(address(this));
-        // if (_tosBalance < _claimAmount){
-        //     IITreasury(treasury).requestTrasfer(address(this), _claimAmount - _tosBalance);
-        // }
+        require(TOS.balanceOf(address(this)) >= _claimAmount, "staking balance is insufficient");
 
         TOS.safeTransfer(staker, _claimAmount);
 
@@ -487,7 +482,7 @@ contract StakingV2 is
         _deleteStakeId(_stakeId, _userStakeIdIndex) ;
 
         if (addProfitRemainedTos > principal) {
-            IITreasury(treasury).requestTrasfer(address(this), addProfitRemainedTos - principal);
+            IITreasury(treasury).requestTransfer(address(this), addProfitRemainedTos - principal);
         }
 
         TOS.safeTransfer(staker, amount);
@@ -909,7 +904,7 @@ contract StakingV2 is
         // console.log("_updateStakeInfo totalLTOS %s", totalLTOS);
 
         if (profit > 0) {
-            IITreasury(treasury).requestTrasfer(address(this), profit);
+            IITreasury(treasury).requestTransfer(address(this), profit);
         }
     }
 

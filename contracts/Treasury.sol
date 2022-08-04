@@ -356,39 +356,25 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
-    function requestTrasfer(
+    function requestTransfer(
         address _recipient,
         uint256 _amount
     ) external override {
         require(isStaker(msg.sender), notApproved);
 
-        console.log("------------ requestTrasfer ---------------------");
+        // console.log("------------ requestTrasfer ---------------------");
 
         require(_recipient != address(0), "zero recipient");
         require(_amount > 0, "zero amount");
 
-        // 확인 필요
-        // 토스가 모자르면 기존에 있던 이더 및 다른 에셋을 토스로 바꿔서 주어야 하는가?
-        // 또는 토스를 민트해서 보내주어야 하는가?
-        uint256 _tosBalance = TOS.balanceOf(address(this));
+        require(TOS.balanceOf(address(this)) >= _amount, "treasury balance is insufficient");
 
-        if (_tosBalance < _amount){
-
-            console.log("requestTrasfer _tosBalance %s", _tosBalance);
-            console.log("requestTrasfer _amount %s", _amount);
-
-            require(checkTosSolvency(_amount-_tosBalance), "treasury balance is insufficient");
-            TOS.mint(address(this), (_amount-_tosBalance));
-
-        }
-        // require(TOS.balanceOf(address(this)) >= _amount, "treasury balance is insufficient");
-
-        console.log("requestTrasfer _recipient %s", _recipient);
-        console.log("requestTrasfer _amount %s", _amount);
+        // console.log("requestTransfer _recipient %s", _recipient);
+        // console.log("requestTransfer _amount %s", _amount);
 
         TOS.transfer(_recipient, _amount);
 
-        emit RequestedTrasfer(_recipient, _amount);
+        emit RequestedTransfer(_recipient, _amount);
 
     }
 
@@ -455,8 +441,8 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     function getETHPricePerTOS() public override view returns (uint256) {
-        console.log("getETHPricePerTOS poolAddressTOSETH %s",poolAddressTOSETH);
-        console.log("getETHPricePerTOS liquidity %s",IIIUniswapV3Pool(poolAddressTOSETH).liquidity());
+        // console.log("getETHPricePerTOS poolAddressTOSETH %s",poolAddressTOSETH);
+        // console.log("getETHPricePerTOS liquidity %s",IIIUniswapV3Pool(poolAddressTOSETH).liquidity());
         if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
             return  (mintRateDenominator / mintRate);
         } else {
@@ -468,7 +454,7 @@ contract Treasury is
     /// @inheritdoc ITreasury
     function getTOSPricePerETH() public override view returns (uint256) {
 
-        console.log("getTOSPricePerETH poolAddressTOSETH %s",poolAddressTOSETH);
+        // console.log("getTOSPricePerETH poolAddressTOSETH %s",poolAddressTOSETH);
 
         if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
             return  mintRate;
@@ -483,7 +469,7 @@ contract Treasury is
 
         bool applyWTON = false;
         uint256 tosETHPricePerTOS = IITOSValueCalculator(calculator).getETHPricePerTOS();
-        console.log("tosETHPricePerTOS %s", tosETHPricePerTOS) ;
+        // console.log("tosETHPricePerTOS %s", tosETHPricePerTOS) ;
 
         for(uint256 i = 0; i < backings.length; i++) {
 
@@ -517,7 +503,7 @@ contract Treasury is
         //0.000004124853366489 ETH/TOS ,  242427 TOS /ETH
         totalValue += address(this).balance;
 
-        console.log("backingReserve %s", totalValue);
+        // console.log("backingReserve %s", totalValue);
 
         return totalValue;
     }

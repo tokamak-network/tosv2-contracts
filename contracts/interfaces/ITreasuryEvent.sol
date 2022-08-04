@@ -89,7 +89,7 @@ interface ITreasuryEvent{
     /// @dev This event occurs when request transfer TOS
     /// @param _recipient    the recipient
     /// @param _amount   the TOS amount to transfer
-    event RequestedTrasfer(
+    event RequestedTransfer(
         address _recipient,
         uint256 _amount
     );

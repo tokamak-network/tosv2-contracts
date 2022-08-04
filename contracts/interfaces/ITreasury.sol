@@ -83,7 +83,7 @@ interface ITreasury {
     /// @dev TOS transfer called by Staker
     /// @param _recipient   recipient Address
     /// @param _amount      recipient get Amount
-    function requestTrasfer(address _recipient, uint256 _amount)  external;
+    function requestTransfer(address _recipient, uint256 _amount)  external;
 
     /* ========== Anyone can execute ========== */
 
