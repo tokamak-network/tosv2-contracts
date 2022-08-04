@@ -3,17 +3,17 @@ pragma solidity ^0.8.4;
 
 interface ITreasuryEvent{
 
-    /// @dev This event occurs when a deposit is made to the treasury.
-    /// @param token   token address
-    /// @param amount  the amount
-    /// @param value   the Value
-    event Deposit(address indexed token, uint256 amount, uint256 value);
+    // /// @dev This event occurs when a deposit is made to the treasury.
+    // /// @param token   token address
+    // /// @param amount  the amount
+    // /// @param value   the Value
+    // event Deposit(address indexed token, uint256 amount, uint256 value);
 
-    /// @dev This event occurs when mint is performed.
-    /// @param caller     caller address
-    /// @param recipient  get address
-    /// @param amount     the amount
-    event Minted(address indexed caller, address indexed recipient, uint256 amount);
+    // /// @dev This event occurs when mint is performed.
+    // /// @param caller     caller address
+    // /// @param recipient  get address
+    // /// @param amount     the amount
+    // event Minted(address indexed caller, address indexed recipient, uint256 amount);
 
     /// @dev This event occurs when permission is change.
     /// @param addr    address
@@ -37,18 +37,7 @@ interface ITreasuryEvent{
     /// @dev This event occurs when set the MintRateDenominator
     /// @param _mintRateDenominator    the _mintRateDenominator
     event SetMintRateDenominator(uint256 _mintRateDenominator);
-
-
-    /// @dev This event occurs when add the BondAsset
-    /// @param _address    the asset address
-    /// @param _tosPooladdress    the asset's _tosPooladdress
-    /// @param _fee    the _tosPool's fee
-    event AddedBondAsset(
-        address _address,
-        address _tosPooladdress,
-        uint24 _fee
-    );
-
+    
     /// @dev This event occurs when add the BackingList
     /// @param _address    the asset address
     /// @param _tosPooladdress    the asset's _tosPooladdress
@@ -84,6 +73,16 @@ interface ITreasuryEvent{
         address _recipient,
         uint256 _transferAmount,
         bool _distribute
+    );
+
+    /// @dev This event occurs when add the BondAsset
+    /// @param _address    the asset address
+    /// @param _tosPooladdress    the asset's _tosPooladdress
+    /// @param _fee    the _tosPool's fee
+    event AddedBondAsset(
+        address _address,
+        address _tosPooladdress,
+        uint24 _fee
     );
 
     /// @dev This event occurs when request transfer TOS

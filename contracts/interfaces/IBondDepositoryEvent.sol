@@ -25,25 +25,6 @@ interface IBondDepositoryEvent{
     /// @param marketId the market id
     event ClosedMarket(uint256 marketId);
 
-    /// @dev Events Emitted when Buying Bonding with ERC20 Token
-    /// @param user name
-    /// @param marketId the market id
-    /// @param stakeId  the stake id
-    /// @param token  ERC20 Token address
-    /// @param amount  the amount of ERC20 Token
-    /// @param tosValuation  the tos evaluate amount of sending
-    event ERC20Deposited(address user, uint256 marketId, uint256 stakeId, address token, uint256 amount, uint256 tosValuation);
-
-    /// @dev Event that gives a lockout period and is emitted when purchasing bonding with ERC20 Token
-    /// @param user name
-    /// @param marketId the market id
-    /// @param stakeId  the stake id
-    /// @param token  ERC20 Token address
-    /// @param amount  the amount of ERC20 Token
-    /// @param lockWeeks  the number of weeks to locking
-    /// @param tosValuation  the tos evaluate amount of sending
-    event ERC20DepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, address token, uint256 amount, uint256 lockWeeks, uint256 tosValuation);
-
     /// @dev Events Emitted when Buying Bonding with Ether
     /// @param user the user account
     /// @param marketId the market id
