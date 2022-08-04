@@ -137,7 +137,7 @@ contract BondDepository is
         emit CreatedMarket(id_, _check, _token, _poolAddress, _fee, _market);
     }
 
-
+    /// @inheritdoc IBondDepository
     function increaseCapacity(
         uint256 _marketId,
         uint256 _amount
@@ -154,6 +154,7 @@ contract BondDepository is
         emit IncreasedCapacity(_marketId, _amount);
     }
 
+    /// @inheritdoc IBondDepository
     function decreaseCapacity(
         uint256 _marketId,
         uint256 _amount
@@ -173,6 +174,7 @@ contract BondDepository is
         emit DecreasedCapacity(_marketId, _amount);
     }
 
+    /// @inheritdoc IBondDepository
     function changeCloseTime(
         uint256 _marketId,
         uint256 closeTime
@@ -188,6 +190,7 @@ contract BondDepository is
         emit ChangedCloseTime(_marketId, closeTime);
     }
 
+    /// @inheritdoc IBondDepository
     function changeMaxPayout(
         uint256 _marketId,
         uint256 _amount
@@ -201,6 +204,7 @@ contract BondDepository is
         emit ChangedMaxPayout(_marketId, _amount);
     }
 
+    /// @inheritdoc IBondDepository
     function changePrice(
         uint256 _marketId,
         uint256 _tosPrice
