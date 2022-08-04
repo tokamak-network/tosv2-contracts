@@ -146,63 +146,6 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
-    function totalBacking() public override view returns(uint256) {
-         return backings.length;
-    }
-
-    /// @inheritdoc ITreasury
-    function viewBackingInfo(uint256 _index)
-        public override view
-        returns (address erc20Address, address tosPoolAddress, uint24 fee)
-    {
-         return (
-                backings[_index].erc20Address,
-                backings[_index].tosPoolAddress,
-                backings[_index].fee
-            );
-    }
-
-    /// @inheritdoc ITreasury
-    function allBacking() public override view
-        returns (
-            address[] memory erc20Address,
-            address[] memory tosPoolAddress,
-            uint24[] memory fee)
-    {
-        uint256 len = backings.length;
-        erc20Address = new address[](len);
-        tosPoolAddress = new address[](len);
-        fee = new uint24[](len);
-
-        for (uint256 i = 0; i < len; i++){
-            erc20Address[i] = backings[i].erc20Address;
-            tosPoolAddress[i] = backings[i].tosPoolAddress;
-            fee[i] = backings[i].fee;
-        }
-    }
-
-    /// @inheritdoc ITreasury
-    function addBondAsset(
-        address _address,
-        address _tosPooladdress,
-        uint24 _fee
-    )
-        external override
-    {
-        require(isBonder(msg.sender), "caller is not bonder");
-
-        if (backingsIndex[_address] == 0 && _address != address(0) ){
-            addBackingList(
-                _address,
-                _tosPooladdress,
-                _fee
-            );
-        }
-
-        emit AddedBondAsset(_address, _tosPooladdress, _fee);
-    }
-
-    /// @inheritdoc ITreasury
     function addBackingList(
         address _address,
         address _tosPooladdress,
@@ -260,35 +203,6 @@ contract Treasury is
         backings.pop();
 
         emit DeletedBackingList(_address);
-    }
-
-    /// @inheritdoc ITreasury
-    function totalMinting() public override view returns(uint256) {
-         return mintings.length;
-    }
-
-    /// @inheritdoc ITreasury
-    function viewMintingInfo(uint256 _index)
-        public override view returns(address mintAddress, uint256 mintPercents)
-    {
-         return (mintings[_index].mintAddress, mintings[_index].mintPercents);
-    }
-
-    /// @inheritdoc ITreasury
-    function allMintingg() public override view
-        returns (
-            address[] memory mintAddress,
-            uint256[] memory mintPercents
-            )
-    {
-        uint256 len = mintings.length;
-        mintAddress = new address[](len);
-        mintPercents = new uint256[](len);
-
-        for (uint256 i = 0; i < len; i++){
-            mintAddress[i] = mintings[i].mintAddress;
-            mintPercents[i] = mintings[i].mintPercents;
-        }
     }
 
     /// @inheritdoc ITreasury
@@ -356,6 +270,27 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
+    function addBondAsset(
+        address _address,
+        address _tosPooladdress,
+        uint24 _fee
+    )
+        external override
+    {
+        require(isBonder(msg.sender), "caller is not bonder");
+
+        if (backingsIndex[_address] == 0 && _address != address(0) ){
+            addBackingList(
+                _address,
+                _tosPooladdress,
+                _fee
+            );
+        }
+
+        emit AddedBondAsset(_address, _tosPooladdress, _fee);
+    }
+
+    /// @inheritdoc ITreasury
     function requestTransfer(
         address _recipient,
         uint256 _amount
@@ -389,6 +324,18 @@ contract Treasury is
         }
     }
 
+    /* ========== VIEW ========== */
+
+    /// @inheritdoc ITreasury
+    function getMintRate() public override view returns (uint256) {
+        return mintRate;
+    }
+
+    /// @inheritdoc ITreasury
+    function backingRateETHPerTOS() public override view returns (uint256) {
+        return (backingReserve() / TOS.totalSupply()) ;
+    }
+
     /// @inheritdoc ITreasury
     function indexInRegistry(
         address _address,
@@ -405,11 +352,124 @@ contract Treasury is
         return (false, 0);
     }
 
-    /* ========== VIEW ========== */
+    /// @inheritdoc ITreasury
+    function enableStaking() public override view returns (uint256) {
+        return TOS.balanceOf(address(this));
+    }
 
     /// @inheritdoc ITreasury
-    function getMintRate() public override view returns (uint256) {
-        return mintRate;
+    function backingReserve() public override view returns (uint256) {
+        uint256 totalValue = 0;
+
+        bool applyWTON = false;
+        uint256 tosETHPricePerTOS = IITOSValueCalculator(calculator).getETHPricePerTOS();
+        console.log("tosETHPricePerTOS %s", tosETHPricePerTOS) ;
+
+        for(uint256 i = 0; i < backings.length; i++) {
+
+            if (backings[i].erc20Address == wethAddress)  {
+                totalValue += IERC20(wethAddress).balanceOf(address(this));
+                applyWTON = true;
+
+            } else if (backings[i].erc20Address != address(0) && backings[i].erc20Address != address(TOS))  {
+
+                (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) =
+                    IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(backings[i].erc20Address, IERC20(backings[i].erc20Address).balanceOf(address(this)));
+
+                if (existedWethPool) totalValue += convertedAmmount;
+
+                else if (existedTosPool){
+
+                    if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
+                        //  TOS * 1e18 / (TOS/ETH) = ETH
+                        totalValue +=  (convertedAmmount * mintRateDenominator / mintRate );
+                    } else {
+                        // TOS * ETH/TOS / token decimal = ETH
+                        totalValue += (convertedAmmount * tosETHPricePerTOS / 1e18);
+                    }
+                }
+            }
+        }
+
+
+        if (!applyWTON && wethAddress != address(0)) totalValue += IERC20(wethAddress).balanceOf(address(this));
+
+        //0.000004124853366489 ETH/TOS ,  242427 TOS /ETH
+        totalValue += address(this).balance;
+
+        console.log("backingReserve %s", totalValue);
+
+        return totalValue;
+    }
+
+    /// @inheritdoc ITreasury
+    function totalBacking() public override view returns(uint256) {
+         return backings.length;
+    }
+
+    /// @inheritdoc ITreasury
+    function viewBackingInfo(uint256 _index)
+        public override view
+        returns (address erc20Address, address tosPoolAddress, uint24 fee)
+    {
+         return (
+                backings[_index].erc20Address,
+                backings[_index].tosPoolAddress,
+                backings[_index].fee
+            );
+    }
+
+    /// @inheritdoc ITreasury
+    function allBacking() public override view
+        returns (
+            address[] memory erc20Address,
+            address[] memory tosPoolAddress,
+            uint24[] memory fee)
+    {
+        uint256 len = backings.length;
+        erc20Address = new address[](len);
+        tosPoolAddress = new address[](len);
+        fee = new uint24[](len);
+
+        for (uint256 i = 0; i < len; i++){
+            erc20Address[i] = backings[i].erc20Address;
+            tosPoolAddress[i] = backings[i].tosPoolAddress;
+            fee[i] = backings[i].fee;
+        }
+    }
+
+    /// @inheritdoc ITreasury
+    function totalMinting() public override view returns(uint256) {
+         return mintings.length;
+    }
+
+    /// @inheritdoc ITreasury
+    function viewMintingInfo(uint256 _index)
+        public override view returns(address mintAddress, uint256 mintPercents)
+    {
+         return (mintings[_index].mintAddress, mintings[_index].mintPercents);
+    }
+
+    /// @inheritdoc ITreasury
+    function allMintingg() public override view
+        returns (
+            address[] memory mintAddress,
+            uint256[] memory mintPercents
+            )
+    {
+        uint256 len = mintings.length;
+        mintAddress = new address[](len);
+        mintPercents = new uint256[](len);
+
+        for (uint256 i = 0; i < len; i++){
+            mintAddress[i] = mintings[i].mintAddress;
+            mintPercents[i] = mintings[i].mintPercents;
+        }
+    }
+
+    /// @inheritdoc ITreasury
+    function hasPermission(uint role, address account) public override view returns (bool) {
+        return permissions[LibTreasury.getSatatus(role)][account];
     }
 
     /// @inheritdoc ITreasury
@@ -464,69 +524,10 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
-    function backingReserve() public override view returns (uint256) {
-        uint256 totalValue = 0;
-
-        bool applyWTON = false;
-        uint256 tosETHPricePerTOS = IITOSValueCalculator(calculator).getETHPricePerTOS();
-        // console.log("tosETHPricePerTOS %s", tosETHPricePerTOS) ;
-
-        for(uint256 i = 0; i < backings.length; i++) {
-
-            if (backings[i].erc20Address == wethAddress)  {
-                totalValue += IERC20(wethAddress).balanceOf(address(this));
-                applyWTON = true;
-
-            } else if (backings[i].erc20Address != address(0) && backings[i].erc20Address != address(TOS))  {
-
-                (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) =
-                    IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(backings[i].erc20Address, IERC20(backings[i].erc20Address).balanceOf(address(this)));
-
-                if (existedWethPool) totalValue += convertedAmmount;
-
-                else if (existedTosPool){
-
-                    if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
-                        //  TOS * 1e18 / (TOS/ETH) = ETH
-                        totalValue +=  (convertedAmmount * mintRateDenominator / mintRate );
-                    } else {
-                        // TOS * ETH/TOS / token decimal = ETH
-                        totalValue += (convertedAmmount * tosETHPricePerTOS / 1e18);
-                    }
-                }
-            }
-        }
-
-
-        if (!applyWTON && wethAddress != address(0)) totalValue += IERC20(wethAddress).balanceOf(address(this));
-
-        //0.000004124853366489 ETH/TOS ,  242427 TOS /ETH
-        totalValue += address(this).balance;
-
-        // console.log("backingReserve %s", totalValue);
-
-        return totalValue;
-    }
-
-    /// @inheritdoc ITreasury
-    function backingRateETHPerTOS() public override view returns (uint256) {
-        return (backingReserve() / TOS.totalSupply()) ;
-    }
-
-    /// @inheritdoc ITreasury
-    function enableStaking() public override view returns (uint256) {
-        return TOS.balanceOf(address(this));
-    }
-
-    /// @inheritdoc ITreasury
-    function hasPermission(uint role, address account) public override view returns (bool) {
-        return permissions[LibTreasury.getSatatus(role)][account];
-    }
-
     function isBonder(address account) public override view virtual returns (bool) {
         return permissions[LibTreasury.STATUS.BONDER][account];
     }
-
+    /// @inheritdoc ITreasury
     function isStaker(address account) public override view virtual returns (bool) {
         return permissions[LibTreasury.STATUS.STAKER][account];
     }

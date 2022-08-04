@@ -27,12 +27,6 @@ interface IBondDepository {
     ) external returns (uint256 id_);
 
     /**
-     * @dev        close the market
-     * @param _id  ID of market to close
-     */
-    function close(uint256 _id) external;
-
-    /**
      * @dev                increase the market Capacity
      * @param _marketId    marketId
      * @param amount       increase amount
@@ -81,6 +75,12 @@ interface IBondDepository {
         uint256 _marketId,
         uint256 _tosPrice
     )   external ;
+
+    /**
+     * @dev        close the market
+     * @param _id  ID of market to close
+     */
+    function close(uint256 _id) external;
 
     ///////////////////////////////////////
     /// Anyone can use.
@@ -138,6 +138,25 @@ interface IBondDepository {
     /// @return maxpayout_  the asset amount
     function purchasableAseetAmountAtOneTime(uint256 _id) external view returns (uint256 maxpayout_);
 
+    /// @dev Return information from all markets
+    /// @return marketIds Array of total MarketIDs
+    /// @return quoteTokens Array of total market's quoteTokens
+    /// @return capacities Array of total market's capacities
+    /// @return endSaleTimes Array of total market's endSaleTimes
+    /// @return pricesToken Array of total market's pricesToken
+    /// @return pricesTos Array of total market's pricesTos
+    /// @return totalSaleAmounts Array of total market's totalSaleAmounts
+    function getBonds() external view
+        returns (
+            uint256[] memory marketIds,
+            address[] memory quoteTokens,
+            uint256[] memory capacities,
+            uint256[] memory endSaleTimes,
+            uint256[] memory pricesToken,
+            uint256[] memory pricesTos,
+            uint256[] memory totalSaleAmounts
+        );
+
     /// @dev Returns all generated marketIDs.
     /// @return memory[]  marketList
     function getMarketList() external view returns (uint256[] memory) ;
@@ -163,6 +182,11 @@ interface IBondDepository {
             uint256 sold,
             uint256 maxPayout
             );
+
+    /// @dev Return Whether The index market Whether is closed
+    /// @param _index  Index in the market
+    /// @return closedBool Whether the market is closed
+    function isOpend(uint256 _index) external view returns (bool closedBool);
 
     /// @dev Returns all generated Metadata.
     /// @return memory[] metadatalist
@@ -213,27 +237,4 @@ interface IBondDepository {
             uint256 stakeId
             );
 
-    /// @dev Return Whether The index market Whether is closed
-    /// @param _index  Index in the market
-    /// @return closedBool Whether the market is closed
-    function isOpend(uint256 _index) external view returns (bool closedBool);
-
-    /// @dev Return information from all markets
-    /// @return marketIds Array of total MarketIDs
-    /// @return quoteTokens Array of total market's quoteTokens
-    /// @return capacities Array of total market's capacities
-    /// @return endSaleTimes Array of total market's endSaleTimes
-    /// @return pricesToken Array of total market's pricesToken
-    /// @return pricesTos Array of total market's pricesTos
-    /// @return totalSaleAmounts Array of total market's totalSaleAmounts
-    function getBonds() external view
-        returns (
-            uint256[] memory marketIds,
-            address[] memory quoteTokens,
-            uint256[] memory capacities,
-            uint256[] memory endSaleTimes,
-            uint256[] memory pricesToken,
-            uint256[] memory pricesTos,
-            uint256[] memory totalSaleAmounts
-        );
 }
