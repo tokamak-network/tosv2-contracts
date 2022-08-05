@@ -61,16 +61,13 @@ async function main() {
 
     const terasuryProxyContract = new ethers.Contract( treasuryProxyAddress, treasuryProxyAbi.abi, ethers.provider);
 
-    let minimumTOSPrice = 1;
-
     await terasuryProxyContract.connect(deployer).initialize(
       rinkeby_address.tos,
       tosCalculatorAddress,
       rinkeby_address.weth,
       rinkeby_address.poolfactory,
       stakingProxyAddress,
-      rinkeby_address.tosethPool,
-      minimumTOSPrice
+      rinkeby_address.tosethPool
     )
 
     console.log("treasury initialized");

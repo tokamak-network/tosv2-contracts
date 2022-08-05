@@ -1,9 +1,11 @@
 {
-  "tosCalculator Deploy": "0xb281300083bf29d4f565bdb5175e88455c0869d5f02f91c995b295e82e7924c0",
-  "treasuryLogic Deploy": "0xb3031029d55c2b40dad50d312aa11fd6726940f0180085723e55a706c108a2e3",
-  "treasuryProxy Deploy": "0x1d080a5061f820803f0560cb417ce87bd27a9523555d27a4a58395f7846f2564",
-  "stakingLogic Deploy": "0x6ac9a0a21126b8afc6e9428cfa44d74df7e8710c48336adec7fd0ee34de5238e",
-  "stakingProxy Deploy": "0x348705700df617fdab7003300ce222eb2e8d86795614f773b0396596e6743b8b",
-  "bondDepositoryLogic Deploy": "0xeeae26bb0bebea9a129529139afc226ce954d943538a77f5b558eb835cc058bc",
-  "bondDepositoryProxy Deploy": "0x36a3555e999151a6232b753372b550ac1321ee82e3fdb6cb3a990222d5cc1304"
+  "tosCalculator Deploy": "0xa2f7ef16589f84d89a7f2fe30f00110ff0564bbc01a3e8fb9ca33a8b6901e614",
+  "treasuryLogic Deploy": "0x1f7ad849cdabda69d344f1c3a3fc1d55843061293946134a2146b74493f469cd",
+  "treasuryProxy Deploy": "0x1872dcb8a2df216e7ca51c4b99dc1b496aee93089630c47cf6c987b7617a7fff",
+  "stakingLogic Deploy": "0xbf64c68e59484cb7572a5300e7a51420164f6e8b8f30311af9923af09b1b4fdf",
+  "stakingProxy Deploy": "0x960bd6d8946c27204c73d0f7c27c3d7fe2d2aa33e32c7d537bd8867641781906",
+  "bondDepositoryLogic Deploy": "0x875b4075f2e6e71be32ae12201d6626b279f3831fb37b73b514b0f12df12acea",
+  "bondDepositoryProxy Deploy": "0x11b03a1dd54f24597e619879fe13eed7b294116bc5570ec85f25c50f9392c7b2",
+  "LibTreasury Deploy": "0xe3fe17e92cfb477bd4b6f06e5916eebf64fddedc697d24fefdb944157d6d8bbe",
+  "LibStaking Deploy": "0xa6efb4261fe972ff4060e5b0b2d61ff98dd484e6d87ca59afdfdbfda311774bd"
 }

@@ -17,8 +17,13 @@ async function main() {
         address: ""
     }
 
+
+    //libStaking Deploy
     const LibStaking = await ethers.getContractFactory("LibStaking");
     let libStaking = await LibStaking.connect(deployer).deploy();
+    let tx = await libStaking.deployed();
+
+    console.log("libStaking: ", libStaking.address);
 
     deployInfo = {
       name: "LibStaking",
@@ -27,13 +32,17 @@ async function main() {
 
     save(networkName, deployInfo);
 
+    printGasUsedOfUnits('LibStaking Deploy',tx);
+
+
+    //StakingLogic Deploy
     const stakingLogic = await (await ethers.getContractFactory("StakingV2", {
       libraries: {
         LibStaking: libStaking.address
       }
     })).connect(deployer).deploy();
 
-    let tx = await stakingLogic.deployed();
+    tx = await stakingLogic.deployed();
 
     console.log("stakingLogic: ", stakingLogic.address);
 
@@ -46,6 +55,7 @@ async function main() {
 
     printGasUsedOfUnits('stakingLogic Deploy',tx);
 
+    //StakingProxy Deploy
     const stakingProxy = await (await ethers.getContractFactory("StakingV2Proxy"))
         .connect(deployer)
         .deploy();
@@ -66,10 +76,23 @@ async function main() {
 
     if(chainId == 1 || chainId == 4) {
       await run("verify", {
+        address: libStaking.address,
+        constructorArgsParams: [],
+      });
+    }
+
+    console.log("libStaking verified");
+
+
+    if(chainId == 1 || chainId == 4) {
+      await run("verify", {
         address: stakingLogic.address,
         constructorArgsParams: [],
       });
     }
+
+    console.log("stakingLogic verified");
+
 
     if(chainId == 1 || chainId == 4) {
       await run("verify", {
@@ -77,6 +100,9 @@ async function main() {
         constructorArgsParams: [],
       });
     }
+
+    console.log("stakingProxy verified");
+
 }
 
 // We recommend this pattern to be able to use async/await everywhere
