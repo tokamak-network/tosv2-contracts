@@ -121,45 +121,6 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
-    //WETH-TOS Pool에서 1ETH = ? TOS를 반환한다 (ether단위로 반환) -> ? TOS/1ETH
-    function getTOSWETHPoolETHPrice() public override view returns (uint256 price) {
-        uint tosOrder = getTOStoken0(weth,3000);
-        if(tosOrder == 2 && tosOrder == 3) {
-            return price = 0;
-        }
-        if(tosOrder == 0) {
-            return price = getPriceToken1(ethTosPool);
-        } else if (tosOrder == 1) {
-            return price = getPriceToken0(ethTosPool);
-        } else {
-            return price = 0;
-        }
-    }
-
-    //1TOS = ? ERC20 -> ?ERC20/1TOS
-    //TOS와 비율을 알고 싶은 erc20주소와 TOS-ERC20_Pool주소 fee를 입력함 -> 1TOS = ? Token에서 ? 비율
-    function getTOSERC20PoolTOSPrice(address _erc20address, address _tosERC20Pool, uint24 fee) public override view returns (uint256 price) {
-        uint tosOrder = getTOStoken0(_erc20address,fee);
-        uint decimalCalcul;
-        if(tosOrder == 2 && tosOrder == 3) {
-            return price = 0;
-        }
-        (uint256 token0Decimal, uint256 token1Decimal) = getDecimals(tos,_erc20address);
-        if(token0Decimal >= token1Decimal){
-            decimalCalcul = 0;
-        } else if (token0Decimal < token1Decimal) {
-            decimalCalcul = token1Decimal - token0Decimal;
-        }
-
-        if(tosOrder == 0) {
-            return price = getPriceToken0(_tosERC20Pool)/(10 ** decimalCalcul);
-        } else if (tosOrder == 1) {
-            return price = getPriceToken1(_tosERC20Pool)/(10 ** decimalCalcul);
-        } else {
-            return price = 0;
-        }
-    }
-
     // 1ERC20 = ?TOS -> ?TOS/1ERC20
     // TOS와 비율을 알고 싶은 erc20주소와 TOS-ERC20_Pool주소 fee를 입력함 -> 1token = ? TOS에서 ? 비율
     function getTOSERC20PoolERC20Price(address _erc20address, address _tosERC20Pool, uint24 fee) public override view returns (uint256 price) {
@@ -178,53 +139,6 @@ contract TOSValueCalculator is ITOSValueCalculator {
             return price = getPriceToken1(_tosERC20Pool)/(10 ** decimalCalcul);
         } else if (tosOrder == 1) {
             return price = getPriceToken0(_tosERC20Pool)/(10 ** decimalCalcul);
-        } else {
-            return price = 0;
-        }
-    }
-
-    //1ETH = ? ERC20 -> ?ERC20/1ETH
-    //ETH와 비율을 알고 싶은 erc20주소와 eth-ERC20_pool주소, fee를 입력함 1ETH = ? ERC20
-    function getETHERC20PoolETHPrice(address _erc20address, address _ethERC20Pool, uint24 fee) public override view returns (uint256 price) {
-        uint ethOrder = getETHtoken0(_erc20address,fee);
-        uint decimalCalcul;
-        if(ethOrder == 2 && ethOrder == 3) {
-            return price = 0;
-        }
-        (uint256 token0Decimal, uint256 token1Decimal) = getDecimals(weth,_erc20address);
-        if(token0Decimal >= token1Decimal){
-            decimalCalcul = 0;
-        } else if (token0Decimal < token1Decimal) {
-            decimalCalcul = token1Decimal - token0Decimal;
-        }
-
-        if(ethOrder == 0) {
-            return price = getPriceToken0(_ethERC20Pool)/(10 ** decimalCalcul);
-        } else if (ethOrder == 1) {
-            return price = getPriceToken1(_ethERC20Pool)/(10 ** decimalCalcul);
-        } else {
-            return price = 0;
-        }
-    }
-
-    // 1ERC20 = ?ETH -> ?ETH/1ERC20
-    //ETH와 비율을 알고 싶은 erc20주소와 ETH-ERC20_Pool주소와 fee를 입력함 1ERC20 = ? ETH
-    function getETHERC20PoolERC20Price(address _erc20address, address _ethERC20Pool, uint24 fee) public override view returns (uint256 price) {
-        uint ethOrder = getETHtoken0(_erc20address,fee);
-        uint decimalCalcul;
-        if(ethOrder == 2 && ethOrder == 3) {
-            return price = 0;
-        }
-        (uint256 token0Decimal, uint256 token1Decimal) = getDecimals(weth,_erc20address);
-        if(token0Decimal <= token1Decimal){
-            decimalCalcul = 0;
-        } else if (token0Decimal > token1Decimal) {
-            decimalCalcul = token0Decimal - token1Decimal;
-        }
-        if(ethOrder == 0) {
-            return price = getPriceToken1(_ethERC20Pool)/(10 ** decimalCalcul);
-        } else if (ethOrder == 1) {
-            return price = getPriceToken0(_ethERC20Pool)/(10 ** decimalCalcul);
         } else {
             return price = 0;
         }

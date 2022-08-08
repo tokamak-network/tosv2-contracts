@@ -76,10 +76,12 @@ async function main() {
     
     const block = await ethers.provider.getBlock('latest')
 
-    let epochLength = 3600 * 8;
+    // let epochLength = 3600 * 8;
+    let epochLength = 600;
     let epochNumber = 0;
     let epochEnd = Number(block.timestamp) + Number(epochLength);
-    let basicBondPeriod = (86400*5);
+    // let basicBondPeriod = (86400*5);
+    let basicBondPeriod = 1800;
 
     await stakingProxyContract.connect(deployer).initialize(
       rinkeby_address.tos,
