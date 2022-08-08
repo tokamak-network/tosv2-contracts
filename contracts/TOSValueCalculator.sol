@@ -108,13 +108,13 @@ contract TOSValueCalculator is ITOSValueCalculator {
 
     //WETH-TOS Pool에서 1TOS = ? ETH를 반환한다 (ether단위로 반환) -> ? ETH/1TOS
     function getWETHPoolTOSPrice() public override view returns (uint256 price) {
-        uint wethOrder = getTOStoken0(weth, 3000);
-        if(wethOrder == 2 && wethOrder == 3) {
+        uint tosOrder = getTOStoken0(weth, 3000);
+        if(tosOrder == 2 && tosOrder == 3) {
             return price = 0;
         }
-        if(wethOrder == 0) {
+        if(tosOrder == 0) {
             return price = getPriceToken0(ethTosPool);
-        } else if (wethOrder == 1) {
+        } else if (tosOrder == 1) {
             return price = getPriceToken1(ethTosPool);
         } else {
             return price = 0;
@@ -123,14 +123,14 @@ contract TOSValueCalculator is ITOSValueCalculator {
 
     //WETH-TOS Pool에서 1ETH = ? TOS를 반환한다 (ether단위로 반환) -> ? TOS/1ETH
     function getTOSWETHPoolETHPrice() public override view returns (uint256 price) {
-        uint tosOrder = getTOStoken0(tos,3000);
+        uint tosOrder = getTOStoken0(weth,3000);
         if(tosOrder == 2 && tosOrder == 3) {
             return price = 0;
         }
         if(tosOrder == 0) {
-            return price = getPriceToken0(ethTosPool);
-        } else if (tosOrder == 1) {
             return price = getPriceToken1(ethTosPool);
+        } else if (tosOrder == 1) {
+            return price = getPriceToken0(ethTosPool);
         } else {
             return price = 0;
         }
