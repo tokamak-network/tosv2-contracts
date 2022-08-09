@@ -341,7 +341,7 @@ contract BondDepository is
         market.sold += _payout;
 
         //check closing
-        if (metadata[_marketId].totalSaleAmount <= market.sold) {
+        if (metadata[_marketId].totalSaleAmount - 100 ether <= market.sold) {
            market.capacity = 0;
            emit ClosedMarket(_marketId);
         }

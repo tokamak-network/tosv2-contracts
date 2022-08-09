@@ -619,6 +619,12 @@ contract StakingV2 is
         return index_;
     }
 
+    function possibleIndex() public view returns (uint256) {
+        uint256 _possibleEpochNumber = LibStaking.possibleEpochNumber(runwayTOS(), getLtosToTos(totalLTOS), rebasePerEpoch);
+        uint256 possibleIndex_ = LibStaking.compound(index_, rebasePerEpoch, _possibleEpochNumber); 
+        return possibleIndex_;
+    }
+
     /// @inheritdoc IStaking
     function stakingOf(address _addr)
         public

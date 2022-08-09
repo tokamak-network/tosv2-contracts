@@ -476,7 +476,7 @@ contract Treasury is
     function checkTosSolvencyAfterTOSMint(uint256 _checkMintRate, uint256 amount)
         public override view returns (bool)
     {
-        if (TOS.totalSupply() + amount  <= backingReserveTOS() * _checkMintRate / mintRateDenominator)  return true;
+        if (TOS.totalSupply() + amount  <= backingReserve() * _checkMintRate / mintRateDenominator)  return true;
         else return false;
     }
 
@@ -484,7 +484,7 @@ contract Treasury is
     function  checkTosSolvency(uint256 amount)
         public override view returns (bool)
     {
-        if ( TOS.totalSupply() + amount <= backingReserveTOS() * mintRate / mintRateDenominator)  return true;
+        if ( TOS.totalSupply() + amount <= backingReserve() * mintRate / mintRateDenominator)  return true;
         else return false;
     }
 

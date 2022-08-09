@@ -19,25 +19,27 @@ async function main() {
 
 
     //LibTreasury deploy
-    const LibTreasury = await ethers.getContractFactory("LibTreasury");
-    let libTreasury = await LibTreasury.connect(deployer).deploy();
-    let tx = await libTreasury.deployed();
+    // const LibTreasury = await ethers.getContractFactory("LibTreasury");
+    // let libTreasury = await LibTreasury.connect(deployer).deploy();
+    // let tx = await libTreasury.deployed();
 
-    console.log("libTreasury: ", libTreasury.address);
+    // console.log("libTreasury: ", libTreasury.address);
 
-    deployInfo = {
-      name: "LibTreasury",
-      address: libTreasury.address
-    }
+    // deployInfo = {
+    //   name: "LibTreasury",
+    //   address: libTreasury.address
+    // }
     
-    save(networkName, deployInfo);
+    // save(networkName, deployInfo);
 
-    printGasUsedOfUnits('LibTreasury Deploy',tx);
+    // printGasUsedOfUnits('LibTreasury Deploy',tx);
 
     //Treasury Deploy
+
+    let LibTreasuryAddress = "0x757e2fb31068E60E0fA1517E0C1B26FE58Be7d2E"
     const treasuryLogic = await (await ethers.getContractFactory("Treasury", {
       libraries: {
-        LibTreasury: libTreasury.address
+        LibTreasury: LibTreasuryAddress
       }
     })).connect(deployer).deploy();
 
@@ -55,33 +57,33 @@ async function main() {
 
 
     //TreasuryProxy Deploy
-    const treasuryProxy = await (await ethers.getContractFactory("TreasuryProxy"))
-        .connect(deployer)
-        .deploy();
-    tx = await treasuryProxy.deployed();
+    // const treasuryProxy = await (await ethers.getContractFactory("TreasuryProxy"))
+    //     .connect(deployer)
+    //     .deploy();
+    // tx = await treasuryProxy.deployed();
 
-    await treasuryProxy.connect(deployer).upgradeTo(treasuryLogic.address);
+    // await treasuryProxy.connect(deployer).upgradeTo(treasuryLogic.address);
 
-    console.log("treasuryProxy: ", treasuryProxy.address);
+    // console.log("treasuryProxy: ", treasuryProxy.address);
 
-    deployInfo = {
-      name: "TreasuryProxy",
-      address: treasuryProxy.address
-    }
+    // deployInfo = {
+    //   name: "TreasuryProxy",
+    //   address: treasuryProxy.address
+    // }
 
-    save(networkName, deployInfo);
+    // save(networkName, deployInfo);
 
-    printGasUsedOfUnits('treasuryProxy Deploy',tx);
+    // printGasUsedOfUnits('treasuryProxy Deploy',tx);
 
 
-    if(chainId == 1 || chainId == 4) {
-      await run("verify", {
-        address: libTreasury.address,
-        constructorArgsParams: [],
-      });
-    }
+    // if(chainId == 1 || chainId == 4) {
+    //   await run("verify", {
+    //     address: libTreasury.address,
+    //     constructorArgsParams: [],
+    //   });
+    // }
 
-    console.log("libTreasury verified");
+    // console.log("libTreasury verified");
 
 
     if(chainId == 1 || chainId == 4) {
@@ -93,14 +95,14 @@ async function main() {
 
     console.log("treasuryLogic verified");
 
-    if(chainId == 1 || chainId == 4) {
-      await run("verify", {
-        address: treasuryProxy.address,
-        constructorArgsParams: [],
-      });
-    }
+    // if(chainId == 1 || chainId == 4) {
+    //   await run("verify", {
+    //     address: treasuryProxy.address,
+    //     constructorArgsParams: [],
+    //   });
+    // }
 
-    console.log("treasuryProxy verified");
+    // console.log("treasuryProxy verified");
 }
 
 // We recommend this pattern to be able to use async/await everywhere
