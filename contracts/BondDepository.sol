@@ -100,6 +100,7 @@ contract BondDepository is
         nonZero(_market[3])
         returns (uint256 id_)
     {
+        require(_market[0] >= 100 ether, "need the totalSaleAmount 100 over");
         id_ = staking.generateMarketId();  // BondDepository는 staking의 오너로 등록이 되어야 함.
 
         if (_check) require(_token == address(0), "when use eth, token must be zero address");
