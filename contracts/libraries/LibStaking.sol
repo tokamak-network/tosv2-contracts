@@ -21,7 +21,7 @@ library LibStaking
         address staker;
         uint256 deposit;    //tos staking 양
         uint256 LTOS;       //변환된 LTOS 양
-        uint256 startTime;  //스테이킹한 시간 startTime
+        uint256 startTime;  //스테이킹한 시간 startTime     //possible delete
         uint256 endTime;    //끝나는 endTime
         uint256 marketId;   //bondMarketId
     }
