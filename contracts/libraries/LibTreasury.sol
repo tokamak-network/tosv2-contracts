@@ -22,10 +22,11 @@ library LibTreasury
     // 트래저리에서 집계하기 위한 토큰 리스트
     // 등록된것만 집계가 된다.
     // 본트 마켓과는 별개이다. (함께 관리되지 않는다.)
+    // Backing struct를 안쓰고 erc20주소만 return되는 걸 쓰면됨.
     struct Backing {
         address erc20Address;
-        address tosPoolAddress;
-        uint24 fee;
+        address tosPoolAddress;         //possible delete
+        uint24 fee;                     //possible delete
     }
 
     // 민트된 양에서 원금(토스 평가금)빼고,

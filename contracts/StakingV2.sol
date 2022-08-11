@@ -619,10 +619,19 @@ contract StakingV2 is
         return index_;
     }
 
-    function possibleIndex() public view returns (uint256) {
+    /// @inheritdoc IStaking
+    function possibleIndex() public view override returns (uint256,uint256) {
+        uint256 epochNumber;
+        if ((block.timestamp - epoch.end) > epoch.length_){
+            epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
+            epochNumber += 1;
+        }
         uint256 _possibleEpochNumber = LibStaking.possibleEpochNumber(runwayTOS(), getLtosToTos(totalLTOS), rebasePerEpoch);
-        uint256 possibleIndex_ = LibStaking.compound(index_, rebasePerEpoch, _possibleEpochNumber); 
-        return possibleIndex_;
+        if (_possibleEpochNumber < epochNumber) {
+            epochNumber = _possibleEpochNumber;
+        }
+        uint256 possibleIndex_ = LibStaking.compound(index_, rebasePerEpoch, epochNumber); 
+        return (possibleIndex_,epochNumber);
     }
 
     /// @inheritdoc IStaking

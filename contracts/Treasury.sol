@@ -270,6 +270,7 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
+    //무조건 tos랑 연동되어있다는 가정, fee는 무조건 3000이라는 가정 -> 아예 poolAddress가 필요없음
     function addBondAsset(
         address _address,
         address _tosPooladdress,
