@@ -96,7 +96,7 @@ contract Treasury is
     function approve(
         address _addr
     ) external override onlyPolicyOwner {
-        TOS.approve(_addr, 1e45);
+        tos.approve(_addr, 1e45);
     }
 
     /// @inheritdoc ITreasury
@@ -107,7 +107,7 @@ contract Treasury is
         require(checkTosSolvencyAfterTOSMint(_mrRate, amount), "unavailable mintRate");
 
         if (mintRate != _mrRate) mintRate = _mrRate;
-        if (amount > 0) TOS.mint(address(this), amount);
+        if (amount > 0) tos.mint(address(this), amount);
 
         emit SetMintRate(_mrRate, amount);
     }
@@ -161,7 +161,6 @@ contract Treasury is
         external override onlyPolicyOwner
         nonZeroAddress(_address)
     {
-        bool existAsset = false;
         uint256 len = backings.length;
 
         for (uint256 i = 0; i < len; i++){
@@ -222,24 +221,21 @@ contract Treasury is
 
         require(_mintAmount > 0, "zero amount");
         require(_mintAmount >= _transferAmount, "_mintAmount is less than _transferAmount");
-
-        TOS.mint(address(this), _mintAmount);
+        require(tos.mint(address(this), _mintAmount), "mint fail");
 
         if (_transferAmount > 0) {
             require(_recipient != address(0), "zero recipient");
-            TOS.safeTransfer(_recipient, _transferAmount);
+            tos.safeTransfer(_recipient, _transferAmount);
         }
 
         uint256 remainedAmount = _mintAmount - _transferAmount;
         if(remainedAmount > 0 && _distribute) _foundationDistribute(remainedAmount);
-
 
         emit RquestedMintAndTransfer(_mintAmount, _recipient, _transferAmount, _distribute);
 
     }
 
     /// @inheritdoc ITreasury
-    //무조건 tos랑 연동되어있다는 가정, fee는 무조건 3000이라는 가정 -> 아예 poolAddress가 필요없음
     function addBondAsset(address _address)  external override
     {
         require(isBonder(msg.sender), "caller is not bonder");
@@ -252,28 +248,19 @@ contract Treasury is
         uint256 _amount
     ) external override {
         require(isStaker(msg.sender), notApproved);
-
-        // console.log("------------ requestTrasfer ---------------------");
-
         require(_recipient != address(0), "zero recipient");
         require(_amount > 0, "zero amount");
-
-        require(TOS.balanceOf(address(this)) >= _amount, "treasury balance is insufficient");
-
-        // console.log("requestTransfer _recipient %s", _recipient);
-        // console.log("requestTransfer _amount %s", _amount);
-
-        TOS.transfer(_recipient, _amount);
+        require(tos.balanceOf(address(this)) >= _amount, "treasury balance is insufficient");
+        require(tos.transfer(_recipient, _amount), "transfer fail");
 
         emit RequestedTransfer(_recipient, _amount);
-
     }
 
 
     function _foundationDistribute(uint256 remainedAmount) internal {
         if (mintings.length > 0) {
             for (uint256 i = 0; i < mintings.length ; i++) {
-                TOS.safeTransfer(
+                tos.safeTransfer(
                     mintings[i].mintAddress, remainedAmount *  mintings[i].mintPercents / 100
                 );
             }
@@ -289,7 +276,7 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     function backingRateETHPerTOS() public override view returns (uint256) {
-        return (backingReserve() / TOS.totalSupply()) ;
+        return (backingReserve() / tos.totalSupply()) ;
     }
 
     /// @inheritdoc ITreasury
@@ -310,7 +297,7 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     function enableStaking() public override view returns (uint256) {
-        return TOS.balanceOf(address(this));
+        return tos.balanceOf(address(this));
     }
 
     /// @inheritdoc ITreasury
@@ -327,15 +314,13 @@ contract Treasury is
                 totalValue += IERC20(wethAddress).balanceOf(address(this));
                 applyWTON = true;
 
-            } else if (backings[i] != address(0) && backings[i] != address(TOS))  {
+            } else if (backings[i] != address(0) && backings[i] != address(tos))  {
 
                 (bool existedWethPool, bool existedTosPool, , uint256 convertedAmount) =
                     IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(backings[i], IERC20(backings[i]).balanceOf(address(this)));
 
                 if (existedWethPool) totalValue += convertedAmount;
-
                 else if (existedTosPool){
-
                     if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
                         //  TOS * 1e18 / (TOS/ETH) = ETH
                         totalValue +=  (convertedAmount * mintRateDenominator / mintRate );
@@ -409,7 +394,7 @@ contract Treasury is
     function checkTosSolvencyAfterTOSMint(uint256 _checkMintRate, uint256 amount)
         public override view returns (bool)
     {
-        if (TOS.totalSupply() + amount  <= backingReserve() * _checkMintRate / mintRateDenominator)  return true;
+        if (tos.totalSupply() + amount  <= backingReserve() * _checkMintRate / mintRateDenominator)  return true;
         else return false;
     }
 
@@ -417,7 +402,7 @@ contract Treasury is
     function  checkTosSolvency(uint256 amount)
         public override view returns (bool)
     {
-        if ( TOS.totalSupply() + amount <= backingReserve() * mintRate / mintRateDenominator)  return true;
+        if ( tos.totalSupply() + amount <= backingReserve() * mintRate / mintRateDenominator)  return true;
         else return false;
     }
 
@@ -446,9 +431,6 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     function getTOSPricePerETH() public override view returns (uint256) {
-
-        // console.log("getTOSPricePerETH poolAddressTOSETH %s",poolAddressTOSETH);
-
         if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
             return  mintRate;
         } else {
@@ -467,7 +449,7 @@ contract Treasury is
     }
 
     function withdrawEther(address account) external onlyPolicyOwner nonZeroAddress(account) {
-        uint256 ethbalance = address(this).balance;
-        payable(account).transfer(ethbalance);
+        require(address(this).balance > 0, "zero balance");
+        payable(account).transfer(address(this).balance);
     }
 }

@@ -11,7 +11,6 @@ library LibBondDepository
         uint256 endSaleTime;    //saleEndTime
         uint256 maxPayout;  // 한 tx에 살수 있는 물량
         uint256 tosPrice;
-        // uint256 totalSaleAmount; //tos sales volume
     }
 
     struct Deposit {

@@ -593,7 +593,7 @@ describe("TOSv2 Phase1", function () {
         )
 
         expect(await treasuryProxylogic.calculator()).to.be.equal(TOSValueCalculator.address);
-        expect(await treasuryProxylogic.TOS()).to.be.equal(tosContract.address);
+        expect(await treasuryProxylogic.tos()).to.be.equal(tosContract.address);
         expect(await treasuryProxylogic.wethAddress()).to.be.equal(wethAddress);
       })
 
@@ -812,7 +812,7 @@ describe("TOSv2 Phase1", function () {
 
       it("#1-2-3. setAddressInfos : admin can call setAddressInfos", async () => {
 
-        expect(await stakingProxylogic.TOS()).to.be.eq(uniswapInfo.tos);
+        expect(await stakingProxylogic.tos()).to.be.eq(uniswapInfo.tos);
         expect(await stakingProxylogic.lockTOS()).to.be.eq(lockTosContract.address);
         expect(await stakingProxylogic.treasury()).to.be.eq(treasuryProxy.address);
 
@@ -822,7 +822,7 @@ describe("TOSv2 Phase1", function () {
             treasuryProxy.address
         );
 
-        expect(await stakingProxylogic.TOS()).to.be.eq(treasuryContract.address);
+        expect(await stakingProxylogic.tos()).to.be.eq(treasuryContract.address);
         expect(await stakingProxylogic.lockTOS()).to.be.eq(treasuryContract.address);
         expect(await stakingProxylogic.treasury()).to.be.eq(treasuryProxy.address);
 
@@ -832,7 +832,7 @@ describe("TOSv2 Phase1", function () {
             treasuryProxy.address
         );
 
-        expect(await stakingProxylogic.TOS()).to.be.eq(uniswapInfo.tos);
+        expect(await stakingProxylogic.tos()).to.be.eq(uniswapInfo.tos);
         expect(await stakingProxylogic.lockTOS()).to.be.eq(lockTosContract.address);
         expect(await stakingProxylogic.treasury()).to.be.eq(treasuryProxy.address);
 

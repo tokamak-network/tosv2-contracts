@@ -13,7 +13,7 @@ contract BondDepositoryStorage {
     address public treasury;
     address public calculator;
     address public uniswapV3Factory;
-    address public dTOS;
+    address public dtos;
 
     uint256 private constant _NOT_ENTERED = 1;
     uint256 private constant _ENTERED = 2;

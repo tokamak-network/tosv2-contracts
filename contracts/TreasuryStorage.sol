@@ -11,7 +11,7 @@ contract TreasuryStorage {
     string internal invalidToken = "Treasury: invalid token";
     string internal insufficientReserves = "Treasury: insufficient reserves";
 
-    IERC20 public TOS;
+    IERC20 public tos;
     address public calculator;
     address public wethAddress;
     address public uniswapV3Factory;

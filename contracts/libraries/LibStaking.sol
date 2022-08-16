@@ -3,7 +3,6 @@ pragma solidity ^0.8.4;
 import "./ABDKMath64x64.sol";
 
 interface IILockTosV2 {
-
     function epochUnit() external view returns(uint256);
 }
 
@@ -42,8 +41,7 @@ library LibStaking
    * @return rebaseCount unsigned 256-bit integer number
    */
     function possibleEpochNumber(uint256 _runwayTOS, uint256 _totalTOS, uint256 rebasePerEpoch) public pure returns (uint256 ){
-        // uint256 _runwayTOS = runwayTOS();
-        // uint256 _totalTOS = getLtosToTos(totalLTOS);
+
         int128 a = ABDKMath64x64.ln(
                     ABDKMath64x64.add(
                         ABDKMath64x64.divu(_runwayTOS,_totalTOS),

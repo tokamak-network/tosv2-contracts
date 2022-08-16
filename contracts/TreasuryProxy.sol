@@ -25,9 +25,9 @@ contract TreasuryProxy is
         nonZeroAddress(_poolAddressTOSETH)
         external onlyProxyOwner
     {
-        require(address(TOS) == address(0), "already initialized");
+        require(address(tos) == address(0), "already initialized");
 
-        TOS = IERC20(_tos);
+        tos = IERC20(_tos);
         calculator = _calculator;
         wethAddress = _wethAddress;
         uniswapV3Factory = _uniswapV3Factory;

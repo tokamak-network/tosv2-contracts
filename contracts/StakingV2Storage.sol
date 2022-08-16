@@ -9,7 +9,7 @@ contract StakingV2Storage {
 
     LibStaking.Epoch public epoch;
 
-    IERC20 public TOS;
+    IERC20 public tos;
     address public lockTOS;
     address public treasury;
 

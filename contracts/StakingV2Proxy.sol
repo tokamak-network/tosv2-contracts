@@ -27,9 +27,9 @@ contract StakingV2Proxy is
         nonZero(_basicBondPeriod)
     {
         require(_epoch[0] > 0 && _epoch[2] > 0, "zero epoch value");
-        require(address(TOS) == address(0), "already initialized.");
+        require(address(tos) == address(0), "already initialized.");
 
-        TOS = IERC20(_tos);
+        tos = IERC20(_tos);
         lockTOS = _lockTOS;
         treasury = _treasury;
 
