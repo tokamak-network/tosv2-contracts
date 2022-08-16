@@ -141,12 +141,19 @@ contract Treasury is
         public override onlyPolicyOwner
         nonZeroAddress(_address)
     {
+        _addBackingList(_address);
+    }
 
+    function _addBackingList(address _address) internal
+    {
         bool existAsset = false;
         uint256 len = backings.length;
 
         for (uint256 i = 0; i < len; i++)
-            if (_address == backings[i]) existAsset = true;
+            if (_address == backings[i]) {
+                existAsset = true;
+                break;
+            }
 
         if(!existAsset) {
             backings.push(_address);
@@ -219,17 +226,18 @@ contract Treasury is
     {
         require(isBonder(msg.sender), notApproved);
 
-        require(_mintAmount > 0, "zero amount");
-        require(_mintAmount >= _transferAmount, "_mintAmount is less than _transferAmount");
-        require(tos.mint(address(this), _mintAmount), "mint fail");
+        require(_mintAmount > 0 && _mintAmount >= _transferAmount, "_mintAmount is less than _transferAmount");
 
+        tos.mint(address(this), _mintAmount);
+
+        uint256 remainedAmount = _mintAmount;
         if (_transferAmount > 0) {
             require(_recipient != address(0), "zero recipient");
+            remainedAmount = remainedAmount - _transferAmount;
             tos.safeTransfer(_recipient, _transferAmount);
         }
 
-        uint256 remainedAmount = _mintAmount - _transferAmount;
-        if(remainedAmount > 0 && _distribute) _foundationDistribute(remainedAmount);
+        if(_distribute && remainedAmount > 0) _foundationDistribute(remainedAmount);
 
         emit RquestedMintAndTransfer(_mintAmount, _recipient, _transferAmount, _distribute);
 
@@ -239,7 +247,8 @@ contract Treasury is
     function addBondAsset(address _address)  external override
     {
         require(isBonder(msg.sender), "caller is not bonder");
-        if (_address != address(0))  addBackingList(_address);
+        require(_address != address(0), "zero asset");
+        _addBackingList(_address);
     }
 
     /// @inheritdoc ITreasury
@@ -248,8 +257,8 @@ contract Treasury is
         uint256 _amount
     ) external override {
         require(isStaker(msg.sender), notApproved);
-        require(_recipient != address(0), "zero recipient");
-        require(_amount > 0, "zero amount");
+        require(_recipient != address(0) && _amount > 0, "zero recipient or amount");
+        // require(_amount > 0, "zero amount");
         require(tos.balanceOf(address(this)) >= _amount, "treasury balance is insufficient");
         require(tos.transfer(_recipient, _amount), "transfer fail");
 
@@ -307,8 +316,8 @@ contract Treasury is
         bool applyWTON = false;
         uint256 tosETHPricePerTOS = IITOSValueCalculator(calculator).getETHPricePerTOS();
         // console.log("tosETHPricePerTOS %s", tosETHPricePerTOS) ;
-
-        for(uint256 i = 0; i < backings.length; i++) {
+        uint256 len = backings.length;
+        for(uint256 i = 0; i < len; i++) {
 
             if (backings[i] == wethAddress)  {
                 totalValue += IERC20(wethAddress).balanceOf(address(this));
@@ -331,7 +340,6 @@ contract Treasury is
                 }
             }
         }
-
 
         if (!applyWTON && wethAddress != address(0)) totalValue += IERC20(wethAddress).balanceOf(address(this));
 
