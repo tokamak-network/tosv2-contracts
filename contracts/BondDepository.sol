@@ -90,7 +90,7 @@ contract BondDepository is
         require(_market[0] >= 100 ether, "need the totalSaleAmount > 100");
         id_ = staking.generateMarketId();
         require(markets[id_].endSaleTime == 0, "already registered market");
-        require(_market[1] > block.timestamp, "sale end time has passed.");
+        require(_market[1] > block.timestamp, "endSaleTime has passed");
 
         markets[id_] = LibBondDepository.Market({
                             quoteToken: _token,
@@ -207,7 +207,7 @@ contract BondDepository is
         nonZero(_amount)
         returns (uint256 payout_)
     {
-        require(msg.value == _amount, "Depository : ETH value not same");
+        require(msg.value == _amount, "Depository: ETH amounts do not match");
 
         (payout_) = _deposit(msg.sender, _amount, _id, true);
 
@@ -232,7 +232,7 @@ contract BondDepository is
         nonZero(_lockWeeks)
         returns (uint256 payout_)
     {
-        require(msg.value == _amount, "Depository : ETH value not same");
+        require(msg.value == _amount, "Depository: ETH amounts do not match");
 
         (payout_) = _deposit(msg.sender, _amount, _id, true);
 
