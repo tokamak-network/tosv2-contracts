@@ -87,7 +87,7 @@ contract BondDepository is
         nonZero(_market[3])
         returns (uint256 id_)
     {
-        require(_market[0] >= 100 ether, "need the totalSaleAmount 100 over");
+        require(_market[0] >= 100 ether, "need the totalSaleAmount > 100");
         id_ = staking.generateMarketId();
         require(markets[id_].endSaleTime == 0, "already registered market");
         require(_market[1] > block.timestamp, "sale end time has passed.");
