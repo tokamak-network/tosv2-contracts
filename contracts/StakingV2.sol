@@ -13,7 +13,7 @@ import "./libraries/LibTreasury.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IStakingEvent.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 interface ILockTosV2 {
 
@@ -152,7 +152,6 @@ contract StakingV2 is
 
         uint256 ltos = _createStakeInfo(to, stakeId, _amount, block.timestamp + basicBondPeriod, _marketId);
 
-
         emit StakedByBond(to, _amount, ltos, _marketId, stakeId, tosPrice);
     }
 
@@ -184,7 +183,6 @@ contract StakingV2 is
 
         uint256 sTOSid = _createStos(_to, _amount, _periodWeeks, sTosEpochUnit);
         connectId[stakeId] = sTOSid;
-        lockTOSId[sTOSid] = stakeId;
 
         emit StakedGetStosByBond(_to, _amount, ltos, _periodWeeks, _marketId, stakeId, sTOSid, tosPrice);
     }
@@ -244,7 +242,6 @@ contract StakingV2 is
 
         uint256 sTOSid = _createStos(to, _amount, _periodWeeks, sTosEpochUnit);
         connectId[stakeId] = sTOSid;
-        lockTOSId[sTOSid] = stakeId;
 
         emit StakedGetStos(to, _amount, _periodWeeks, stakeId, sTOSid);
     }
@@ -296,7 +293,6 @@ contract StakingV2 is
 
             ILockTosV2(lockTOS).withdrawByStaker(staker, lockId);
             delete connectId[_stakeId];
-            delete lockTOSId[lockId];
         } else {
             require(_stakeInfo.endTime < block.timestamp, "lock end time has not passed");
         }
@@ -330,7 +326,6 @@ contract StakingV2 is
             depositPlusAmount -= _claimAmount;
             sTOSid = _createStos(staker, depositPlusAmount, _periodWeeks, sTosEpochUnit);
             connectId[stakeId] = sTOSid;
-            lockTOSId[sTOSid] = stakeId;
         }
 
         if (_claimAmount > 0) {
@@ -366,7 +361,6 @@ contract StakingV2 is
             uint256 addAmount = _amount + getLtosToTos(remainedLTOS(_stakeId));
             uint256 sTOSid = _createStos(staker, addAmount, _unlockWeeks, sTosEpochUnit);
             connectId[_stakeId] = sTOSid;
-            lockTOSId[sTOSid] = _stakeId;
 
         } else if(userStakingIndex[staker][_stakeId] > 1 && lockId > 0) {
             (, uint256 end, uint256 principalsAmount) = ILockTosV2(lockTOS).locksInfo(lockId);
@@ -474,7 +468,6 @@ contract StakingV2 is
             // console.log("unstake withdrawByStaker end ");
 
             delete connectId[_stakeId];
-            delete lockTOSId[sTOSid];
         }
 
         uint256 _userStakeIdIndex  = _deleteUserStakeId(staker, _stakeId);
@@ -511,7 +504,7 @@ contract StakingV2 is
         // console.log("rebaseIndex index_ : %s", index_);
         // console.log("rebaseIndex epoch.number : %s", epoch.number);
 
-        if(epoch.end <= block.timestamp  ) {
+        if(epoch.end <= block.timestamp ) {
 
             uint256 epochNumber = 0;
 
@@ -520,14 +513,16 @@ contract StakingV2 is
             }
 
             // console.log("rebaseIndex epochNumber : %s", epochNumber);
-            epoch.end += (epoch.length_ * (1 + epochNumber));
             epochNumber++;
+            epoch.end += (epoch.length_ * epochNumber); // if block.timestamp > epoch.end => we have to rebase at least once
+
             // console.log("rebaseIndex epochNumber : %s", epochNumber);
             // console.log("rebaseIndex epoch.end : %s", epoch.end);
 
             uint256 newIndex = index_;
-            if(epochNumber > 1) newIndex = LibStaking.compound(index_, rebasePerEpoch, epochNumber) ;
-            else if(epochNumber == 1)  newIndex = nextIndex();
+            if(epochNumber == 1)  newIndex = nextIndex();
+            else if(epochNumber > 1) newIndex = LibStaking.compound(index_, rebasePerEpoch, epochNumber) ;
+
             // console.log("rebaseIndex newIndex : %s", newIndex);
 
             // console.log("rebaseIndex totalLTOS : %s", totalLTOS);
@@ -620,25 +615,9 @@ contract StakingV2 is
     }
 
     /// @inheritdoc IStaking
-    function possibleIndex() public view override returns (uint256,uint256) {
-        uint256 epochNumber = 0;
-        uint256 possibleIndex_ = 0;
-        if(epoch.end <= block.timestamp) {
-            if ((block.timestamp - epoch.end) > epoch.length_){
-                epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
-                epochNumber += 1;
-            }
-        }
-        if(epochNumber == 1) {
-            possibleIndex_ = nextIndex();   
-        } else {
-            uint256 _possibleEpochNumber = LibStaking.possibleEpochNumber(runwayTOS(), getLtosToTos(totalLTOS), rebasePerEpoch);
-            if (_possibleEpochNumber < epochNumber) {
-                epochNumber = _possibleEpochNumber;
-            }
-            possibleIndex_ = LibStaking.compound(index_, rebasePerEpoch, epochNumber); 
-        }
-        return (possibleIndex_,epochNumber);
+    function possibleIndex() public view override returns (uint256) {
+        uint256 _possibleEpochNumber = LibStaking.possibleEpochNumber(runwayTOS(), getLtosToTos(totalLTOS), rebasePerEpoch);
+        return LibStaking.compound(index_, rebasePerEpoch, _possibleEpochNumber);
     }
 
     /// @inheritdoc IStaking
@@ -756,7 +735,6 @@ contract StakingV2 is
         _addUserStakeId(to, stakeId);
         _createStakeInfo(to, stakeId, amount, endTime, 0);
         connectId[stakeId] = sTOSid;
-        lockTOSId[sTOSid] = stakeId;
     }
 
 
@@ -977,7 +955,6 @@ contract StakingV2 is
     }
 
     function _addStakeId() internal returns(uint256) {
-
         return ++stakingIdCounter;
     }
 

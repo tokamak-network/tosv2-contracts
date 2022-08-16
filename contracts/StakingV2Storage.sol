@@ -4,27 +4,21 @@ pragma solidity ^0.8.4;
 import "./libraries/LibStaking.sol";
 
 import "./interfaces/IERC20.sol";
-// import "./interfaces/ILockTOSv2Action0.sol";
-// import "./interfaces/ITreasury.sol";
 
 contract StakingV2Storage {
+
+    LibStaking.Epoch public epoch;
 
     IERC20 public TOS;
     address public lockTOS;
     address public treasury;
 
-    LibStaking.Epoch public epoch;
-
     uint256 public index_;
-
     uint256 internal free = 1;
-
     uint256 public totalLTOS;
     uint256 public stakingPrincipal;
-
     uint256 public rebasePerEpoch;
     uint256 public basicBondPeriod;
-
     uint256 public stakingIdCounter;
     uint256 public marketIdCounter;
 
@@ -38,8 +32,6 @@ contract StakingV2Storage {
 
     // stakeId -sTOSid
     mapping(uint256 => uint256) public connectId;
-    // sTOSid -  stakeId
-    mapping(uint256 => uint256) public lockTOSId;
 
     modifier nonZero(uint256 tokenId) {
         require(tokenId != 0, "Staking: zero uint");

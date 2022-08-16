@@ -36,7 +36,6 @@ contract StakingV2Proxy is
         epoch = LibStaking.Epoch({length_: _epoch[0], number: _epoch[1], end: _epoch[2]});
 
         basicBondPeriod = _basicBondPeriod;
-        // startEpochTime = block.timestamp;
     }
 
 }

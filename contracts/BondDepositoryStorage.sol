@@ -8,27 +8,20 @@ import "./interfaces/IStaking.sol";
 
 contract BondDepositoryStorage {
 
-    mapping(uint256 => LibBondDepository.Market) public markets;
-
-    // user - Deposit(marketId, stakeId)[]
-    mapping(address => LibBondDepository.Deposit[]) public deposits;
-
-    uint256[] public marketList;
-    address[] public userList;
-
     IERC20 public tos;
-    address public dTOS;
     IStaking public staking;
     address public treasury;
-
     address public calculator;
     address public uniswapV3Factory;
-
-    // uint256 public totalDepositCount;
+    address public dTOS;
 
     uint256 private constant _NOT_ENTERED = 1;
     uint256 private constant _ENTERED = 2;
     uint256 private _status;
+
+    uint256[] public marketList;
+    mapping(uint256 => LibBondDepository.Market) public markets;
+
 
     modifier nonZero(uint256 tokenId) {
         require(tokenId != 0, "BondDepository: zero uint");

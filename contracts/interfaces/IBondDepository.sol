@@ -84,14 +84,10 @@ interface IBondDepository {
     /// @param _id  the market id
     /// @param _amount  the amount of deposit
     /// @return payout_  the amount of staking
-    /// @return index_  the index of user's staking
     function ETHDeposit(
         uint256 _id,
         uint256 _amount
-    ) external payable returns (
-            uint256 payout_,
-            uint256 index_
-        );
+    ) external payable returns (uint256 payout_ );
 
 
     /// @dev deposit with erc20 token
@@ -99,15 +95,11 @@ interface IBondDepository {
     /// @param _amount  the amount of deposit
     /// @param _lockWeeks  the number of weeks for lock
     /// @return payout_  the amount of staking
-    /// @return index_  the index of user's staking
     function ETHDepositWithSTOS(
         uint256 _id,
         uint256 _amount,
         uint256 _lockWeeks
-    ) external payable returns (
-            uint256 payout_,
-            uint256 index_
-        );
+    ) external payable returns (uint256 payout_);
 
 
     ///////////////////////////////////////
@@ -137,18 +129,14 @@ interface IBondDepository {
     /// @return quoteTokens Array of total market's quoteTokens
     /// @return capacities Array of total market's capacities
     /// @return endSaleTimes Array of total market's endSaleTimes
-    /// @return pricesToken Array of total market's pricesToken
     /// @return pricesTos Array of total market's pricesTos
-    /// @return totalSaleAmounts Array of total market's totalSaleAmounts
     function getBonds() external view
         returns (
             uint256[] memory marketIds,
             address[] memory quoteTokens,
             uint256[] memory capacities,
             uint256[] memory endSaleTimes,
-            uint256[] memory pricesToken,
-            uint256[] memory pricesTos,
-            uint256[] memory totalSaleAmounts
+            uint256[] memory pricesTos
         );
 
     /// @dev Returns all generated marketIDs.
@@ -164,19 +152,15 @@ interface IBondDepository {
     /// @return quoteToken  saleToken Address
     /// @return capacity  tokenSaleAmount
     /// @return endSaleTime  market endTime
-    /// @return sold  Token sale volume in the market
     /// @return maxPayout  Amount of tokens that can be purchased for one tx in the market
     /// @return tosPrice  tos price
-    /// @return totalSaleAmount  Token sale volume in the market
     function viewMarket(uint256 _index) external view
         returns (
             address quoteToken,
             uint256 capacity,
             uint256 endSaleTime,
-            uint256 sold,
             uint256 maxPayout,
-            uint256 tosPrice,
-            uint256 totalSaleAmount
+            uint256 tosPrice
             );
 
     /// @dev Return Whether The index market Whether is closed
@@ -185,29 +169,5 @@ interface IBondDepository {
     function isOpend(uint256 _index) external view returns (bool closedBool);
 
 
-    /// @dev Return The market ID and token ID that I deposited
-    /// @param account  depositAddress
-    /// @return _marketIds Array of MarketIDs I deposited
-    /// @return _stakeIds Array of stakeIDs I deposited
-    function getDepositList(address account) external view returns (
-        uint256[] memory _marketIds,
-        uint256[] memory _stakeIds
-    );
-
-    /// @dev Returns the number of tokens deposited in the market
-    /// @param account  depositAddress
-    /// @return uint256 totalDepositCount
-    function totalDepositCountOfAddress(address account) external view returns (uint256);
-
-    /// @dev Return The market ID and token ID that I deposited
-    /// @param account  depositAddress
-    /// @param _index  Index deposited in the market
-    /// @return marketId MarketIDs
-    /// @return stakeId stakeIDs
-    function viewDeposit(address account, uint256 _index) external view
-        returns (
-            uint256 marketId,
-            uint256 stakeId
-            );
 
 }

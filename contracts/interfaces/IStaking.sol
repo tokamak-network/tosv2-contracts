@@ -198,8 +198,8 @@ interface IStaking {
     /// @dev Returns the current Index value
     function getIndex() external view returns(uint256) ;
 
-    /// @dev Returns the possible Index value and possibleEpochNumber
-    function possibleIndex() external view returns (uint256,uint256);
+    /// @dev Returns the possible Index value
+    function possibleIndex() external view returns (uint256);
 
     /// @dev Returns a list of staking IDs owned by a specific account.
     /// @param _addr ownerAddress

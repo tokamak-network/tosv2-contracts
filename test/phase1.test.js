@@ -1115,7 +1115,6 @@ describe("TOSv2 Phase1", function () {
         expect(market.quoteToken).to.be.eq(bondInfoEther.token);
         expect(market.capacity).to.be.eq(bondInfoEther.market.capAmountOfTos);
         expect(market.endSaleTime).to.be.eq(bondInfoEther.market.closeTime);
-        expect(market.sold).to.be.eq(ethers.constants.Zero);
         expect(market.maxPayout).to.be.eq(bondInfoEther.market.purchasableTOSAmountAtOneTime);
 
     })

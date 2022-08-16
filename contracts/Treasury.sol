@@ -18,15 +18,6 @@ interface IIERC20 {
 
 interface IITOSValueCalculator {
 
-    function getTOSERC20PoolERC20Price(
-        address _erc20address,
-        address _tosERC20Pool,
-        uint24 fee
-    )
-        external
-        view
-        returns (uint256 price);
-
     function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
         external view
         returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmmount);

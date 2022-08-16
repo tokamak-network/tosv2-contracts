@@ -12,27 +12,23 @@ contract TreasuryStorage {
     string internal insufficientReserves = "Treasury: insufficient reserves";
 
     IERC20 public TOS;
-
     address public calculator;
-
-    mapping(LibTreasury.STATUS => address[]) public registry;
-    mapping(LibTreasury.STATUS => mapping(address => bool)) public permissions;
-
     address public wethAddress;
     address public uniswapV3Factory;
     address public stakingv2;
     address public poolAddressTOSETH;
 
     uint256 public ETHliquidity;
-
     uint256 public mintRate;
     uint256 public mintRateDenominator;
 
+    mapping(LibTreasury.STATUS => address[]) public registry;
+    mapping(LibTreasury.STATUS => mapping(address => bool)) public permissions;
+
     address[] public backings;
-
     LibTreasury.Minting[] public mintings;
-
     uint256[] public lpTokens;
+
 
     modifier nonZero(uint256 tokenId) {
         require(tokenId != 0, "Treasury: zero uint");
