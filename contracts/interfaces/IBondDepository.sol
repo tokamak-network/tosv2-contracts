@@ -122,7 +122,7 @@ interface IBondDepository {
     /// @dev purchasable Asset amount At One Time
     /// @param _id  the market id
     /// @return maxpayout_  the asset amount
-    function purchasableAseetAmountAtOneTime(uint256 _id) external view returns (uint256 maxpayout_);
+    function purchasableAssetAmountAtOneTime(uint256 _id) external view returns (uint256 maxpayout_);
 
     /// @dev Return information from all markets
     /// @return marketIds Array of total MarketIDs

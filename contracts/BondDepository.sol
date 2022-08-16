@@ -253,7 +253,7 @@ contract BondDepository is
         bool _eth
     ) internal nonReentrant returns (uint256 _payout) {
         // console.log("_deposit _amount : %s", _amount);
-        require(_amount <= purchasableAseetAmountAtOneTime(_marketId), "Depository : over maxPay");
+        require(_amount <= purchasableAssetAmountAtOneTime(_marketId), "Depository : over maxPay");
 
         _payout = calculateTosAmountForAsset(_marketId, _amount);
 
@@ -319,7 +319,7 @@ contract BondDepository is
     }
 
     /// @inheritdoc IBondDepository
-    function purchasableAseetAmountAtOneTime(uint256 _id) public override view returns (uint256 maxpayout_) {
+    function purchasableAssetAmountAtOneTime(uint256 _id) public override view returns (uint256 maxpayout_) {
 
         return ( markets[_id].maxPayout *  1e18 / markets[_id].tosPrice );
     }
