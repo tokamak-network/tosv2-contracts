@@ -24,7 +24,7 @@ interface IUniswapV3Pool {
 interface IITOSValueCalculator {
     function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
         external view
-        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmmount);
+        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmount);
 }
 
 interface IITreasury {
@@ -263,13 +263,10 @@ contract BondDepository is
         uint256 _ethValue = 0; // _payout tos 를 이더로 바꿈.
 
         if(!_eth) {
-            (bool existedWethPool, , , uint256 convertedAmmount) =
+            (bool existedWethPool, , , uint256 convertedAmount) =
                 IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(address(tos), _payout);
 
-            if(existedWethPool){
-                _ethValue =  convertedAmmount;
-                // console.log("_deposit existedWethPool : %s", convertedAmmount);
-            }
+            if(existedWethPool)  _ethValue =  convertedAmount;
 
         } else {
             _ethValue = _amount;

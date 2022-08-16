@@ -39,6 +39,6 @@ interface ITOSValueCalculator {
 
     function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
         external view
-        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmmount);
+        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmount);
 
 }

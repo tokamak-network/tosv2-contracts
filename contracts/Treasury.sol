@@ -20,7 +20,7 @@ interface IITOSValueCalculator {
 
     function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
         external view
-        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmmount);
+        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmount);
 
     function getTOSPricePerETH() external view returns (uint256 price);
 
@@ -329,19 +329,19 @@ contract Treasury is
 
             } else if (backings[i] != address(0) && backings[i] != address(TOS))  {
 
-                (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) =
+                (bool existedWethPool, bool existedTosPool, , uint256 convertedAmount) =
                     IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(backings[i], IERC20(backings[i]).balanceOf(address(this)));
 
-                if (existedWethPool) totalValue += convertedAmmount;
+                if (existedWethPool) totalValue += convertedAmount;
 
                 else if (existedTosPool){
 
                     if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
                         //  TOS * 1e18 / (TOS/ETH) = ETH
-                        totalValue +=  (convertedAmmount * mintRateDenominator / mintRate );
+                        totalValue +=  (convertedAmount * mintRateDenominator / mintRate );
                     } else {
                         // TOS * ETH/TOS / token decimal = ETH
-                        totalValue += (convertedAmmount * tosETHPricePerTOS / 1e18);
+                        totalValue += (convertedAmount * tosETHPricePerTOS / 1e18);
                     }
                 }
             }
