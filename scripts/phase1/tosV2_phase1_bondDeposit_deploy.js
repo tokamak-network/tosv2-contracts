@@ -35,23 +35,23 @@ async function main() {
     printGasUsedOfUnits('bondDepositoryLogic Deploy',tx);
 
 
-    // const bondDepositoryProxy = await (await ethers.getContractFactory("BondDepositoryProxy"))
-    //     .connect(deployer)
-    //     .deploy();
-    // tx = await bondDepositoryProxy.deployed();
+    const bondDepositoryProxy = await (await ethers.getContractFactory("BondDepositoryProxy"))
+        .connect(deployer)
+        .deploy();
+    tx = await bondDepositoryProxy.deployed();
 
-    // await bondDepositoryProxy.connect(deployer).upgradeTo(bondDepositoryLogic.address);
+    await bondDepositoryProxy.connect(deployer).upgradeTo(bondDepositoryLogic.address);
 
-    // console.log("bondDepositoryProxy: ", bondDepositoryProxy.address);
+    console.log("bondDepositoryProxy: ", bondDepositoryProxy.address);
 
-    // deployInfo = {
-    //   name: "BondDepositoryProxy",
-    //   address: bondDepositoryProxy.address
-    // }
+    deployInfo = {
+      name: "BondDepositoryProxy",
+      address: bondDepositoryProxy.address
+    }
 
-    // save(networkName, deployInfo);
+    save(networkName, deployInfo);
 
-    // printGasUsedOfUnits('bondDepositoryProxy Deploy',tx);
+    printGasUsedOfUnits('bondDepositoryProxy Deploy',tx);
 
     if(chainId == 1 || chainId == 4) {
       await run("verify", {
@@ -60,12 +60,12 @@ async function main() {
       });
     }
 
-    // if(chainId == 1 || chainId == 4) {
-    //   await run("verify", {
-    //     address: bondDepositoryProxy.address,
-    //     constructorArgsParams: [],
-    //   });
-    // }
+    if(chainId == 1 || chainId == 4) {
+      await run("verify", {
+        address: bondDepositoryProxy.address,
+        constructorArgsParams: [],
+      });
+    }
 }
 
 // We recommend this pattern to be able to use async/await everywhere

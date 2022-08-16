@@ -15,14 +15,14 @@ async function main() {
     const treasuryLogicAddress = loadDeployed(networkName, "Treasury");
     const treasuryProxyAddress = loadDeployed(networkName, "TreasuryProxy");
 
-    if(chainId == 1 || chainId == 4) {
-      await run("verify", {
-        address: treasuryLibAddress,
-        constructorArgsParams: [],
-      });
-    }
+    // if(chainId == 1 || chainId == 4) {
+    //   await run("verify", {
+    //     address: treasuryLibAddress,
+    //     constructorArgsParams: [],
+    //   });
+    // }
 
-    console.log("libTreasury verified");
+    // console.log("libTreasury verified");
 
 
     if(chainId == 1 || chainId == 4) {

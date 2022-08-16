@@ -621,16 +621,23 @@ contract StakingV2 is
 
     /// @inheritdoc IStaking
     function possibleIndex() public view override returns (uint256,uint256) {
-        uint256 epochNumber;
-        if ((block.timestamp - epoch.end) > epoch.length_){
-            epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
-            epochNumber += 1;
+        uint256 epochNumber = 0;
+        uint256 possibleIndex_ = 0;
+        if(epoch.end <= block.timestamp) {
+            if ((block.timestamp - epoch.end) > epoch.length_){
+                epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
+                epochNumber += 1;
+            }
         }
-        uint256 _possibleEpochNumber = LibStaking.possibleEpochNumber(runwayTOS(), getLtosToTos(totalLTOS), rebasePerEpoch);
-        if (_possibleEpochNumber < epochNumber) {
-            epochNumber = _possibleEpochNumber;
+        if(epochNumber == 1) {
+            possibleIndex_ = nextIndex();   
+        } else {
+            uint256 _possibleEpochNumber = LibStaking.possibleEpochNumber(runwayTOS(), getLtosToTos(totalLTOS), rebasePerEpoch);
+            if (_possibleEpochNumber < epochNumber) {
+                epochNumber = _possibleEpochNumber;
+            }
+            possibleIndex_ = LibStaking.compound(index_, rebasePerEpoch, epochNumber); 
         }
-        uint256 possibleIndex_ = LibStaking.compound(index_, rebasePerEpoch, epochNumber); 
         return (possibleIndex_,epochNumber);
     }
 

@@ -15,14 +15,14 @@ async function main() {
     const stakingLogicAddress = loadDeployed(networkName, "StakingV2");
     const stakingyProxyAddress = loadDeployed(networkName, "StakingV2Proxy");
 
-    if(chainId == 1 || chainId == 4) {
-      await run("verify", {
-        address: stakingLibAddress,
-        constructorArgsParams: [],
-      });
-    }
+    // if(chainId == 1 || chainId == 4) {
+    //   await run("verify", {
+    //     address: stakingLibAddress,
+    //     constructorArgsParams: [],
+    //   });
+    // }
 
-    console.log("LibStaking verified");
+    // console.log("LibStaking verified");
 
 
     if(chainId == 1 || chainId == 4) {

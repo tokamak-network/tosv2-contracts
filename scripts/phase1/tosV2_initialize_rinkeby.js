@@ -27,7 +27,8 @@ let rinkeby_address = {
 }
 
 //rinkeby
-let lockTOSaddr = "0x5adc7de3a0B4A4797f02C3E99265cd7391437568"
+// let lockTOSaddr = "0x5adc7de3a0B4A4797f02C3E99265cd7391437568"
+let lockTOSaddr = "0x89F137913Eb8214A2c91e71009438415BBEF0fD6"
 
 //mainnet
 // let lockTOSaddr = "0x69b4A202Fa4039B42ab23ADB725aA7b1e9EEBD79"
