@@ -1194,7 +1194,7 @@ describe("TOSv2 Phase1", function () {
         .div(bondInfoEther.market.priceTosPerToken);
       // console.log('purchasableAssetAmountAtOneTime', purchasableAssetAmountAtOneTime);
 
-      let purchasableAssetAmountAtOneTime_ = await bondDepositoryProxylogic.purchasableAseetAmountAtOneTime(bondInfoEther.marketId);
+      let purchasableAssetAmountAtOneTime_ = await bondDepositoryProxylogic.purchasableAssetAmountAtOneTime(bondInfoEther.marketId);
       // console.log('purchasableAssetAmountAtOneTime_', purchasableAssetAmountAtOneTime_);
 
 
@@ -1441,12 +1441,12 @@ describe("TOSv2 Phase1", function () {
     })
 
     it("#3-1-9. close : admin can clsoe the bond market.", async () => {
-      expect(await bondDepositoryProxylogic.isOpend(bondInfoEther.marketId)).to.be.eq(true);
+      expect(await bondDepositoryProxylogic.isOpened(bondInfoEther.marketId)).to.be.eq(true);
 
       await bondDepositoryProxylogic.connect(admin1).close(
         bondInfoEther.marketId
       )
-      expect(await bondDepositoryProxylogic.isOpend(bondInfoEther.marketId)).to.be.eq(false);
+      expect(await bondDepositoryProxylogic.isOpened(bondInfoEther.marketId)).to.be.eq(false);
 
     })
 

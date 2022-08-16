@@ -166,7 +166,7 @@ interface IBondDepository {
     /// @dev Return Whether The index market Whether is closed
     /// @param _index  Index in the market
     /// @return closedBool Whether the market is closed
-    function isOpend(uint256 _index) external view returns (bool closedBool);
+    function isOpened(uint256 _index) external view returns (bool closedBool);
 
 
 

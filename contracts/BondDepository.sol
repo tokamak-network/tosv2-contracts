@@ -381,7 +381,7 @@ contract BondDepository is
     }
 
     /// @inheritdoc IBondDepository
-    function isOpend(uint256 _index) public override view returns (bool closedBool)
+    function isOpened(uint256 _index) public override view returns (bool closedBool)
     {
         if (block.timestamp < markets[_index].endSaleTime && markets[_index].capacity > 0) {
             return true;
