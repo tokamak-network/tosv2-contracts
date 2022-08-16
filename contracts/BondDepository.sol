@@ -282,7 +282,7 @@ contract BondDepository is
 
         uint256 mrAmount = _ethValue * _mintRate / IITreasury(treasury).mintRateDenominator() ;
         require(mrAmount >= _payout, "mintableAmount is less than staking amount.");
-        require(_payout <= markets[_marketId].capacity, "Depository : sold out");
+        require(_payout <= markets[_marketId].capacity, "Depository: sold out");
 
         LibBondDepository.Market storage market = markets[_marketId];
 
