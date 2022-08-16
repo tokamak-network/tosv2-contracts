@@ -37,16 +37,10 @@ interface ITreasuryEvent{
     /// @dev This event occurs when set the MintRateDenominator
     /// @param _mintRateDenominator    the _mintRateDenominator
     event SetMintRateDenominator(uint256 _mintRateDenominator);
-    
+
     /// @dev This event occurs when add the BackingList
     /// @param _address    the asset address
-    /// @param _tosPooladdress    the asset's _tosPooladdress
-    /// @param _fee    the _tosPool's fee
-    event AddedBackingList(
-        address _address,
-        address _tosPooladdress,
-        uint24 _fee
-    );
+    event AddedBackingList(address _address);
 
     /// @dev This event occurs when delete the BackingList
     /// @param _address    the asset address

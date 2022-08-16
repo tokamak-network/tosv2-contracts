@@ -52,7 +52,7 @@ let totalTosSupplyTarget = ethers.utils.parseEther("1000000");
 let tosAdmin = "0x5b6e72248b19F2c5b88A4511A6994AD101d0c287";
 let lockTosAdmin = "0x5b6e72248b19F2c5b88A4511A6994AD101d0c287";
 
-let eventCreatedMarket ="CreatedMarket(uint256,bool,address,address,uint24,uint256[4])";
+let eventCreatedMarket ="CreatedMarket(uint256,address,uint256[4])";
 let eventETHDeposited ="ETHDeposited(address,uint256,uint256,uint256,uint256)";
 let eventETHDepositWithSTOS ="ETHDepositedWithSTOS(address,uint256,uint256,uint256,uint256,uint256)";
 
@@ -515,7 +515,7 @@ describe("TOSv2 Phase1", function () {
 
         await bondDepositoryProxy.connect(admin1).upgradeTo(bondDepositoryContract.address);
       })
-
+      /*
       it("#0-4-2. initialize : initialize bondDepositoryProxy", async () => {
         await bondDepositoryProxy.connect(admin1).initialize(
           uniswapInfo.tos,
@@ -532,7 +532,7 @@ describe("TOSv2 Phase1", function () {
         expect(await bondDepositoryProxy.uniswapV3Factory()).to.be.equal(uniswapInfo.poolfactory);
 
       })
-
+      */
       it("#0-4-3. stakingProxyLogic set", async () => {
         bondDepositoryProxylogic = new ethers.Contract(bondDepositoryProxy.address, bondDepositoryLogicAbi.abi, ethers.provider);
       })
@@ -935,6 +935,13 @@ describe("TOSv2 Phase1", function () {
             uniswapInfo.poolfactory
           )
 
+        expect(await bondDepositoryProxy.calculator()).to.be.equal(TOSValueCalculator.address);
+        expect(await bondDepositoryProxy.tos()).to.be.equal(uniswapInfo.tos);
+        expect(await bondDepositoryProxy.staking()).to.be.equal(stakingProxy.address);
+        expect(await bondDepositoryProxy.treasury()).to.be.equal(treasuryProxy.address);
+        expect(await bondDepositoryProxy.uniswapV3Factory()).to.be.equal(uniswapInfo.poolfactory);
+
+
         let treasuryAddr = await bondDepositoryProxylogic.treasury();
         expect(treasuryAddr).to.be.equal(treasuryProxy.address);
       })
@@ -946,10 +953,7 @@ describe("TOSv2 Phase1", function () {
 
         await expect(
           bondDepositoryProxylogic.connect(user1).create(
-            bondInfoEther.check,
             bondInfoEther.token,
-            bondInfoEther.poolAddress,
-            bondInfoEther.fee,
             [
               bondInfoEther.market.capAmountOfTos,
               bondInfoEther.market.closeTime,
@@ -968,10 +972,7 @@ describe("TOSv2 Phase1", function () {
 
         await expect(
           bondDepositoryProxylogic.connect(admin1).create(
-            bondInfoEther.check,
             bondInfoEther.token,
-            bondInfoEther.poolAddress,
-            bondInfoEther.fee,
             [
               bondInfoEther.market.capAmountOfTos,
               bondInfoEther.market.closeTime,
@@ -1007,10 +1008,7 @@ describe("TOSv2 Phase1", function () {
           bondInfoEther.market.closeTime = finishTime;
 
           await bondDepositoryProxylogic.connect(admin1).create(
-              bondInfoEther.check,
               bondInfoEther.token,
-              bondInfoEther.poolAddress,
-              bondInfoEther.fee,
               [
                 bondInfoEther.market.capAmountOfTos,
                 bondInfoEther.market.closeTime,
@@ -1063,10 +1061,7 @@ describe("TOSv2 Phase1", function () {
 
       await expect(
           bondDepositoryProxylogic.connect(user1).create(
-              bondInfoEther.check,
               bondInfoEther.token,
-              bondInfoEther.poolAddress,
-              bondInfoEther.fee,
               [
                 bondInfoEther.market.capAmountOfTos,
                 bondInfoEther.market.closeTime,
@@ -1087,10 +1082,7 @@ describe("TOSv2 Phase1", function () {
         let marketbefore = await stakingProxylogic.marketIdCounter();
 
         let tx = await bondDepositoryProxylogic.connect(admin1).create(
-            bondInfoEther.check,
             bondInfoEther.token,
-            bondInfoEther.poolAddress,
-            bondInfoEther.fee,
             [
               bondInfoEther.market.capAmountOfTos,
               bondInfoEther.market.closeTime,
@@ -1111,7 +1103,6 @@ describe("TOSv2 Phase1", function () {
                 {  data,  topics } );
 
                 bondInfoEther.marketId = log.args.marketId;
-                expect(bondInfoEther.check).to.be.eq(log.args.isEth);
             }
         }
 
@@ -1121,7 +1112,6 @@ describe("TOSv2 Phase1", function () {
 
         let market = await bondDepositoryProxylogic.viewMarket(bondInfoEther.marketId);
 
-        expect(market.method).to.be.eq(bondInfoEther.check);
         expect(market.quoteToken).to.be.eq(bondInfoEther.token);
         expect(market.capacity).to.be.eq(bondInfoEther.market.capAmountOfTos);
         expect(market.endSaleTime).to.be.eq(bondInfoEther.market.closeTime);

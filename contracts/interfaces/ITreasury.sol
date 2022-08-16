@@ -41,9 +41,7 @@ interface ITreasury {
 
     /// @dev Add erc20 token, which is used as a backing asset in treasury.
     /// @param _address  erc20 Address
-    /// @param _tosPooladdress  erc20-tos Pool Address
-    /// @param _fee  erc20-tos Pool fee
-    function addBackingList(address _address, address _tosPooladdress, uint24 _fee) external ;
+    function addBackingList(address _address) external ;
 
     /// @dev delete erc20 token, which is used as a backing asset in treasury.
     /// @param _address  erc20 Address
@@ -69,12 +67,8 @@ interface ITreasury {
 
     /// @dev addbackingList called by bonder
     /// @param _address         erc20 Address
-    /// @param _tosPooladdress  erc20-tos Pool Address
-    /// @param _fee             erc20-tos Pool fee
     function addBondAsset(
-        address _address,
-        address _tosPooladdress,
-        uint24 _fee
+        address _address
     )
         external;
 
@@ -114,23 +108,10 @@ interface ITreasury {
     /// @return uint256
     function totalBacking() external view returns (uint256);
 
-    /// @dev Returns the backing information of the corresponding index
-    /// @param _index   recipient Address
-    /// @return erc20Address   erc20Address
-    /// @return tosPoolAddress erc20-tos Pool address
-    /// @return fee            erc20-tos pool fee
-    function viewBackingInfo(uint256 _index)
-        external view
-        returns (address erc20Address, address tosPoolAddress, uint24 fee);
-
     /// @dev Returns the backing information of all backings
     /// @return erc20Address   erc20Address
-    /// @return tosPoolAddress erc20-tos Pool address
-    /// @return fee            erc20-tos pool fee
     function allBacking() external view returns (
-        address[] memory erc20Address,
-        address[] memory tosPoolAddress,
-        uint24[] memory fee
+        address[] memory erc20Address
     );
 
     /// @dev Returns the total length of mintings

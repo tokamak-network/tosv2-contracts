@@ -23,19 +23,12 @@ contract TreasuryStorage {
     address public stakingv2;
     address public poolAddressTOSETH;
 
-    uint256 public ETHbacking;      //possible delete
-    uint256 public tosBacking;      //possible delete
     uint256 public ETHliquidity;
 
     uint256 public mintRate;
     uint256 public mintRateDenominator;
 
-    // uint256 public minimumTOSPricePerETH; //1e18
-
-    uint256 public totalPercents;           //possible delete
-
-    LibTreasury.Backing[] public backings;
-    mapping(address => uint256) public backingsIndex;
+    address[] public backings;
 
     LibTreasury.Minting[] public mintings;
 

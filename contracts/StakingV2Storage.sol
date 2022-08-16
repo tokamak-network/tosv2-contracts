@@ -15,7 +15,6 @@ contract StakingV2Storage {
 
     LibStaking.Epoch public epoch;
 
-    uint256 public startEpochTime;  //possible delete
     uint256 public index_;
 
     uint256 internal free = 1;
@@ -26,7 +25,7 @@ contract StakingV2Storage {
     uint256 public rebasePerEpoch;
     uint256 public basicBondPeriod;
 
-    uint256 public stakingIdCounter; 
+    uint256 public stakingIdCounter;
     uint256 public marketIdCounter;
 
     // 0 비어있는 더미, 1 기간없는 순수 토스 스테이킹

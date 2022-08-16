@@ -10,7 +10,7 @@ import "./interfaces/IBondDepository.sol";
 import "./interfaces/IBondDepositoryEvent.sol";
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 interface IIIERC20 {
     function decimals() external view returns (uint256);
@@ -34,11 +34,7 @@ interface IITreasury {
     function mintRateDenominator() external view returns (uint256);
 
     function requestMintAndTransfer(uint256 _mintAmount, address _recipient, uint256 _transferAmount, bool _distribute) external ;
-    function addBondAsset(
-        address _address,
-        address _tosPooladdress,
-        uint24 _fee
-    ) external;
+    function addBondAsset(address _address) external;
 }
 
 contract BondDepository is
@@ -56,7 +52,7 @@ contract BondDepository is
     }
 
     modifier isEthMarket(uint256 id_) {
-        require(metadata[id_].totalSaleAmount > 0 && metadata[id_].ethMarket,
+        require(markets[id_].totalSaleAmount > 0 && markets[id_].quoteToken == address(0),
             "BondDepository: not ETH market"
         );
         _;
@@ -64,7 +60,7 @@ contract BondDepository is
 
     modifier nonEthMarket(uint256 id_) {
         require(
-            markets[id_].quoteToken != address(0) && metadata[id_].totalSaleAmount > 0 && !metadata[id_].ethMarket,
+            markets[id_].quoteToken != address(0) && markets[id_].totalSaleAmount > 0,
             "BondDepository: ETH market"
         );
         _;
@@ -78,19 +74,10 @@ contract BondDepository is
     /// onlyPolicyOwner
     //////////////////////////////////////
 
-    function tokenInUniswapV3Pool(address pool, address token0) public view returns (bool) {
-
-       if (IUniswapV3Pool(pool).token0() == token0 || IUniswapV3Pool(pool).token1() == token0 ) return true;
-       else return false;
-    }
-
     /// @inheritdoc IBondDepository
     function create(
-        bool _check,
         address _token,
-        address _poolAddress,
-        uint24 _fee,
-        uint256[4] memory _market
+        uint256[4] calldata _market
     )
         external
         override
@@ -103,39 +90,25 @@ contract BondDepository is
         require(_market[0] >= 100 ether, "need the totalSaleAmount 100 over");
         id_ = staking.generateMarketId();  // BondDepository는 staking의 오너로 등록이 되어야 함.
 
-        if (_check) require(_token == address(0), "when use eth, token must be zero address");
-        else require(_token != address(0), "zero address");
-
         require(_market[1] > block.timestamp, "sale end time has passed.");
-        if(!_check) require(_fee > 0, "zero fee");
+        require(markets[id_].endSaleTime == 0 && markets[id_].totalSaleAmount == 0, "already registered market");
 
-        require(markets[id_].endSaleTime == 0 && metadata[id_].totalSaleAmount == 0, "already registered market and metadata");
-
-        if(!_check) require(tokenInUniswapV3Pool(_poolAddress, _token), "not token pair pool");
 
         // 총토스할당량, tosPrice, capacity, totalSaleAmount는 관리자가 변경할 수 있게해야함 (capacity, totalSaleAmount는 한 변수 입력에 변경가능하게)
         markets[id_] = LibBondDepository.Market({
-                            method: _check,
                             quoteToken: _token,
                             capacity: _market[0],
                             endSaleTime: _market[1],
                             sold: 0,
-                            maxPayout: _market[3]
+                            maxPayout: _market[3],
+                            tosPrice: _market[2],
+                            totalSaleAmount: _market[0]
                         });
 
-        metadata[id_] = LibBondDepository.Metadata({
-                    poolAddress: _poolAddress,
-                    tosPrice: _market[2],
-                    totalSaleAmount: _market[0],
-                    fee: _fee,
-                    ethMarket: _check
-                });
-
         marketList.push(id_);
-        metadataList.push(id_);
-        IITreasury(treasury).addBondAsset(_token, _poolAddress, _fee);
+        if (_token != address(0)) IITreasury(treasury).addBondAsset(_token);
 
-        emit CreatedMarket(id_, _check, _token, _poolAddress, _fee, _market);
+        emit CreatedMarket(id_, _token, _market);
     }
 
     /// @inheritdoc IBondDepository
@@ -145,12 +118,11 @@ contract BondDepository is
     )   external override onlyPolicyOwner
         nonZero(_amount)
     {
+        require(markets[_marketId].maxPayout > 0, "non-exist market");
+
         LibBondDepository.Market storage _info = markets[_marketId];
         _info.capacity += _amount;
-
-        LibBondDepository.Metadata storage _metadata = metadata[_marketId];
-        require(_info.maxPayout > 0, "non-exist market");
-        _metadata.totalSaleAmount += _amount;
+        _info.totalSaleAmount += _amount;
 
         emit IncreasedCapacity(_marketId, _amount);
     }
@@ -160,17 +132,14 @@ contract BondDepository is
         uint256 _marketId,
         uint256 _amount
     ) external override onlyPolicyOwner
-        // nonEndMarket(_marketId)
         nonZero(_amount)
     {
         require(markets[_marketId].capacity > _amount, "not enough capacity");
+        require(markets[_marketId].maxPayout > 0, "non-exist market");
+
         LibBondDepository.Market storage _info = markets[_marketId];
-        require(_info.maxPayout > 0, "non-exist market");
-
         _info.capacity -= _amount;
-
-        LibBondDepository.Metadata storage _metadata = metadata[_marketId];
-        _metadata.totalSaleAmount -= _amount;
+        _info.totalSaleAmount -= _amount;
 
         emit DecreasedCapacity(_marketId, _amount);
     }
@@ -184,8 +153,9 @@ contract BondDepository is
         //nonZero(closeTime)
     {
         require(closeTime > block.timestamp, "past closeTime");
+        require(markets[_marketId].maxPayout > 0, "non-exist market");
+
         LibBondDepository.Market storage _info = markets[_marketId];
-        require(_info.maxPayout > 0, "non-exist market");
         _info.endSaleTime = closeTime;
 
         emit ChangedCloseTime(_marketId, closeTime);
@@ -213,8 +183,8 @@ contract BondDepository is
         nonEndMarket(_marketId)
         nonZero(_tosPrice)
     {
-        LibBondDepository.Metadata storage _metadata = metadata[_marketId];
-        _metadata.tosPrice = _tosPrice;
+        LibBondDepository.Market storage _info = markets[_marketId];
+        _info.tosPrice = _tosPrice;
 
         emit ChangedPrice(_marketId, _tosPrice);
     }
@@ -223,8 +193,9 @@ contract BondDepository is
     function close(uint256 _id) external override onlyPolicyOwner {
         require(markets[_id].endSaleTime > 0, "empty market");
         require(markets[_id].endSaleTime > block.timestamp || markets[_id].capacity == 0, "already closed");
-        markets[_id].endSaleTime = block.timestamp;
-        markets[_id].capacity = 0;
+        LibBondDepository.Market storage _info = markets[_id];
+        _info.endSaleTime = block.timestamp;
+        _info.capacity = 0;
         emit ClosedMarket(_id);
     }
 
@@ -251,7 +222,7 @@ contract BondDepository is
         (payout_) = _deposit(msg.sender, _amount, _id, true);
 
         uint256 id = _id;
-        uint256 stakeId = staking.stakeByBond(msg.sender, payout_, id, metadata[id].tosPrice);
+        uint256 stakeId = staking.stakeByBond(msg.sender, payout_, id, markets[id].tosPrice);
 
         index_ = deposits[msg.sender].length;
 
@@ -283,7 +254,7 @@ contract BondDepository is
         (payout_) = _deposit(msg.sender, _amount, _id, true);
 
         uint256 id = _id;
-        uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, id, _lockWeeks, metadata[id].tosPrice);
+        uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, id, _lockWeeks, markets[id].tosPrice);
 
         index_ = deposits[msg.sender].length;
 
@@ -342,13 +313,13 @@ contract BondDepository is
         market.sold += _payout;
 
         //check closing
-        if (metadata[_marketId].totalSaleAmount - 100 ether <= market.sold) {
+        if (market.totalSaleAmount - 100 ether <= market.sold) {
            market.capacity = 0;
            emit ClosedMarket(_marketId);
         }
 
         if (deposits[user].length == 0) userList.push(user);
-        totalDepositCount++;
+        // totalDepositCount++;
 
         if(mrAmount > 0 && _payout <= mrAmount) {
             IITreasury(treasury).requestMintAndTransfer(mrAmount, address(staking), _payout, true);
@@ -370,14 +341,14 @@ contract BondDepository is
         view
         returns (uint256 payout)
     {
-        // console.log("calculateTosAmountForAsset metadata[_id].tosPrice : %s", metadata[_id].tosPrice);
-        return (_amount * metadata[_id].tosPrice / 1e18);
+        // console.log("calculateTosAmountForAsset markets[_id].tosPrice : %s", markets[_id].tosPrice);
+        return (_amount * markets[_id].tosPrice / 1e18);
     }
 
     /// @inheritdoc IBondDepository
     function purchasableAseetAmountAtOneTime(uint256 _id) public override view returns (uint256 maxpayout_) {
 
-        return ( markets[_id].maxPayout *  1e18 / metadata[_id].tosPrice );
+        return ( markets[_id].maxPayout *  1e18 / markets[_id].tosPrice );
     }
 
     /// @inheritdoc IBondDepository
@@ -402,13 +373,13 @@ contract BondDepository is
         //uint256[] memory _maxpayouts = new uint256[](len);
         uint256[] memory _totalSaleAmounts = new uint256[](len);
 
-        for (uint256 i = 0; i< len; i++){
+        for (uint256 i = 0; i < len; i++){
             _marketIds[i] = marketList[i];
-            _quoteTokens[i] = markets[i].quoteToken;
-            _capacities[i] = markets[i].capacity;
-            _endSaleTimes[i] = markets[i].endSaleTime;
-            _pricesTos[i] = metadata[i].tosPrice;
-            _totalSaleAmounts[i] = metadata[i].totalSaleAmount;
+            _quoteTokens[i] = markets[_marketIds[i]].quoteToken;
+            _capacities[i] = markets[_marketIds[i]].capacity;
+            _endSaleTimes[i] = markets[_marketIds[i]].endSaleTime;
+            _pricesTos[i] = markets[_marketIds[i]].tosPrice;
+            _totalSaleAmounts[i] = markets[_marketIds[i]].totalSaleAmount;
         }
         return (_marketIds, _quoteTokens, _capacities, _endSaleTimes, _pricesToken, _pricesTos, _totalSaleAmounts);
     }
@@ -426,21 +397,23 @@ contract BondDepository is
     /// @inheritdoc IBondDepository
     function viewMarket(uint256 _index) public override view
         returns (
-            bool method,
             address quoteToken,
             uint256 capacity,
             uint256 endSaleTime,
             uint256 sold,
-            uint256 maxPayout
+            uint256 maxPayout,
+            uint256 tosPrice,
+            uint256 totalSaleAmount
             )
     {
         return (
-            markets[_index].method,
             markets[_index].quoteToken,
             markets[_index].capacity,
             markets[_index].endSaleTime,
             markets[_index].sold,
-            markets[_index].maxPayout
+            markets[_index].maxPayout,
+            markets[_index].tosPrice,
+            markets[_index].totalSaleAmount
         );
     }
 
@@ -454,35 +427,6 @@ contract BondDepository is
         }
     }
 
-    /// @inheritdoc IBondDepository
-    function getMetadataList() public override view returns (uint256[] memory) {
-        return metadataList;
-    }
-
-    /// @inheritdoc IBondDepository
-    function totalMetadataCount() public override view returns (uint256) {
-        return metadataList.length;
-    }
-
-    /// @inheritdoc IBondDepository
-    function viewMetadata(uint256 _index) public override view
-        returns
-            (
-            address poolAddress,
-            uint256 _tosPrice,
-            uint256 totalSaleAmount,
-            uint24 fee,
-            bool ethMarket
-            )
-    {
-        return (
-            metadata[_index].poolAddress,
-            metadata[_index].tosPrice,
-            metadata[_index].totalSaleAmount,
-            metadata[_index].fee,
-            metadata[_index].ethMarket
-        );
-    }
 
     /// @inheritdoc IBondDepository
     function getDepositList(address account) public override view returns (
@@ -493,7 +437,7 @@ contract BondDepository is
         _marketIds = new uint256[](len);
         _stakeIds = new uint256[](len);
 
-        for (uint256 i = 0; i< len; i++){
+        for (uint256 i = 0; i < len; i++) {
             _marketIds[i] = deposits[account][i].marketId;
             _stakeIds[i] = deposits[account][i].stakeId;
         }

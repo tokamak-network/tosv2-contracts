@@ -11,18 +11,12 @@ interface IBondDepository {
 
     /**
      * @dev                creates a new market type
-     * @param _check       ETH를 받을려면(true), token을 받으면(false)
      * @param _token       토큰 주소
-     * @param _poolAddress 토큰과 ETH주소의 pool주소
-     * @param _fee         pool의 _fee
      * @param _market      [팔려고 하는 tos의 목표치, 판매 끝나는 시간, tos token의 가격, 한번에 구매 가능한 TOS물량]
      * @return id_         ID of new bond market
      */
     function create(
-        bool _check,
         address _token,
-        address _poolAddress,
-        uint24 _fee,
         uint256[4] calldata _market
     ) external returns (uint256 id_);
 
@@ -167,20 +161,22 @@ interface IBondDepository {
 
     /// @dev Returns information about the market.
     /// @param _index  the market id
-    /// @return method  market check ETHmarket, ERC20market
     /// @return quoteToken  saleToken Address
     /// @return capacity  tokenSaleAmount
     /// @return endSaleTime  market endTime
     /// @return sold  Token sale volume in the market
     /// @return maxPayout  Amount of tokens that can be purchased for one tx in the market
+    /// @return tosPrice  tos price
+    /// @return totalSaleAmount  Token sale volume in the market
     function viewMarket(uint256 _index) external view
         returns (
-            bool method,
             address quoteToken,
             uint256 capacity,
             uint256 endSaleTime,
             uint256 sold,
-            uint256 maxPayout
+            uint256 maxPayout,
+            uint256 tosPrice,
+            uint256 totalSaleAmount
             );
 
     /// @dev Return Whether The index market Whether is closed
@@ -188,29 +184,6 @@ interface IBondDepository {
     /// @return closedBool Whether the market is closed
     function isOpend(uint256 _index) external view returns (bool closedBool);
 
-    /// @dev Returns all generated Metadata.
-    /// @return memory[] metadatalist
-    function getMetadataList() external view returns (uint256[] memory);
-
-    /// @dev Returns the number of created Metadata.
-    /// @return memory[] Total number of metadata
-    function totalMetadataCount() external view returns (uint256);
-
-    /// @dev Returns information about the metadata.
-    /// @param _index  the metadata id
-    /// @return poolAddress  poolAddress
-    /// @return _tosPrice  tosPrice
-    /// @return _totalSaleAmount  The amount of tokens you want to sell on the market
-    /// @return fee  fee of pool
-    /// @return ethMarket  check the ethMarket
-    function viewMetadata(uint256 _index) external view
-        returns (
-            address poolAddress,
-            uint256 _tosPrice,
-            uint256 _totalSaleAmount,
-            uint24 fee,
-            bool ethMarket
-            );
 
     /// @dev Return The market ID and token ID that I deposited
     /// @param account  depositAddress

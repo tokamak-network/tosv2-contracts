@@ -9,13 +9,11 @@ import "./interfaces/IStaking.sol";
 contract BondDepositoryStorage {
 
     mapping(uint256 => LibBondDepository.Market) public markets;
-    mapping(uint256 => LibBondDepository.Metadata) public metadata;
 
     // user - Deposit(marketId, stakeId)[]
     mapping(address => LibBondDepository.Deposit[]) public deposits;
 
     uint256[] public marketList;
-    uint256[] public metadataList;
     address[] public userList;
 
     IERC20 public tos;
@@ -26,7 +24,7 @@ contract BondDepositoryStorage {
     address public calculator;
     address public uniswapV3Factory;
 
-    uint256 public totalDepositCount;
+    // uint256 public totalDepositCount;
 
     uint256 private constant _NOT_ENTERED = 1;
     uint256 private constant _ENTERED = 2;

@@ -10,7 +10,7 @@ import "./libraries/LibTreasury.sol";
 import "./interfaces/ITreasury.sol";
 import "./interfaces/ITreasuryEvent.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 interface IIERC20 {
     function burn(address account, uint256 amount) external returns (bool);
@@ -146,39 +146,21 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
-    function addBackingList(
-        address _address,
-        address _tosPooladdress,
-        uint24 _fee
-    )
+    function addBackingList(address _address)
         public override onlyPolicyOwner
         nonZeroAddress(_address)
-        nonZeroAddress(_tosPooladdress)
     {
 
-        if(backings.length == 0) {
-            // add dummy
-            backings.push(
-                LibTreasury.Backing({
-                    erc20Address: address(0),
-                    tosPoolAddress: address(0),
-                    fee: 0
-                })
-            );
+        bool existAsset = false;
+        uint256 len = backings.length;
+
+        for (uint256 i = 0; i < len; i++)
+            if (_address == backings[i]) existAsset = true;
+
+        if(!existAsset) {
+            backings.push(_address);
+            emit AddedBackingList(_address);
         }
-        require(backingsIndex[_address] == 0, "already added");
-
-        backingsIndex[_address] = backings.length;
-
-        backings.push(
-            LibTreasury.Backing({
-                erc20Address: _address,
-                tosPoolAddress: _tosPooladdress,
-                fee: _fee
-            })
-        );
-
-        emit AddedBackingList(_address, _tosPooladdress, _fee);
     }
 
     /// @inheritdoc ITreasury
@@ -188,21 +170,17 @@ contract Treasury is
         external override onlyPolicyOwner
         nonZeroAddress(_address)
     {
-        require(backingsIndex[_address] > 0, "not registered");
+        bool existAsset = false;
+        uint256 len = backings.length;
 
-        uint256 curIndex = backingsIndex[_address];
-        if (curIndex < backings.length-1) {
-            LibTreasury.Backing storage info = backings[curIndex];
-            info.erc20Address = backings[backings.length-1].erc20Address;
-            info.tosPoolAddress = backings[backings.length-1].tosPoolAddress;
-            info.fee = backings[backings.length-1].fee;
-
-            backingsIndex[info.erc20Address] = curIndex;
+        for (uint256 i = 0; i < len; i++){
+            if (_address == backings[i]) {
+                if (i < len-1) backings[i] = backings[len-1];
+                backings.pop();
+                emit DeletedBackingList(_address);
+                break;
+            }
         }
-        backingsIndex[_address] = 0;
-        backings.pop();
-
-        emit DeletedBackingList(_address);
     }
 
     /// @inheritdoc ITreasury
@@ -271,24 +249,10 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     //무조건 tos랑 연동되어있다는 가정, fee는 무조건 3000이라는 가정 -> 아예 poolAddress가 필요없음
-    function addBondAsset(
-        address _address,
-        address _tosPooladdress,
-        uint24 _fee
-    )
-        external override
+    function addBondAsset(address _address)  external override
     {
         require(isBonder(msg.sender), "caller is not bonder");
-
-        if (backingsIndex[_address] == 0 && _address != address(0) ){
-            addBackingList(
-                _address,
-                _tosPooladdress,
-                _fee
-            );
-        }
-
-        emit AddedBondAsset(_address, _tosPooladdress, _fee);
+        if (_address != address(0))  addBackingList(_address);
     }
 
     /// @inheritdoc ITreasury
@@ -364,18 +328,18 @@ contract Treasury is
 
         bool applyWTON = false;
         uint256 tosETHPricePerTOS = IITOSValueCalculator(calculator).getETHPricePerTOS();
-        console.log("tosETHPricePerTOS %s", tosETHPricePerTOS) ;
+        // console.log("tosETHPricePerTOS %s", tosETHPricePerTOS) ;
 
         for(uint256 i = 0; i < backings.length; i++) {
 
-            if (backings[i].erc20Address == wethAddress)  {
+            if (backings[i] == wethAddress)  {
                 totalValue += IERC20(wethAddress).balanceOf(address(this));
                 applyWTON = true;
 
-            } else if (backings[i].erc20Address != address(0) && backings[i].erc20Address != address(TOS))  {
+            } else if (backings[i] != address(0) && backings[i] != address(TOS))  {
 
                 (bool existedWethPool, bool existedTosPool, , uint256 convertedAmmount) =
-                    IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(backings[i].erc20Address, IERC20(backings[i].erc20Address).balanceOf(address(this)));
+                    IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(backings[i], IERC20(backings[i]).balanceOf(address(this)));
 
                 if (existedWethPool) totalValue += convertedAmmount;
 
@@ -398,7 +362,7 @@ contract Treasury is
         //0.000004124853366489 ETH/TOS ,  242427 TOS /ETH
         totalValue += address(this).balance;
 
-        console.log("backingReserve %s", totalValue);
+        // console.log("backingReserve %s", totalValue);
 
         return totalValue;
     }
@@ -408,35 +372,12 @@ contract Treasury is
          return backings.length;
     }
 
-    /// @inheritdoc ITreasury
-    function viewBackingInfo(uint256 _index)
-        public override view
-        returns (address erc20Address, address tosPoolAddress, uint24 fee)
-    {
-         return (
-                backings[_index].erc20Address,
-                backings[_index].tosPoolAddress,
-                backings[_index].fee
-            );
-    }
 
     /// @inheritdoc ITreasury
     function allBacking() public override view
-        returns (
-            address[] memory erc20Address,
-            address[] memory tosPoolAddress,
-            uint24[] memory fee)
+        returns (address[] memory)
     {
-        uint256 len = backings.length;
-        erc20Address = new address[](len);
-        tosPoolAddress = new address[](len);
-        fee = new uint24[](len);
-
-        for (uint256 i = 0; i < len; i++){
-            erc20Address[i] = backings[i].erc20Address;
-            tosPoolAddress[i] = backings[i].tosPoolAddress;
-            fee[i] = backings[i].fee;
-        }
+        return backings;
     }
 
     /// @inheritdoc ITreasury
@@ -507,7 +448,7 @@ contract Treasury is
         if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
             return  (mintRateDenominator / mintRate);
         } else {
-            console.log("getETHPricePerTOS liquidity is not zero ");
+            // console.log("getETHPricePerTOS liquidity is not zero ");
             return IITOSValueCalculator(calculator).getETHPricePerTOS();
         }
     }
@@ -528,12 +469,13 @@ contract Treasury is
     function isBonder(address account) public override view virtual returns (bool) {
         return permissions[LibTreasury.STATUS.BONDER][account];
     }
+
     /// @inheritdoc ITreasury
     function isStaker(address account) public override view virtual returns (bool) {
         return permissions[LibTreasury.STATUS.STAKER][account];
     }
 
-    function withdrawEther(address account) external {
+    function withdrawEther(address account) external onlyPolicyOwner nonZeroAddress(account) {
         uint256 ethbalance = address(this).balance;
         payable(account).transfer(ethbalance);
     }

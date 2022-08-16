@@ -24,12 +24,12 @@ contract BondDepositoryProxy is
         nonZeroAddress(_calculator)
         nonZeroAddress(_uniswapV3Factory)
     {
+        require(address(tos) == address(0), "already initialized.");
         tos = IERC20(_tos);
         staking = IStaking(_staking);
         treasury = _treasury;
         calculator = _calculator;
         uniswapV3Factory = _uniswapV3Factory;
-        // tos.approve(_staking, 1e45);
     }
 
 }
