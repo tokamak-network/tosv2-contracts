@@ -8,7 +8,7 @@ contract TreasuryProxy is
     TreasuryStorage,
     TreasuryVaultProxy
 {
-    //[_mininumTOSPricePerETH, _mininumETHPricePerTOS, ]
+
     function initialize(
         address _tos,
         address _calculator,

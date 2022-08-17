@@ -42,7 +42,7 @@ interface IStaking {
     /// @param balances  the array of tos amount for sync
     /// @param period  the array of end time for sync
     /// @param tokenId  the array of locktos id for sync
-    function syncSTOS(
+    function syncStos(
         address[] memory accounts,
         uint256[] memory balances,
         uint256[] memory period,
@@ -168,17 +168,12 @@ interface IStaking {
     function rebaseIndex() external;
 
     /* ========== VIEW ========== */
-    /*
-    /// @dev Returns the remaining toss amount of a specific staking ID.
-    /// @param _stakeId  the stake id
-    /// @return return remain tos Amount
-    function remainedLTOSToTos(uint256 _stakeId) external view returns (uint256) ;
-    */
+
 
     /// @dev Returns the remaining amount of LTOS for a specific staking ID.
     /// @param _stakeId  the stake id
     /// @return return Amount of LTOS remaining
-    function remainedLTOS(uint256 _stakeId) external view returns (uint256) ;
+    function remainedLtos(uint256 _stakeId) external view returns (uint256) ;
 
 
     /// @dev Returns the claimable amount of LTOS for a specific staking ID.

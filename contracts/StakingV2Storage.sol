@@ -15,7 +15,7 @@ contract StakingV2Storage {
 
     uint256 public index_;
     uint256 internal free = 1;
-    uint256 public totalLTOS;
+    uint256 public totalLtos;
     uint256 public stakingPrincipal;
     uint256 public rebasePerEpoch;
     uint256 public basicBondPeriod;

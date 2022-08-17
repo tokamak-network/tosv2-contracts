@@ -8,9 +8,6 @@ contract StakingV2Proxy is
     StakingV2Storage,
     StakeBaseProxy
 {
-
-     /* ========== CONSTRUCTOR ========== */
-
     //addr[0] = tos, addr[1] = lockTOS
     //_epoch[0] = _epochLength, _epoch[1] = _firstEpochNumber, _epoch[2] =  _firstEpochTime
     function initialize(
