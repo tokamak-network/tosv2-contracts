@@ -182,22 +182,22 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     function setFoundationDistributeInfo(
-        address[] memory  _address,
-        uint256[] memory _percents
+        address[] calldata  _address,
+        uint256[] calldata _percents
     )
         external override onlyPolicyOwner
     {
-        uint256 total = 0;
         require(_address.length > 0, "zero length");
         require(_address.length == _percents.length, "wrong length");
+        foundationTotalPercentage = 0;
 
         uint256 len = _address.length;
         for (uint256 i = 0; i< len ; i++){
             require(_address[i] != address(0), "zero address");
             require(_percents[i] > 0, "zero _percents");
-            total += _percents[i];
+            foundationTotalPercentage += _percents[i];
         }
-        require(total < 100, "wrong _percents");
+        require(foundationTotalPercentage < 100, "wrong _percents");
 
         delete mintings;
 
@@ -211,6 +211,19 @@ contract Treasury is
         }
 
         emit SetFoundationDistributeInfo(_address, _percents);
+    }
+
+    function foundationDistribute() external onlyPolicyOwner {
+        require(foundationAmount > 0 && mintings.length > 0, "No funds or no distribution");
+        uint256 _amount = foundationAmount;
+
+        for (uint256 i = 0; i < mintings.length ; i++) {
+            uint256 _distributeAmount = foundationAmount * mintings[i].mintPercents / 100;
+            _amount -= _distributeAmount;
+            tos.safeTransfer(mintings[i].mintAddress, _distributeAmount);
+        }
+
+        foundationAmount = _amount;
     }
 
     /* ========== permissions : LibTreasury.STATUS.RESERVEDEPOSITOR ========== */
@@ -237,7 +250,8 @@ contract Treasury is
             tos.safeTransfer(_recipient, _transferAmount);
         }
 
-        if(_distribute && remainedAmount > 0) _foundationDistribute(remainedAmount);
+        if(_distribute && foundationTotalPercentage > 0 && remainedAmount > 0)
+            foundationAmount += remainedAmount * foundationTotalPercentage / 100 ;
 
         emit RquestedMintAndTransfer(_mintAmount, _recipient, _transferAmount, _distribute);
 
@@ -259,22 +273,12 @@ contract Treasury is
         require(isStaker(msg.sender), notApproved);
         require(_recipient != address(0) && _amount > 0, "zero recipient or amount");
         // require(_amount > 0, "zero amount");
-        require(tos.balanceOf(address(this)) >= _amount, "treasury balance is insufficient");
+        require(enableStaking() >= _amount, "treasury balance is insufficient");
         require(tos.transfer(_recipient, _amount), "transfer fail");
 
         emit RequestedTransfer(_recipient, _amount);
     }
 
-
-    function _foundationDistribute(uint256 remainedAmount) internal {
-        if (mintings.length > 0) {
-            for (uint256 i = 0; i < mintings.length ; i++) {
-                tos.safeTransfer(
-                    mintings[i].mintAddress, remainedAmount *  mintings[i].mintPercents / 100
-                );
-            }
-        }
-    }
 
     /* ========== VIEW ========== */
 
@@ -306,7 +310,9 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     function enableStaking() public override view returns (uint256) {
-        return tos.balanceOf(address(this));
+        uint256 _balance = tos.balanceOf(address(this));
+        if (_balance >= foundationAmount) return (_balance - foundationAmount);
+        return 0;
     }
 
     /// @inheritdoc ITreasury
@@ -374,7 +380,7 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
-    function allMintingg() public override view
+    function allMinting() public override view
         returns (
             address[] memory mintAddress,
             uint256[] memory mintPercents

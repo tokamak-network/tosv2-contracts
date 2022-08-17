@@ -26,11 +26,11 @@ library LibStaking
     }
 
     function getUnlockTime(address lockTos, uint256 start, uint256 _periodWeeks)
-        public view returns (uint256 sTosEpochUnit, uint256 unlockTime)
+        public view returns (uint256 stosEpochUnit, uint256 unlockTime)
     {
-        sTosEpochUnit = IILockTosV2(lockTos).epochUnit();
-        unlockTime = start + (_periodWeeks * sTosEpochUnit);
-        unlockTime = unlockTime / sTosEpochUnit * sTosEpochUnit ;
+        stosEpochUnit = IILockTosV2(lockTos).epochUnit();
+        unlockTime = start + (_periodWeeks * stosEpochUnit);
+        unlockTime = unlockTime / stosEpochUnit * stosEpochUnit ;
     }
 
 

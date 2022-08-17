@@ -18,9 +18,10 @@ contract TreasuryStorage {
     address public stakingV2;
     address public poolAddressTOSETH;
 
-    uint256 public ETHliquidity;
     uint256 public mintRate;
     uint256 public mintRateDenominator;
+    uint256 public foundationAmount;
+    uint256 public foundationTotalPercentage;
 
     mapping(LibTreasury.STATUS => address[]) public registry;
     mapping(LibTreasury.STATUS => mapping(address => bool)) public permissions;

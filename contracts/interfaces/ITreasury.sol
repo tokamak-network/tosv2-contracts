@@ -128,7 +128,7 @@ interface ITreasury {
     /// @dev Returns the mintings information of all mintings
     /// @return mintAddress   mintAddress
     /// @return mintPercents  mintPercents
-    function allMintingg() external view
+    function allMinting() external view
         returns (
             address[] memory mintAddress,
             uint256[] memory mintPercents

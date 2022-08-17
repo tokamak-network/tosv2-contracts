@@ -239,7 +239,6 @@ contract BondDepository is
         uint256 id = _id;
         uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, id, _lockWeeks, markets[id].tosPrice);
 
-
         payable(treasury).transfer(msg.value);
 
         emit ETHDepositedWithSTOS(msg.sender, id, stakeId, _amount, _lockWeeks, payout_);
@@ -272,7 +271,6 @@ contract BondDepository is
 
         require(_ethValue > 0, "zero _ethValue");
         uint256 _mintRate = IITreasury(treasury).getMintRate();
-
         require(_mintRate > 0, "zero mintRate");
 
         uint256 mrAmount = _ethValue * _mintRate / IITreasury(treasury).mintRateDenominator() ;

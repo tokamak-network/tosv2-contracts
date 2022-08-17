@@ -331,11 +331,11 @@ describe("TOSv2 Phase1", function () {
       })
       */
 
-      it("lockTOSProxy upgrade", async () => {
+      // it("lockTOSProxy upgrade", async () => {
 
-        await lockTosContract.connect(_lockTosAdmin).upgradeTo(lockTOSProxy2Address);
+      //   await lockTosContract.connect(_lockTosAdmin).upgradeTo(lockTOSProxy2Address);
 
-      })
+      // })
 
       it("bring the newLockTOSProxyContract", async () => {
         lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSProxy2abi, ethers.provider);
