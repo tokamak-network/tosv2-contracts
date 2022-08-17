@@ -477,7 +477,7 @@ describe("TOSv2 Phase1", function () {
 
         await stakingProxy.connect(admin1).initialize(
           uniswapInfo.tos,
-          [epochLength, firstEpochNumber, firstEndEpochTime],
+          [epochLength, firstEndEpochTime],
           lockTosContract.address,
           treasuryProxy.address,
           basicBondPeriod
@@ -766,7 +766,7 @@ describe("TOSv2 Phase1", function () {
         await expect(
           stakingProxy.connect(user1).initialize(
             uniswapInfo.tos,
-            [epochLength, firstEpochNumber, firstEndEpochTime],
+            [epochLength, firstEndEpochTime],
             lockTosContract.address,
             treasuryProxy.address,
             basicBondPeriod
@@ -781,7 +781,7 @@ describe("TOSv2 Phase1", function () {
 
         await stakingProxy.connect(admin1).initialize(
           uniswapInfo.tos,
-          [epochLength,firstEpochNumber,firstEndEpochTime],
+          [epochLength,firstEndEpochTime],
           lockTosContract.address,
           treasuryProxy.address,
           basicBondPeriod
@@ -792,7 +792,7 @@ describe("TOSv2 Phase1", function () {
         expect(await stakingProxy.lockTOS()).to.be.equal(lockTosContract.address);
         let epochInfo = await stakingProxy.epoch();
         expect(epochInfo.length_).to.be.equal(epochLength);
-        expect(epochInfo.number).to.be.equal(firstEpochNumber);
+        // expect(epochInfo.number).to.be.equal(firstEpochNumber);
         expect(epochInfo.end).to.be.eq(firstEndEpochTime);
 
       })
@@ -1283,8 +1283,8 @@ describe("TOSv2 Phase1", function () {
 
         let depositData = getUserLastData(depositorUser);
 
-        let runwayTOS = await stakingProxylogic.runwayTOS();
-        expect(runwayTOS).to.be.gt(ethers.constants.Zero);
+        let runwayTos = await stakingProxylogic.runwayTos();
+        expect(runwayTos).to.be.gt(ethers.constants.Zero);
 
         let remainedLTOSBefore = await stakingProxylogic.remainedLtos(depositData.stakeId);
         let remainedLTOSToTosBefore = await stakingProxylogic.getLtosToTos(remainedLTOSBefore);
@@ -1306,13 +1306,13 @@ describe("TOSv2 Phase1", function () {
         let indexAfter = await stakingProxylogic.getIndex();
 
 
-        if (needTos.lte(runwayTOS)) {
+        if (needTos.lte(runwayTos)) {
 
           expect(indexAfter).to.be.gte(nextIndexContract);
           expect(indexAfter).to.be.gt(indexBefore);
           let epochAfter = await stakingProxylogic.epoch();
           expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
-          expect(epochAfter.number).to.be.gte(epochBefore.number.add(ethers.constants.One));
+          // expect(epochAfter.number).to.be.gte(epochBefore.number.add(ethers.constants.One));
 
       } else {
           console.log('didn\'t run rebase Index')
@@ -1320,7 +1320,7 @@ describe("TOSv2 Phase1", function () {
           expect(indexAfter).to.be.eq(indexBefore);
           let epochAfter = await stakingProxylogic.epoch();
           expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
-          expect(epochAfter.number).to.be.gte(epochBefore.number);
+          // expect(epochAfter.number).to.be.gte(epochBefore.number);
       }
 
     });
@@ -1415,7 +1415,7 @@ describe("TOSv2 Phase1", function () {
 
         let epochAfter = await stakingProxylogic.epoch();
         expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
-        expect(epochAfter.number).to.be.eq(epochBefore.number.add(ethers.constants.One));
+        // expect(epochAfter.number).to.be.eq(epochBefore.number.add(ethers.constants.One));
 
         expect(await stakingProxylogic.getIndex()).to.be.gt(indexBefore);
 
@@ -1551,9 +1551,9 @@ describe("TOSv2 Phase1", function () {
 
           let depositData = getUserLastDataByIndex(depositorUser, 0);
 
-          let runwayTOS = await stakingProxylogic.runwayTOS();
+          let runwayTos = await stakingProxylogic.runwayTos();
 
-          expect(runwayTOS).to.be.gt(ethers.constants.Zero);
+          expect(runwayTos).to.be.gt(ethers.constants.Zero);
 
           let remainedLTOSBefore = await stakingProxylogic.remainedLtos(depositData.stakeId);
           let remainedLTOSToTosBefore = await stakingProxylogic.getLtosToTos(remainedLTOSBefore);
@@ -1573,13 +1573,13 @@ describe("TOSv2 Phase1", function () {
           await stakingProxylogic.connect(depositor).rebaseIndex();
           let indexAfter = await stakingProxylogic.getIndex();
 
-          if (needTos.lte(runwayTOS)) {
+          if (needTos.lte(runwayTos)) {
 
               expect(indexAfter).to.be.gte(nextIndexContract);
               expect(indexAfter).to.be.gt(indexBefore);
               let epochAfter = await stakingProxylogic.epoch();
               expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
-              expect(epochAfter.number).to.be.gte(epochBefore.number.add(ethers.constants.One));
+              // expect(epochAfter.number).to.be.gte(epochBefore.number.add(ethers.constants.One));
 
           } else {
               console.log('didn\'t run rebase Index')
@@ -1587,7 +1587,7 @@ describe("TOSv2 Phase1", function () {
               expect(indexAfter).to.be.eq(indexBefore);
               let epochAfter = await stakingProxylogic.epoch();
               expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
-              expect(epochAfter.number).to.be.gte(epochBefore.number);
+              // expect(epochAfter.number).to.be.gte(epochBefore.number);
           }
 
       });
@@ -1652,8 +1652,8 @@ describe("TOSv2 Phase1", function () {
 
           let depositData = getUserLastData(depositorUser);
 
-          let runwayTOS = await stakingProxylogic.runwayTOS();
-          expect(runwayTOS).to.be.gt(ethers.constants.Zero);
+          let runwayTos = await stakingProxylogic.runwayTos();
+          expect(runwayTos).to.be.gt(ethers.constants.Zero);
 
           let totalLtos = await stakingProxylogic.totalLtos();
           let remainedLTOSBefore = await stakingProxylogic.remainedLtos(depositData.stakeId);
@@ -1677,13 +1677,13 @@ describe("TOSv2 Phase1", function () {
           let indexAfter = await stakingProxylogic.getIndex();
 
 
-          if (needTos.lte(runwayTOS)) {
+          if (needTos.lte(runwayTos)) {
 
             expect(indexAfter).to.be.gte(nextIndexContract);
             expect(indexAfter).to.be.gt(indexBefore);
             let epochAfter = await stakingProxylogic.epoch();
             expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
-            expect(epochAfter.number).to.be.gte(epochBefore.number.add(ethers.constants.One));
+            // expect(epochAfter.number).to.be.gte(epochBefore.number.add(ethers.constants.One));
 
         } else {
             console.log('didn\'t run rebase Index')
@@ -1691,7 +1691,7 @@ describe("TOSv2 Phase1", function () {
             expect(indexAfter).to.be.eq(indexBefore);
             let epochAfter = await stakingProxylogic.epoch();
             expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
-            expect(epochAfter.number).to.be.gte(epochBefore.number);
+            // expect(epochAfter.number).to.be.gte(epochBefore.number);
         }
 
         expect(await stakingProxylogic.totalLtos()).to.be.eq(totalLtos);
@@ -1998,8 +1998,8 @@ describe("TOSv2 Phase1", function () {
 
         let depositData = getUserLastData(depositorUser);
 
-        let runwayTOS = await stakingProxylogic.runwayTOS();
-        expect(runwayTOS).to.be.gt(ethers.constants.Zero);
+        let runwayTos = await stakingProxylogic.runwayTos();
+        expect(runwayTos).to.be.gt(ethers.constants.Zero);
 
         let remainedLTOSBefore = await stakingProxylogic.remainedLtos(depositData.stakeId);
         let remainedLTOSToTosBefore = await stakingProxylogic.getLtosToTos(remainedLTOSBefore);
@@ -2021,13 +2021,13 @@ describe("TOSv2 Phase1", function () {
         let indexAfter = await stakingProxylogic.getIndex();
 
 
-        if (needTos.lte(runwayTOS)) {
+        if (needTos.lte(runwayTos)) {
 
           expect(indexAfter).to.be.gte(nextIndexContract);
           expect(indexAfter).to.be.gt(indexBefore);
           let epochAfter = await stakingProxylogic.epoch();
           expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
-          expect(epochAfter.number).to.be.gte(epochBefore.number.add(ethers.constants.One));
+          // expect(epochAfter.number).to.be.gte(epochBefore.number.add(ethers.constants.One));
 
         } else {
             console.log('didn\'t run rebase Index')
@@ -2035,7 +2035,7 @@ describe("TOSv2 Phase1", function () {
             expect(indexAfter).to.be.eq(indexBefore);
             let epochAfter = await stakingProxylogic.epoch();
             expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
-            expect(epochAfter.number).to.be.gte(epochBefore.number);
+            // expect(epochAfter.number).to.be.gte(epochBefore.number);
         }
 
 

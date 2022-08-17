@@ -228,7 +228,7 @@ interface IStaking {
 
     /// @dev  Compensation for LTOS with TOS and the remaining amount of TOS
     /// @return TOS with treasury - minus staking interest
-    function runwayTOS() external view returns (uint256);
+    function runwayTos() external view returns (uint256);
 
     /// @dev Total amount of Staking TOS
     /// @return tosAmount

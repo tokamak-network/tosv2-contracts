@@ -5,7 +5,6 @@ import "./StakingV2Storage.sol";
 import "./common/StakeProxyAccess.sol";
 
 import "./libraries/SafeERC20.sol";
-// import "./libraries/ABDKMath64x64.sol";
 import {DSMath} from "./libraries/DSMath.sol";
 
 import "./libraries/LibTreasury.sol";
@@ -251,7 +250,6 @@ contract StakingV2 is
         require(_addAmount > 0 || _claimAmount > 0 ||  _periodWeeks > 0, "all zero input");
 
         uint256 lockId = connectId[_stakeId];
-        //require(lockId > 0, "zero lockId");
 
         LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
         address staker = _stakeInfo.staker;
@@ -279,14 +277,12 @@ contract StakingV2 is
         uint256 stosEpochUnit = 0;
         uint256 unlockTime = 0;
         if (_periodWeeks > 0) {
-            // unlockTime = _getUnlockTime(block.timestamp, _periodWeeks) ;
             (stosEpochUnit, unlockTime) = LibStaking.getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
         } else {
             stosEpochUnit = ILockTosV2(lockTOS).epochUnit();
             unlockTime = _stakeInfo.endTime;
         }
 
-        // require(unlockTime > 0, "zero unlockTime");
         _checkStakeId(staker);
         rebaseIndex();
 
@@ -329,7 +325,6 @@ contract StakingV2 is
         uint256 lockId = connectId[_stakeId];
 
         if(userStakingIndex[staker][_stakeId] > 1 && lockId == 0 && _unlockWeeks > 0) {
-            // 마켓 상품이지만 락은 없었던 것. 락이 생길경우. amount 는 기존에 있던 금액에 추가되는 금액까지 고려해야 하는지.
 
             uint256 addAmount = _amount + getLtosToTos(remainedLtos(_stakeId));
             uint256 stosId = _createStos(staker, addAmount, _unlockWeeks, stosEpochUnit);
@@ -375,14 +370,9 @@ contract StakingV2 is
         nonZero(_claimAmount)
     {
         require(connectId[_stakeId] == 0, "this is for non-lock product.");
-        // console.log("claimForSimpleType %s %s",_stakeId, _claimAmount);
 
         address staker = allStakings[_stakeId].staker;
         require(staker == msg.sender, "caller is not staker");
-
-        // console.log("claimForSimpleType ltos  %s", allStakings[_stakeId].ltos );
-        // console.log("claimForSimpleType deposit  %s", allStakings[_stakeId].deposit);
-        // console.log("claimForSimpleType getLtosToTos  %s",getLtosToTos(allStakings[_stakeId].LTOS));
 
         require(_claimAmount <= getLtosToTos(allStakings[_stakeId].ltos), "remainedTos is insufficient");
 
@@ -411,21 +401,11 @@ contract StakingV2 is
         require(_stakeInfo.endTime < block.timestamp, "end time hasn't passed.");
         rebaseIndex();
 
-        // 모두 클래임한다. 스토리지를 모두 지운다.
         uint256 amount = claimableTos(_stakeId);
         require(amount > 0, "zero claimable amount");
 
         uint256 addProfitRemainedTos = getLtosToTos(remainedLtos(_stakeId));
         uint256 principal = _stakeInfo.deposit;
-
-        // uint256 stosId = connectId[_stakeId];
-
-        // console.log("unstake _stakeId %s", _stakeId);
-        // console.log("unstake amount %s", amount);
-        // console.log("unstake _stakeInfo.deposit  %s", _stakeInfo.deposit);
-        // console.log("unstake _stakeInfo.ltos  %s", _stakeInfo.ltos);
-        // console.log("unstake stakingPrincipal  %s", stakingPrincipal);
-        // console.log("unstake totalLtos  %s", totalLtos);
 
         if (stakingPrincipal >= principal) stakingPrincipal -= principal;
         else stakingPrincipal = 0;
@@ -434,16 +414,11 @@ contract StakingV2 is
         else totalLtos = 0;
 
         if (connectId[_stakeId] > 0) {
-            // console.log("unstake withdrawByStaker go ");
-
             ILockTosV2(lockTOS).withdrawByStaker(staker, connectId[_stakeId]);
-            // console.log("unstake withdrawByStaker end ");
-
             delete connectId[_stakeId];
         }
 
         uint256 _userStakeIdIndex  = _deleteUserStakeId(staker, _stakeId);
-        // console.log("unstake _userStakeIdIndex   %s", _userStakeIdIndex);
         _deleteStakeId(_stakeId, _userStakeIdIndex) ;
 
         if (addProfitRemainedTos > principal) {
@@ -466,14 +441,8 @@ contract StakingV2 is
         }
     }
 
-
     /// @inheritdoc IStaking
     function rebaseIndex() public override {
-        // console.log("rebaseIndex epoch.end : %s", epoch.end);
-        // console.log("rebaseIndex block.timestamp : %s", block.timestamp);
-        // console.log("rebaseIndex epoch.length_ : %s", epoch.length_);
-        // console.log("rebaseIndex index_ : %s", index_);
-        // console.log("rebaseIndex epoch.number : %s", epoch.number);
 
         if(epoch.end <= block.timestamp ) {
 
@@ -483,57 +452,26 @@ contract StakingV2 is
                 epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
             }
 
-            // console.log("rebaseIndex epochNumber : %s", epochNumber);
             epochNumber++;
             epoch.end += (epoch.length_ * epochNumber); // if block.timestamp > epoch.end => we have to rebase at least once
-
-            // console.log("rebaseIndex epochNumber : %s", epochNumber);
-            // console.log("rebaseIndex epoch.end : %s", epoch.end);
 
             uint256 newIndex = index_;
             if(epochNumber == 1)  newIndex = nextIndex();
             else newIndex = LibStaking.compound(index_, rebasePerEpoch, epochNumber) ;
 
-            // console.log("rebaseIndex newIndex : %s", newIndex);
-            // console.log("rebaseIndex totalLtos : %s", totalLtos);
-
-            uint256 _runawayTOS = runwayTOS();
-
-            // console.log("rebaseIndex runwayTOS() : %s", _runawayTOS);
-
-            // if (_runawayTOS == 0) return;
+            uint256 _runwayTos = runwayTos();
 
             uint256 oldIndex = index_;
             uint256 needTos = totalLtos * (newIndex - index_) / 1e18;
 
-            // console.log("rebaseIndex needTos : %s", needTos);
-
-            if (needTos < _runawayTOS) {
+            if (needTos <= _runwayTos) {
                 index_ = newIndex;
-                epoch.number += epochNumber;
                 emit Rebased(oldIndex, newIndex, totalLtos);
 
-            } else if (epochNumber > 1) {
-
-                uint256 _possibleEpochNumber = LibStaking.possibleEpochNumber(runwayTOS(), getLtosToTos(totalLtos), rebasePerEpoch);
-                // console.log("rebaseIndex _possibleEpochNumber : %s", _possibleEpochNumber);
-
-                if (_possibleEpochNumber < epochNumber) {
-                    newIndex = LibStaking.compound(index_, rebasePerEpoch, _possibleEpochNumber);
-                    // console.log("rebaseIndex compound newIndex : %s", newIndex);
-
-                    needTos = totalLtos * (newIndex - index_) / 1e18;
-                    // console.log("rebaseIndex newIndex -> needTos : %s", needTos);
-
-                    if (needTos < _runawayTOS) {
-                        index_ =  newIndex;
-                        epoch.number += _possibleEpochNumber;
-                        emit Rebased(oldIndex, newIndex, totalLtos);
-                    }
-                }
+            } else   {
+                newIndex = oldIndex + (_runwayTos / totalLtos);
+                emit Rebased(oldIndex, newIndex, totalLtos);
             }
-            // console.log("rebaseIndex epoch.number : %s", epoch.number);
-            // console.log("rebaseIndex index_ : %s", index_);
         }
     }
 
@@ -580,7 +518,7 @@ contract StakingV2 is
 
     /// @inheritdoc IStaking
     function possibleIndex() public view override returns (uint256) {
-        uint256 _possibleEpochNumber = LibStaking.possibleEpochNumber(runwayTOS(), getLtosToTos(totalLtos), rebasePerEpoch);
+        uint256 _possibleEpochNumber = LibStaking.possibleEpochNumber(runwayTos(), getLtosToTos(totalLtos), rebasePerEpoch);
         return LibStaking.compound(index_, rebasePerEpoch, _possibleEpochNumber);
     }
 
@@ -626,7 +564,7 @@ contract StakingV2 is
     }
 
     /// @inheritdoc IStaking
-    function runwayTOS() public override view returns (uint256) {
+    function runwayTos() public override view returns (uint256) {
         uint256 treasuryAmount = IITreasury(treasury).enableStaking() ;
         uint256 balanceTos =  totalDepositTOS();
         uint256 debtTos =  getLtosToTos(totalLtos);
@@ -743,8 +681,6 @@ contract StakingV2 is
 
         require(allStakings[_stakeId].staker == address(0), "non-empty stakeInfo");
 
-        // LibStaking.UserBalance storage stakeInfo = allStakings[_stakeId];
-
         uint256 ltos = getTosToLtos(_amount);
 
         allStakings[_stakeId] = LibStaking.UserBalance({
@@ -756,16 +692,8 @@ contract StakingV2 is
                 marketId: _marketId
             });
 
-        // console.log("_createStakeInfo _stakeId %s", _stakeId);
-        // console.log("_createStakeInfo deposit %s", _amount);
-        // console.log("_createStakeInfo ltos %s", allStakings[_stakeId].ltos);
-
         stakingPrincipal += _amount;
-        // cummulatedLTOS += ltos;
         totalLtos += ltos;
-
-        // console.log("_createStakeInfo stakingPrincipal %s", stakingPrincipal);
-        // console.log("_createStakeInfo totalLtos %s", totalLtos);
 
         return ltos;
     }
@@ -814,20 +742,11 @@ contract StakingV2 is
         uint256 _claimAmount
     ) internal ifFree {
 
-        // console.log("_updateStakeInfo start %s", _stakeId);
-        // console.log("_updateStakeInfo _unlockTime %s", _unlockTime);
-        // console.log("_updateStakeInfo _addAmount %s", _addAmount);
-        // console.log("_updateStakeInfo _claimAmount %s", _claimAmount);
-
         require(allStakings[_stakeId].staker != address(0), "non-exist stakeInfo");
         require(_addAmount > 0 || _claimAmount > 0 || _unlockTime > 0, "zero Amounts");
 
         require(allStakings[_stakeId].ltos > 0, "zero ltos");
         uint256 stakedAmount = getLtosToTos(allStakings[_stakeId].ltos);
-
-        // console.log("_updateStakeInfo allStakings[_stakeId].deposit %s", allStakings[_stakeId].deposit);
-        // console.log("_updateStakeInfo allStakings[_stakeId].LTOS %s", allStakings[_stakeId].LTOS);
-        // console.log("_updateStakeInfo stakedAmount %s", stakedAmount);
 
         require(_claimAmount <= stakedAmount, "stake amount is insufficient");
 
@@ -840,14 +759,10 @@ contract StakingV2 is
 
         _stakeInfo.startTime = block.timestamp;
         _stakeInfo.endTime = _unlockTime;
-        // console.log("_updateStakeInfo _stakeInfo.endTime : %s", _stakeInfo.endTime);
-        // console.log("_updateStakeInfo stakedAmount %s", stakedAmount);
-        // console.log("_updateStakeInfo _stakeInfo.deposit %s", _stakeInfo.deposit);
 
         uint256 profit = 0;
         if(stakedAmount > _stakeInfo.deposit) profit = stakedAmount - _stakeInfo.deposit;
 
-        // console.log("_updateStakeInfo 3");
         if (addLtos > 0){
             _stakeInfo.ltos += addLtos;
             totalLtos += addLtos;
@@ -860,12 +775,6 @@ contract StakingV2 is
             _stakeInfo.deposit = _stakeInfo.deposit + _addAmount + profit - _claimAmount;
             stakingPrincipal = stakingPrincipal + _addAmount + profit - _claimAmount;
         }
-
-        // console.log("-----------_updateStakeInfo ------------------");
-        // console.log("_updateStakeInfo profit %s", profit);
-        // console.log("_updateStakeInfo stakingPrincipal %s", stakingPrincipal);
-        // console.log("_updateStakeInfo claimLtos %s", claimLtos);
-        // console.log("_updateStakeInfo totalLtos %s", totalLtos);
 
         if (profit > 0) {
             IITreasury(treasury).requestTransfer(address(this), profit);
@@ -880,17 +789,14 @@ contract StakingV2 is
 
 
     function _deleteUserStakeId(address to, uint256 _id) internal  returns (uint256 curIndex){
-        // console.log("_deleteUserStakeId %s %s", to, _id);
+
         curIndex = userStakingIndex[to][_id];
-        // console.log("_deleteUserStakeId  curIndex %s", curIndex);
+
         if (curIndex < userStakings[to].length) {
 
             if (curIndex > 1 ) {
-                // console.log("_deleteUserStakeId  userStakings[to].length %s", userStakings[to].length);
                 if (curIndex < userStakings[to].length-1){
                     uint256 lastId = userStakings[to][userStakings[to].length-1];
-                    // console.log("_deleteUserStakeId  lastId %s", lastId);
-
                     userStakings[to][curIndex] = lastId;
                     userStakingIndex[to][lastId] = curIndex;
                 }

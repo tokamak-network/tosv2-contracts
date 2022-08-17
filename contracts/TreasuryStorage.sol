@@ -15,7 +15,7 @@ contract TreasuryStorage {
     address public calculator;
     address public wethAddress;
     address public uniswapV3Factory;
-    address public stakingv2;
+    address public stakingV2;
     address public poolAddressTOSETH;
 
     uint256 public ETHliquidity;

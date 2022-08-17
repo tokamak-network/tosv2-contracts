@@ -57,7 +57,7 @@ contract Treasury is
         external override
         onlyPolicyOwner
     {
-        LibTreasury.STATUS role = LibTreasury.getSatatus(_status);
+        LibTreasury.STATUS role = LibTreasury.getStatus(_status);
 
         require(role != LibTreasury.STATUS.NONE, "NONE permission");
         require(permissions[role][_address] == false, "already set");
@@ -77,7 +77,7 @@ contract Treasury is
     function disable(uint _status, address _toDisable)
         external override onlyPolicyOwner
     {
-        LibTreasury.STATUS role = LibTreasury.getSatatus(_status);
+        LibTreasury.STATUS role = LibTreasury.getStatus(_status);
         require(role != LibTreasury.STATUS.NONE, "NONE permission");
         require(permissions[role][_toDisable] == true, "hasn't permissions");
 
@@ -94,9 +94,9 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     function approve(
-        address _addr
+        address _address
     ) external override onlyPolicyOwner {
-        tos.approve(_addr, 1e45);
+        tos.approve(_address, 1e45);
     }
 
     /// @inheritdoc ITreasury
@@ -182,18 +182,18 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     function setFoundationDistributeInfo(
-        address[] memory  _addr,
+        address[] memory  _address,
         uint256[] memory _percents
     )
         external override onlyPolicyOwner
     {
         uint256 total = 0;
-        require(_addr.length > 0, "zero length");
-        require(_addr.length == _percents.length, "wrong length");
+        require(_address.length > 0, "zero length");
+        require(_address.length == _percents.length, "wrong length");
 
-        uint256 len = _addr.length;
+        uint256 len = _address.length;
         for (uint256 i = 0; i< len ; i++){
-            require(_addr[i] != address(0), "zero address");
+            require(_address[i] != address(0), "zero address");
             require(_percents[i] > 0, "zero _percents");
             total += _percents[i];
         }
@@ -204,13 +204,13 @@ contract Treasury is
         for (uint256 i = 0; i< len ; i++) {
             mintings.push(
                 LibTreasury.Minting({
-                    mintAddress: _addr[i],
+                    mintAddress: _address[i],
                     mintPercents: _percents[i]
                 })
             );
         }
 
-        emit SetFoundationDistributeInfo(_addr, _percents);
+        emit SetFoundationDistributeInfo(_address, _percents);
     }
 
     /* ========== permissions : LibTreasury.STATUS.RESERVEDEPOSITOR ========== */
@@ -315,7 +315,7 @@ contract Treasury is
 
         bool applyWTON = false;
         uint256 tosETHPricePerTOS = IITOSValueCalculator(calculator).getETHPricePerTOS();
-        // console.log("tosETHPricePerTOS %s", tosETHPricePerTOS) ;
+
         uint256 len = backings.length;
         for(uint256 i = 0; i < len; i++) {
 
@@ -343,10 +343,7 @@ contract Treasury is
 
         if (!applyWTON && wethAddress != address(0)) totalValue += IERC20(wethAddress).balanceOf(address(this));
 
-        //0.000004124853366489 ETH/TOS ,  242427 TOS /ETH
         totalValue += address(this).balance;
-
-        // console.log("backingReserve %s", totalValue);
 
         return totalValue;
     }
@@ -395,7 +392,7 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     function hasPermission(uint role, address account) public override view returns (bool) {
-        return permissions[LibTreasury.getSatatus(role)][account];
+        return permissions[LibTreasury.getStatus(role)][account];
     }
 
     /// @inheritdoc ITreasury
@@ -407,8 +404,7 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
-    function  checkTosSolvency(uint256 amount)
-        public override view returns (bool)
+    function  checkTosSolvency(uint256 amount) public override view returns (bool)
     {
         if ( tos.totalSupply() + amount <= backingReserve() * mintRate / mintRateDenominator)  return true;
         else return false;
@@ -427,12 +423,9 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     function getETHPricePerTOS() public override view returns (uint256) {
-        // console.log("getETHPricePerTOS poolAddressTOSETH %s",poolAddressTOSETH);
-        // console.log("getETHPricePerTOS liquidity %s",IIIUniswapV3Pool(poolAddressTOSETH).liquidity());
         if (poolAddressTOSETH != address(0) && IIIUniswapV3Pool(poolAddressTOSETH).liquidity() == 0) {
             return  (mintRateDenominator / mintRate);
         } else {
-            // console.log("getETHPricePerTOS liquidity is not zero ");
             return IITOSValueCalculator(calculator).getETHPricePerTOS();
         }
     }

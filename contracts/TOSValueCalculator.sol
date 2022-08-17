@@ -87,8 +87,8 @@ contract TOSValueCalculator is ITOSValueCalculator {
         address _tos,
         address _weth,
         address _npm,
-        address _basicpool,
-        address _uniswapV3factory
+        address _basicPool,
+        address _uniswapV3Factory
     )
         external
         override
@@ -96,8 +96,8 @@ contract TOSValueCalculator is ITOSValueCalculator {
         tos = _tos;
         weth = _weth;
         npm_ = _npm;
-        ethTosPool = _basicpool;
-        UniswapV3Factory = IIUniswapV3Factory(_uniswapV3factory);
+        ethTosPool = _basicPool;
+        UniswapV3Factory = IIUniswapV3Factory(_uniswapV3Factory);
     }
 
 
@@ -116,9 +116,6 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
-    //token0이 TOS면 0을 리턴, token1이 TOS면 1을 리턴, tokenPool 이없으면 2를 리턴, 3은 리턴하면 안됨.
-    //_fee is 500, 3000, 10000
-    // tos와 pool인데 pool주소는 모르고 erc20주소 넣고 싶을때
     function getTOStoken0(address _erc20Addresss, uint24 _fee) public override view returns (uint) {
         address getPool = UniswapV3Factory.getPool(address(tos), address(_erc20Addresss), _fee);
         if(getPool == address(0)) {
@@ -136,8 +133,6 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
-    //token0이 tos면 0을 리턴, token1이 tos면 1을 리턴, tos주소가 없으면 3을 리턴
-    //tos와 pool인데 Pool주소를 알때
     function getTOStoken(address _poolAddress) public override view returns (uint) {
         address token0Address = IIUniswapV3Pool(_poolAddress).token0();
         address token1Address = IIUniswapV3Pool(_poolAddress).token1();
@@ -168,8 +163,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(tickUpper);
 
         (amount0, amount1) = LiquidityAmounts.getAmountsForLiquidity(sqrtPriceX96, sqrtRatioAX96, sqrtRatioBX96, liquidity);
-        // console.log('amount0 %s ', amount0);
-        // console.log('amount1 %s ', amount1);
+
     }
 
     function getDecimals(address token0, address token1) public view returns(uint256 token0Decimals, uint256 token1Decimals) {
@@ -229,31 +223,31 @@ contract TOSValueCalculator is ITOSValueCalculator {
 
 
     function getTOSPricePerETH() public override view  returns (uint256 price) {
-        (bool isWeth1, bool isTos1, address poola, address token0a, address token1a) = existPool(tos, weth, 3000);
+        (bool isWeth1, bool isTos1, address poolA, address token0A, address token1A) = existPool(tos, weth, 3000);
 
-        if (isWeth1 && isTos1 && token0a == tos) price = getPriceToken1(poola);
-        if (isWeth1 && isTos1 && token1a == tos) price = getPriceToken0(poola);
+        if (isWeth1 && isTos1 && token0A == tos) price = getPriceToken1(poolA);
+        if (isWeth1 && isTos1 && token1A == tos) price = getPriceToken0(poolA);
     }
 
     function getETHPricePerTOS() public override view returns (uint256 price) {
-        (bool isWeth1, bool isTos1, address poola, address token0a, address token1a) = existPool(tos, weth, 3000);
+        (bool isWeth1, bool isTos1, address poolA, address token0A, address token1A) = existPool(tos, weth, 3000);
 
-        if (isWeth1 && isTos1 && token0a == weth) price = getPriceToken1(poola);
-        if (isWeth1 && isTos1 && token1a == weth) price = getPriceToken0(poola);
+        if (isWeth1 && isTos1 && token0A == weth) price = getPriceToken1(poolA);
+        if (isWeth1 && isTos1 && token1A == weth) price = getPriceToken0(poolA);
     }
 
     function getTOSPricePerAsset(address _asset) public override view returns (uint256 price) {
-        (, bool isTos1, address poola, address token0a, address token1a) = existPool(tos, _asset, 3000);
+        (, bool isTos1, address poolA, address token0A, address token1A) = existPool(tos, _asset, 3000);
 
-        if (isTos1 && token0a == tos) price = getPriceToken1(poola);
-        if (isTos1 && token1a == tos) price = getPriceToken0(poola);
+        if (isTos1 && token0A == tos) price = getPriceToken1(poolA);
+        if (isTos1 && token1A == tos) price = getPriceToken0(poolA);
     }
 
     function getAssetPricePerTOS(address _asset) public override view returns (uint256 price) {
-        (, bool isTos1, address poola, address token0a, address token1a) = existPool(tos, _asset, 3000);
+        (, bool isTos1, address poolA, address token0A, address token1A) = existPool(tos, _asset, 3000);
 
-        if (isTos1 && token0a == _asset) price = getPriceToken1(poola);
-        if (isTos1 && token1a == _asset) price = getPriceToken0(poola);
+        if (isTos1 && token0A == _asset) price = getPriceToken1(poolA);
+        if (isTos1 && token1A == _asset) price = getPriceToken0(poolA);
     }
 
     function existPool(address tokenA, address tokenB, uint24 _fee)

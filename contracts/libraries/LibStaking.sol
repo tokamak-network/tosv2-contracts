@@ -12,7 +12,7 @@ library LibStaking
 {
     struct Epoch {
         uint256 length_; // in seconds
-        uint256 number; // since inception
+        // uint256 number; // since inception
         uint256 end; // timestamp
     }
 
@@ -36,17 +36,17 @@ library LibStaking
 
    /**
    * Calculate the maximum possible # of epochs that can be rebased while keeping LTOS solvency
-   * equation = ln(runwayTOS/getLtosToTos+1) / ln(1+rebasePerEpoch)
+   * equation = ln(runwayTos/getLtosToTos+1) / ln(1+rebasePerEpoch)
    *
    * @return rebaseCount unsigned 256-bit integer number
    */
-    function possibleEpochNumber(uint256 _runwayTOS, uint256 _totalTOS, uint256 rebasePerEpoch) public pure returns (uint256 ){
+    function possibleEpochNumber(uint256 _runwayTos, uint256 _totalTos, uint256 rebasePerEpoch) public pure returns (uint256 ){
 
         int128 a = ABDKMath64x64.ln(
                     ABDKMath64x64.add(
-                        ABDKMath64x64.divu(_runwayTOS,_totalTOS),
+                        ABDKMath64x64.divu(_runwayTos,_totalTos),
                         ABDKMath64x64.fromUInt(1)
-                    )); //a = ln(runwayTOS/getLtosToTos+1)
+                    )); //a = ln(runwayTos/getLtosToTos+1)
         int128 b = ABDKMath64x64.ln(ABDKMath64x64.fromUInt(1e18+rebasePerEpoch))-764553562531198000000; //b = ln(1+rebasePerEpoch). rebasePerEpoch is internally scaled by 10^18 to keep the decimal positions=> instead of adding 1, 1e18 has to be added + subtract ln(10^18) 64.64 hardcoded, subtracting this value from 'b' offsets the 10^18 scaling
         int64 rebaseCount = ABDKMath64x64.toInt(ABDKMath64x64.div(a,b)); //recasts 64 bit output to uint256
         return uint256(int256(rebaseCount));

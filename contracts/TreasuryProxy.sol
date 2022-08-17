@@ -14,14 +14,14 @@ contract TreasuryProxy is
         address _calculator,
         address _wethAddress,
         address _uniswapV3Factory,
-        address _stakingv2,
+        address _stakingV2,
         address _poolAddressTOSETH
     )
         nonZeroAddress(_tos)
         nonZeroAddress(_calculator)
         nonZeroAddress(_wethAddress)
         nonZeroAddress(_uniswapV3Factory)
-        nonZeroAddress(_stakingv2)
+        nonZeroAddress(_stakingV2)
         nonZeroAddress(_poolAddressTOSETH)
         external onlyProxyOwner
     {
@@ -32,7 +32,7 @@ contract TreasuryProxy is
         wethAddress = _wethAddress;
         uniswapV3Factory = _uniswapV3Factory;
         mintRateDenominator = 1;
-        stakingv2 = _stakingv2;
+        stakingV2 = _stakingV2;
         poolAddressTOSETH = _poolAddressTOSETH;
     }
 

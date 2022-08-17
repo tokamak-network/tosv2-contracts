@@ -5,7 +5,7 @@ pragma abicoder v2;
 import "../libraries/LibLockTOS.sol";
 
 interface ILockTOS {
-    
+
     /// @dev Returns addresses of all holders of LockTOS
     function allHolders() external returns (address[] memory);
 
@@ -100,7 +100,7 @@ interface ILockTOS {
 
     /// @dev Withdraw TOS
     function withdraw(uint256 _lockId) external;
-    
+
     /// @dev needCheckpoint
     function needCheckpoint() external view returns (bool need);
 

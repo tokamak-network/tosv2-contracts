@@ -26,7 +26,7 @@ library LibTreasury
         uint256 mintPercents;
     }
 
-    function getSatatus(uint role) external pure returns (STATUS _status) {
+    function getStatus(uint role) external pure returns (STATUS _status) {
         if (role == uint(STATUS.RESERVEDEPOSITOR)) return  STATUS.RESERVEDEPOSITOR;
         else if (role == uint(STATUS.RESERVESPENDER)) return  STATUS.RESERVESPENDER;
         else if (role == uint(STATUS.RESERVETOKEN)) return  STATUS.RESERVETOKEN;

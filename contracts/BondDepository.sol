@@ -252,12 +252,10 @@ contract BondDepository is
         uint256 _marketId,
         bool _eth
     ) internal nonReentrant returns (uint256 _payout) {
-        // console.log("_deposit _amount : %s", _amount);
+
         require(_amount <= purchasableAssetAmountAtOneTime(_marketId), "Depository : over maxPay");
 
         _payout = calculateTosAmountForAsset(_marketId, _amount);
-
-        // console.log("_deposit payoutAmount : %s", _payout);
 
         require(_payout > 0, "zero staking amount");
         uint256 _ethValue = 0; // _payout tos 를 이더로 바꿈.
@@ -272,12 +270,9 @@ contract BondDepository is
             _ethValue = _amount;
         }
 
-        // console.log("_deposit _ethValue : %s", _ethValue);
-
         require(_ethValue > 0, "zero _ethValue");
         uint256 _mintRate = IITreasury(treasury).getMintRate();
 
-        // console.log("_deposit _mintRate : %s", _mintRate);
         require(_mintRate > 0, "zero mintRate");
 
         uint256 mrAmount = _ethValue * _mintRate / IITreasury(treasury).mintRateDenominator() ;
@@ -314,7 +309,6 @@ contract BondDepository is
         view
         returns (uint256 payout)
     {
-        // console.log("calculateTosAmountForAsset markets[_id].tosPrice : %s", markets[_id].tosPrice);
         return (_amount * markets[_id].tosPrice / 1e18);
     }
 
