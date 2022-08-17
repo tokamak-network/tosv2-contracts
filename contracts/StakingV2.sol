@@ -492,7 +492,7 @@ contract StakingV2 is
 
             uint256 newIndex = index_;
             if(epochNumber == 1)  newIndex = nextIndex();
-            else if(epochNumber > 1) newIndex = LibStaking.compound(index_, rebasePerEpoch, epochNumber) ;
+            else newIndex = LibStaking.compound(index_, rebasePerEpoch, epochNumber) ;
 
             // console.log("rebaseIndex newIndex : %s", newIndex);
             // console.log("rebaseIndex totalLtos : %s", totalLtos);
@@ -501,7 +501,7 @@ contract StakingV2 is
 
             // console.log("rebaseIndex runwayTOS() : %s", _runawayTOS);
 
-            if (_runawayTOS == 0) return;
+            // if (_runawayTOS == 0) return;
 
             uint256 oldIndex = index_;
             uint256 needTos = totalLtos * (newIndex - index_) / 1e18;
