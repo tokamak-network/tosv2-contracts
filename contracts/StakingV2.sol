@@ -171,8 +171,6 @@ contract StakingV2 is
         nonZero(_amount)
         returns (uint256 stakeId)
     {
-        // require (tos.allowance(msg.sender, address(this)) >= _amount, "allowance is insufficient.");
-        // tos.safeTransferFrom(msg.sender, address(this), _amount);
         tos.safeTransferFrom(msg.sender, treasury, _amount);
 
         _checkStakeId(msg.sender);
@@ -691,7 +689,6 @@ contract StakingV2 is
         address staker,
         uint256 deposit,
         uint256 ltos,
-        uint256 startTime,
         uint256 endTime,
         uint256 marketId
     ) {
@@ -700,7 +697,6 @@ contract StakingV2 is
             _stakeInfo.staker,
             _stakeInfo.deposit,
             _stakeInfo.ltos,
-            _stakeInfo.startTime,
             _stakeInfo.endTime,
             _stakeInfo.marketId
         );
@@ -769,7 +765,6 @@ contract StakingV2 is
                 staker: _addr,
                 deposit: _amount,
                 ltos: ltos,
-                startTime: block.timestamp,
                 endTime: _unlockTime,
                 marketId: _marketId
             });
@@ -788,7 +783,6 @@ contract StakingV2 is
             _stakeInfo.staker = address(0);
             _stakeInfo.deposit = 0;
             _stakeInfo.ltos = 0;
-            _stakeInfo.startTime = 0;
             _stakeInfo.endTime = 0;
             _stakeInfo.marketId = 0;
         }
@@ -826,7 +820,7 @@ contract StakingV2 is
 
         LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
         uint256 stakedAmount = getLtosToTos(_stakeInfo.ltos);
-        _stakeInfo.startTime = block.timestamp;
+        // _stakeInfo.startTime = block.timestamp;
         // _stakeInfo.endTime = block.timestamp + 1;
 
         uint256 profit = 0;
@@ -851,7 +845,7 @@ contract StakingV2 is
         stakedAmount = getLtosToTos(_stakeInfo.ltos);
         uint256 addLtos = getTosToLtos(_addAmount);
 
-        _stakeInfo.startTime = block.timestamp;
+        // _stakeInfo.startTime = block.timestamp;
         _stakeInfo.endTime = _unlockTime;
 
         uint256 profit = 0;
@@ -886,7 +880,7 @@ contract StakingV2 is
         if (_addAmount > 0)  addLtos = getTosToLtos(_addAmount);
         if (_claimAmount > 0) claimLtos = getTosToLtos(_claimAmount);
 
-        _stakeInfo.startTime = block.timestamp;
+        // _stakeInfo.startTime = block.timestamp;
         _stakeInfo.endTime = _unlockTime;
 
         uint256 profit = 0;
@@ -928,7 +922,7 @@ contract StakingV2 is
         }
     }
 
-    function index() internal retur ns (uint256) {
+    function index() internal returns (uint256) {
         index_ = (index_ * (1 ether + rebasePerEpoch) / 1e18);
         return index_;
     }

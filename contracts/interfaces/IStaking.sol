@@ -283,7 +283,6 @@ interface IStaking {
         address staker,
         uint256 deposit,
         uint256 LTOS,
-        uint256 startTime,
         uint256 endTime,
         uint256 marketId
     );
