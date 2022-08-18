@@ -256,10 +256,6 @@ interface IStaking {
     /// @return TOS with treasury - minus staking interest
     function runwayTos() external view returns (uint256);
 
-    /// @dev Total amount of Staking TOS
-    /// @return tosAmount
-    function totalDepositTOS() external view returns (uint256);
-
     /// @dev Convert tos amount to LTOS (based on current index)
     /// @param amount  tosAmount
     /// @return return LTOS Amount

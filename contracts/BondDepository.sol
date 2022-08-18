@@ -305,7 +305,7 @@ contract BondDepository is
     }
 
     /// @inheritdoc IBondDepository
-    function getBonds() public override view
+    function getBonds() external override view
         returns (
             uint256[] memory,
             address[] memory,
@@ -332,17 +332,17 @@ contract BondDepository is
     }
 
     /// @inheritdoc IBondDepository
-    function getMarketList() public override view returns (uint256[] memory) {
+    function getMarketList() external override view returns (uint256[] memory) {
         return marketList;
     }
 
     /// @inheritdoc IBondDepository
-    function totalMarketCount() public override view returns (uint256) {
+    function totalMarketCount() external override view returns (uint256) {
         return marketList.length;
     }
 
     /// @inheritdoc IBondDepository
-    function viewMarket(uint256 _index) public override view
+    function viewMarket(uint256 _index) external override view
         returns (
             address quoteToken,
             uint256 capacity,
@@ -361,7 +361,7 @@ contract BondDepository is
     }
 
     /// @inheritdoc IBondDepository
-    function isOpened(uint256 _index) public override view returns (bool closedBool)
+    function isOpened(uint256 _index) external override view returns (bool closedBool)
     {
         if (block.timestamp < markets[_index].endSaleTime && markets[_index].capacity > 0) {
             return true;

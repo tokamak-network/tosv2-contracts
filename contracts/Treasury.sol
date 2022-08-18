@@ -138,7 +138,7 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     function addBackingList(address _address)
-        public override onlyPolicyOwner
+        external override onlyPolicyOwner
         nonZeroAddress(_address)
     {
         _addBackingList(_address);
@@ -260,7 +260,8 @@ contract Treasury is
         require(_recipient != address(0) && _amount > 0, "zero recipient or amount");
 
         require(enableStaking() >= _amount, "treasury balance is insufficient");
-        require(tos.transfer(_recipient, _amount), "transfer fail");
+
+        tos.safeTransfer(_recipient, _amount);
 
         emit RequestedTransfer(_recipient, _amount);
     }
@@ -347,26 +348,26 @@ contract Treasury is
 
 
     /// @inheritdoc ITreasury
-    function allBacking() public override view
+    function allBacking() external override view
         returns (address[] memory)
     {
         return backings;
     }
 
     /// @inheritdoc ITreasury
-    function totalMinting() public override view returns(uint256) {
+    function totalMinting() external override view returns(uint256) {
          return mintings.length;
     }
 
     /// @inheritdoc ITreasury
     function viewMintingInfo(uint256 _index)
-        public override view returns(address mintAddress, uint256 mintPercents)
+        external override view returns(address mintAddress, uint256 mintPercents)
     {
          return (mintings[_index].mintAddress, mintings[_index].mintPercents);
     }
 
     /// @inheritdoc ITreasury
-    function allMinting() public override view
+    function allMinting() external override view
         returns (
             address[] memory mintAddress,
             uint256[] memory mintPercents
