@@ -3,18 +3,6 @@ pragma solidity ^0.8.4;
 
 interface ITreasuryEvent{
 
-    // /// @dev This event occurs when a deposit is made to the treasury.
-    // /// @param token   token address
-    // /// @param amount  the amount
-    // /// @param value   the Value
-    // event Deposit(address indexed token, uint256 amount, uint256 value);
-
-    // /// @dev This event occurs when mint is performed.
-    // /// @param caller     caller address
-    // /// @param recipient  get address
-    // /// @param amount     the amount
-    // event Minted(address indexed caller, address indexed recipient, uint256 amount);
-
     /// @dev This event occurs when permission is change.
     /// @param addr    address
     /// @param status  STATUS
@@ -59,13 +47,9 @@ interface ITreasuryEvent{
 
     /// @dev This event occurs when request mint and transfer TOS
     /// @param _mintAmount    the TOS amount to mint
-    /// @param _recipient    the recipient
-    /// @param _transferAmount   the TOS amount to transfer
     /// @param _distribute   If true,  distribute a percentage of the remaining amount to the foundation after mint and transfer.
-    event RquestedMintAndTransfer(
+    event RquestedMint(
         uint256 _mintAmount,
-        address _recipient,
-        uint256 _transferAmount,
         bool _distribute
     );
 

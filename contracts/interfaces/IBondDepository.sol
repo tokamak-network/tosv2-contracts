@@ -107,22 +107,26 @@ interface IBondDepository {
     //////////////////////////////////////
 
     /// @dev How much tokens are valued as TOS
-    /// @param _id  the market id
+    /// @param _tosPrice  the tos price
     /// @param _amount the amount of asset
     /// @return payout  the amount evaluated as TOS
     function calculateTosAmountForAsset(
-        uint256 _id,
+        uint256 _tosPrice,
         uint256 _amount
     )
         external
-        view
+        pure
         returns (uint256 payout);
 
 
     /// @dev purchasable Asset amount At One Time
-    /// @param _id  the market id
-    /// @return maxpayout_  the asset amount
-    function purchasableAssetAmountAtOneTime(uint256 _id) external view returns (uint256 maxpayout_);
+    /// @param _tosPrice  the tos price
+    /// @param _maxPayout  the max payout
+    /// @return maxPayout_  the asset amount
+    function purchasableAssetAmountAtOneTime(
+        uint256 _tosPrice,
+        uint256 _maxPayout
+    ) external pure returns (uint256 maxPayout_);
 
     /// @dev Return information from all markets
     /// @return marketIds Array of total MarketIDs

@@ -171,19 +171,18 @@ contract StakingV2 is
         nonZero(_amount)
         returns (uint256 stakeId)
     {
-        require (tos.allowance(msg.sender, address(this)) >= _amount, "allowance is insufficient.");
+        // require (tos.allowance(msg.sender, address(this)) >= _amount, "allowance is insufficient.");
+        // tos.safeTransferFrom(msg.sender, address(this), _amount);
+        tos.safeTransferFrom(msg.sender, treasury, _amount);
 
-        tos.safeTransferFrom(msg.sender, address(this), _amount);
-        address to = msg.sender;
-
-        _checkStakeId(to);
-        stakeId = userStakings[to][1]; // 0번은 더미, 1번은 기간없는 순수 스테이킹
+        _checkStakeId(msg.sender);
+        stakeId = userStakings[msg.sender][1]; // 0번은 더미, 1번은 기간없는 순수 스테이킹
 
         rebaseIndex();
 
-        _createStakeInfo(to, stakeId, _amount, block.timestamp + 1, 0);
+        _createStakeInfo(msg.sender, stakeId, _amount, block.timestamp + 1, 0);
 
-        emit Staked(to, _amount, stakeId);
+        emit Staked(msg.sender, _amount, stakeId);
     }
 
     /// @inheritdoc IStaking
@@ -197,26 +196,23 @@ contract StakingV2 is
         nonZero(rebasePerEpoch)
         returns (uint256 stakeId)
     {
-        require (tos.allowance(msg.sender, address(this)) >= _amount, "allowance is insufficient.");
-
         (uint256 stosEpochUnit, uint256 unlockTime) = LibStaking.getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
-        require (stosEpochUnit > 0, "zero stosEpochUnit");
-        require(unlockTime > 0, "zero unlockTime");
+        // require(stosEpochUnit > 0, "zero stosEpochUnit");
+        // require(unlockTime > 0, "zero unlockTime");
 
-        tos.safeTransferFrom(msg.sender, address(this), _amount);
+        tos.safeTransferFrom(msg.sender, treasury, _amount);
 
-        address to = msg.sender;
-        _checkStakeId(to);
+        _checkStakeId(msg.sender);
         stakeId = _addStakeId();
-        _addUserStakeId(to, stakeId);
+        _addUserStakeId(msg.sender, stakeId);
 
         rebaseIndex();
-        _createStakeInfo(to, stakeId, _amount, unlockTime, 0);
+        _createStakeInfo(msg.sender, stakeId, _amount, unlockTime, 0);
 
-        uint256 stosId = _createStos(to, _amount, _periodWeeks, stosEpochUnit);
+        uint256 stosId = _createStos(msg.sender, _amount, _periodWeeks, stosEpochUnit);
         connectId[stakeId] = stosId;
 
-        emit StakedGetStos(to, _amount, _periodWeeks, stakeId, stosId);
+        emit StakedGetStos(msg.sender, _amount, _periodWeeks, stakeId, stosId);
     }
 
 
@@ -228,15 +224,91 @@ contract StakingV2 is
         nonZero(_stakeId)
         nonZero(_amount)
     {
-        address staker = allStakings[_stakeId].staker;
-        require(staker == msg.sender, "caller is not staker");
-        require(userStakingIndex[staker][_stakeId] == 1, "it's not simple staking product");
+        require(allStakings[_stakeId].staker == msg.sender, "caller is not staker");
+        require(userStakingIndex[msg.sender][_stakeId] == 1, "it's not simple staking product");
         rebaseIndex();
-        _increaseAmountAndPeriodStake(staker, _stakeId, _amount, 0);
+        _increaseAmountAndPeriodStake(msg.sender, _stakeId, _amount, 0);
 
-        emit IncreasedAmountForSimpleStake(staker, _amount, _stakeId);
+        emit IncreasedAmountForSimpleStake(msg.sender, _amount, _stakeId);
     }
 
+    function _closeEndTimeOfLockTos(address sender, uint256 _stakeId, uint256 lockId, uint256 _endTime) internal {
+        (, uint256 end, ) = ILockTosV2(lockTOS).locksInfo(lockId);
+        require(end < block.timestamp && _endTime < block.timestamp, "lock end time has not passed");
+        ILockTosV2(lockTOS).withdrawByStaker(sender, lockId);
+        delete connectId[_stakeId];
+    }
+
+    function resetStakeGetStosAfterLock(
+        uint256 _stakeId,
+        uint256 _claimAmount
+    )
+        public override
+    {
+        require(_claimAmount > 0, "zero input");
+
+        LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
+        require(_stakeInfo.staker == msg.sender, "caller is not staker");
+        require(userStakingIndex[msg.sender][_stakeId] > 1, "it's not for simple stake or empty.");
+        require(_claimAmount <= getLtosToTos(_stakeInfo.ltos), "remainedTos is insufficient");
+
+        uint256 lockId = connectId[_stakeId];
+        if(lockId > 0)  _closeEndTimeOfLockTos(msg.sender, _stakeId, lockId, _stakeInfo.endTime);
+        else require(_stakeInfo.endTime < block.timestamp, "lock end time has not passed");
+
+        // _checkStakeId(msg.sender);
+        rebaseIndex();
+
+        _updateStakeInfoForSimpleType(_stakeId, _claimAmount);
+
+        IITreasury(treasury).requestTransfer(msg.sender, _claimAmount);
+
+        emit ResetStakedGetStosAfterLock(msg.sender, 0, _claimAmount, 0, _stakeId, 0);
+    }
+
+    function resetStakeGetStosAfterLock(
+        uint256 _stakeId,
+        uint256 _addAmount,
+        uint256 _periodWeeks
+    )
+        public override
+    {
+        require(_addAmount > 0 ||  _periodWeeks > 0, "all zero input");
+
+        LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
+        require(_stakeInfo.staker == msg.sender, "caller is not staker");
+        require(userStakingIndex[msg.sender][_stakeId] > 1, "it's not for simple stake or empty.");
+
+        uint256 lockId = connectId[_stakeId];
+        if (lockId > 0) _closeEndTimeOfLockTos(msg.sender, _stakeId, lockId, _stakeInfo.endTime);
+        else  require(_stakeInfo.endTime < block.timestamp, "lock end time has not passed");
+
+        if (_addAmount > 0)  tos.safeTransferFrom(msg.sender, treasury, _addAmount);
+
+        uint256 stosEpochUnit = 0;
+        uint256 unlockTime = 0;
+        if (_periodWeeks > 0) {
+            (stosEpochUnit, unlockTime) = LibStaking.getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
+        } else {
+            stosEpochUnit = ILockTosV2(lockTOS).epochUnit();
+            unlockTime = _stakeInfo.endTime;
+        }
+
+        // _checkStakeId(msg.sender);
+        rebaseIndex();
+
+        uint256 stakedAmount = _updateStakeInfoAddAmountAndPeriod(_stakeId, unlockTime, _addAmount);
+
+        uint256 stosId = 0;
+        uint256 stakeId = _stakeId;
+
+        if (_periodWeeks > 0) {
+            stosId = _createStos(msg.sender, stakedAmount + _addAmount, _periodWeeks, stosEpochUnit);
+            connectId[stakeId] = stosId;
+        }
+
+        emit ResetStakedGetStosAfterLock(msg.sender, _addAmount, 0, _periodWeeks, stakeId, stosId);
+    }
 
     /// @inheritdoc IStaking
     function resetStakeGetStosAfterLock(
@@ -252,27 +324,18 @@ contract StakingV2 is
         uint256 lockId = connectId[_stakeId];
 
         LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
-        address staker = _stakeInfo.staker;
-        require(staker == msg.sender, "caller is not staker");
-        require(userStakingIndex[staker][_stakeId] > 1, "it's not for simple stake or empty.");
+
+        require(_stakeInfo.staker == msg.sender, "caller is not staker");
+        require(userStakingIndex[msg.sender][_stakeId] > 1, "it's not for simple stake or empty.");
 
         uint256 depositPlusAmount = getLtosToTos(_stakeInfo.ltos);
         require(_claimAmount <= depositPlusAmount, "remainedTos is insufficient");
 
-        if(lockId > 0){
-            (, uint256 end, ) = ILockTosV2(lockTOS).locksInfo(lockId);
-            require(end < block.timestamp && _stakeInfo.endTime < block.timestamp, "lock end time has not passed");
+        if(lockId > 0)  _closeEndTimeOfLockTos(msg.sender, _stakeId, lockId, _stakeInfo.endTime);
+        else require(_stakeInfo.endTime < block.timestamp, "lock end time has not passed");
 
-            ILockTosV2(lockTOS).withdrawByStaker(staker, lockId);
-            delete connectId[_stakeId];
-        } else {
-            require(_stakeInfo.endTime < block.timestamp, "lock end time has not passed");
-        }
 
-        if (_addAmount > 0) {
-            require (tos.allowance(msg.sender, address(this)) >= _addAmount, "allowance is insufficient.");
-            tos.safeTransferFrom(msg.sender, address(this), _addAmount);
-        }
+        if (_addAmount > 0)  tos.safeTransferFrom(msg.sender, treasury, _addAmount);
 
         uint256 stosEpochUnit = 0;
         uint256 unlockTime = 0;
@@ -283,7 +346,7 @@ contract StakingV2 is
             unlockTime = _stakeInfo.endTime;
         }
 
-        _checkStakeId(staker);
+        // _checkStakeId(msg.sender);
         rebaseIndex();
 
         _updateStakeInfo(_stakeId, unlockTime, _addAmount, _claimAmount);
@@ -293,15 +356,47 @@ contract StakingV2 is
         if (_periodWeeks > 0) {
             depositPlusAmount += _addAmount;
             depositPlusAmount -= _claimAmount;
-            stosId = _createStos(staker, depositPlusAmount, _periodWeeks, stosEpochUnit);
+            stosId = _createStos(msg.sender, depositPlusAmount, _periodWeeks, stosEpochUnit);
             connectId[stakeId] = stosId;
         }
 
-        if (_claimAmount > 0) {
-            tos.safeTransfer(msg.sender, _claimAmount);
+        if (_claimAmount > 0) IITreasury(treasury).requestTransfer(msg.sender, _claimAmount);
+
+        emit ResetStakedGetStosAfterLock(msg.sender, _addAmount, _claimAmount, _periodWeeks, stakeId, stosId);
+    }
+
+    /// @inheritdoc IStaking
+    function increaseBeforeEndOrNonEnd(
+        uint256 _stakeId,
+        uint256 _amount
+    )
+        external override
+        nonZero(_stakeId)
+    {
+        require(_amount > 0, "zero _amount");
+
+        require(allStakings[_stakeId].staker == msg.sender, "caller is not staker");
+
+        rebaseIndex();
+
+        tos.safeTransferFrom(msg.sender, treasury, _amount);
+        _increaseStakeInfo(_stakeId, _amount, 0);
+
+        uint256 stosEpochUnit = ILockTosV2(lockTOS).epochUnit();
+        uint256 lockId = connectId[_stakeId];
+
+        if(userStakingIndex[msg.sender][_stakeId] > 1 && lockId > 0) {
+            (, uint256 end,) = ILockTosV2(lockTOS).locksInfo(lockId);
+            require(end > block.timestamp && allStakings[_stakeId].endTime > block.timestamp, "lock end time has passed");
+
+            uint256 n = (allStakings[_stakeId].endTime - block.timestamp) / epoch.length_;
+            uint256 amountCompound = _amount;
+            if (n == 1) amountCompound = _amount * (1 ether + rebasePerEpoch) / 1e18;
+            else if (n > 1) amountCompound = LibStaking.compound(_amount, rebasePerEpoch, n);
+            ILockTosV2(lockTOS).increaseAmountByStaker(msg.sender, lockId, amountCompound);
         }
 
-        emit ResetStakedGetStosAfterLock(staker, _addAmount, _claimAmount, _periodWeeks, stakeId, stosId);
+        emit IncreasedBeforeEndOrNonEnd(msg.sender, _amount, 0, _stakeId, lockId);
     }
 
     /// @inheritdoc IStaking
@@ -314,31 +409,32 @@ contract StakingV2 is
         nonZero(_stakeId)
     {
         require(_amount > 0 || _unlockWeeks > 0, "zero _amount and _unlockWeeks");
-        address staker = allStakings[_stakeId].staker;
-        require(staker == msg.sender, "caller is not staker");
 
-        if(_unlockWeeks > 0) require(userStakingIndex[staker][_stakeId] > 1, "it's simple staking product, can't lock.");
+        require(allStakings[_stakeId].staker == msg.sender, "caller is not staker");
+
+        if(_unlockWeeks > 0) require(userStakingIndex[msg.sender][_stakeId] > 1, "it's simple staking product, can't lock.");
         rebaseIndex();
+
         // stake 반영
-        _increaseAmountAndPeriodStake(staker, _stakeId, _amount, _unlockWeeks);
+        _increaseAmountAndPeriodStake(msg.sender, _stakeId, _amount, _unlockWeeks);
         uint256 stosEpochUnit = ILockTosV2(lockTOS).epochUnit();
         uint256 lockId = connectId[_stakeId];
 
-        if(userStakingIndex[staker][_stakeId] > 1 && lockId == 0 && _unlockWeeks > 0) {
+        if(userStakingIndex[msg.sender][_stakeId] > 1 && lockId == 0 && _unlockWeeks > 0) {
+            // uint256 addAmount = _amount + getLtosToTos(remainedLtos(_stakeId));
+            //uint256 stosId = _createStos(msg.sender, addAmount, _unlockWeeks, stosEpochUnit);
+            //connectId[_stakeId] = stosId;
+            connectId[_stakeId] = _createStos(msg.sender, _amount + getLtosToTos(remainedLtos(_stakeId)), _unlockWeeks, stosEpochUnit);
 
-            uint256 addAmount = _amount + getLtosToTos(remainedLtos(_stakeId));
-            uint256 stosId = _createStos(staker, addAmount, _unlockWeeks, stosEpochUnit);
-            connectId[_stakeId] = stosId;
-
-        } else if(userStakingIndex[staker][_stakeId] > 1 && lockId > 0) {
+        } else if(userStakingIndex[msg.sender][_stakeId] > 1 && lockId > 0) {
             (, uint256 end, uint256 principalsAmount) = ILockTosV2(lockTOS).locksInfo(lockId);
             require(end > block.timestamp && allStakings[_stakeId].endTime > block.timestamp, "lock end time has passed");
 
             if (_unlockWeeks == 0) { // 물량만 늘릴때 이자도 같이 늘린다.
                 uint256 n = (allStakings[_stakeId].endTime - block.timestamp) / epoch.length_;
                 uint256 amountCompound = LibStaking.compound(_amount, rebasePerEpoch, n);
-                require (amountCompound > 0, "zero compounded amount");
-                ILockTosV2(lockTOS).increaseAmountByStaker(staker, lockId, amountCompound);
+                // require (amountCompound > 0, "zero compounded amount");
+                ILockTosV2(lockTOS).increaseAmountByStaker(msg.sender, lockId, amountCompound);
 
             } else if(_unlockWeeks > 0) { // 기간만 들어날때는 물량도 같이 늘어난다고 본다. 이자때문에 .
                 uint256 amountCompound1 = 0; // 기간종료후 이자부분
@@ -353,11 +449,11 @@ contract StakingV2 is
                     amountCompound2 = LibStaking.compound(_amount, rebasePerEpoch, n2);
                 }
 
-                ILockTosV2(lockTOS).increaseAmountUnlockTimeByStaker(staker, lockId, amountCompound1 + amountCompound2, _unlockWeeks);
+                ILockTosV2(lockTOS).increaseAmountUnlockTimeByStaker(msg.sender, lockId, amountCompound1 + amountCompound2, _unlockWeeks);
             }
         }
 
-        emit IncreasedBeforeEndOrNonEnd(staker, _amount, _unlockWeeks, _stakeId, lockId);
+        emit IncreasedBeforeEndOrNonEnd(msg.sender, _amount, _unlockWeeks, _stakeId, lockId);
     }
 
     /// @inheritdoc IStaking
@@ -371,21 +467,18 @@ contract StakingV2 is
     {
         require(connectId[_stakeId] == 0, "this is for non-lock product.");
 
-        address staker = allStakings[_stakeId].staker;
-        require(staker == msg.sender, "caller is not staker");
+        require(allStakings[_stakeId].staker == msg.sender, "caller is not staker");
 
         require(_claimAmount <= getLtosToTos(allStakings[_stakeId].ltos), "remainedTos is insufficient");
 
         require(allStakings[_stakeId].endTime < block.timestamp, "end time has not passed.");
         rebaseIndex();
 
-        _updateStakeInfo(_stakeId, 0, 0, _claimAmount);
+        _updateStakeInfoForSimpleType(_stakeId, _claimAmount);
 
-        require(tos.balanceOf(address(this)) >= _claimAmount, "staking balance is insufficient");
+        IITreasury(treasury).requestTransfer(msg.sender, _claimAmount);
 
-        tos.safeTransfer(staker, _claimAmount);
-
-        emit ClaimdForNonLock(staker, _claimAmount, _stakeId);
+        emit ClaimdForNonLock(msg.sender, _claimAmount, _stakeId);
     }
 
 
@@ -396,37 +489,31 @@ contract StakingV2 is
         nonZero(_stakeId)
     {
         LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
-        address staker = _stakeInfo.staker;
-        require(staker == msg.sender, "caller is not staker.");
+
+        require(_stakeInfo.staker == msg.sender, "caller is not staker.");
         require(_stakeInfo.endTime < block.timestamp, "end time hasn't passed.");
         rebaseIndex();
 
         uint256 amount = claimableTos(_stakeId);
         require(amount > 0, "zero claimable amount");
 
-        uint256 addProfitRemainedTos = getLtosToTos(remainedLtos(_stakeId));
-        uint256 principal = _stakeInfo.deposit;
-
-        if (stakingPrincipal >= principal) stakingPrincipal -= principal;
+        if (stakingPrincipal >= _stakeInfo.deposit) stakingPrincipal -= _stakeInfo.deposit;
         else stakingPrincipal = 0;
 
         if (totalLtos >= _stakeInfo.ltos) totalLtos -= _stakeInfo.ltos;
         else totalLtos = 0;
 
+        uint256 _userStakeIdIndex  = _deleteUserStakeId(msg.sender, _stakeId);
+        _deleteStakeId(_stakeId, _userStakeIdIndex) ;
+
         if (connectId[_stakeId] > 0) {
-            ILockTosV2(lockTOS).withdrawByStaker(staker, connectId[_stakeId]);
+            ILockTosV2(lockTOS).withdrawByStaker(msg.sender, connectId[_stakeId]);
             delete connectId[_stakeId];
         }
 
-        uint256 _userStakeIdIndex  = _deleteUserStakeId(staker, _stakeId);
-        _deleteStakeId(_stakeId, _userStakeIdIndex) ;
+        IITreasury(treasury).requestTransfer(msg.sender, amount);
 
-        if (addProfitRemainedTos > principal) {
-            IITreasury(treasury).requestTransfer(address(this), addProfitRemainedTos - principal);
-        }
-
-        tos.safeTransfer(staker, amount);
-        emit Unstaked(staker, amount, _stakeId);
+        emit Unstaked(msg.sender, amount, _stakeId);
     }
 
     /// @inheritdoc IStaking
@@ -648,10 +735,7 @@ contract StakingV2 is
     )
         internal
     {
-        if (_amount > 0) {
-           require (tos.allowance(sender, address(this)) >= _amount, "allowance is insufficient.");
-           tos.safeTransferFrom(sender, address(this), _amount);
-        }
+        if (_amount > 0) tos.safeTransferFrom(sender, treasury, _amount);
 
         uint256 _periodSeconds = 0;
         uint256 stosEpochUnit = 0;
@@ -678,8 +762,6 @@ contract StakingV2 is
         uint256 _unlockTime,
         uint256 _marketId
     ) internal ifFree returns (uint256){
-
-        require(allStakings[_stakeId].staker == address(0), "non-empty stakeInfo");
 
         uint256 ltos = getTosToLtos(_amount);
 
@@ -717,7 +799,6 @@ contract StakingV2 is
         uint256 _amount,
         uint256 _increaseSeconds
     ) internal ifFree {
-        require(allStakings[_stakeId].staker != address(0), "non-empty stakeInfo");
         require(_amount > 0 || _increaseSeconds > 0, "zero amount and _increaseSeconds");
 
         LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
@@ -735,6 +816,54 @@ contract StakingV2 is
         }
     }
 
+
+    function _updateStakeInfoForSimpleType(
+        uint256 _stakeId,
+        uint256 _claimAmount
+    ) internal ifFree {
+
+        uint256 claimLtos = getTosToLtos(_claimAmount);
+
+        LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
+        uint256 stakedAmount = getLtosToTos(_stakeInfo.ltos);
+        _stakeInfo.startTime = block.timestamp;
+        // _stakeInfo.endTime = block.timestamp + 1;
+
+        uint256 profit = 0;
+        if(stakedAmount > _stakeInfo.deposit) profit = stakedAmount - _stakeInfo.deposit;
+
+        _stakeInfo.ltos -= claimLtos;
+        totalLtos -= claimLtos;
+
+        _stakeInfo.deposit = _stakeInfo.deposit + profit - _claimAmount;
+        stakingPrincipal = stakingPrincipal + profit - _claimAmount;
+    }
+
+    function _updateStakeInfoAddAmountAndPeriod(
+        uint256 _stakeId,
+        uint256 _unlockTime,
+        uint256 _addAmount
+    ) internal ifFree returns (uint256 stakedAmount) {
+
+        require(_addAmount > 0 || _unlockTime > 0, "zero Inputs");
+
+        LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
+        stakedAmount = getLtosToTos(_stakeInfo.ltos);
+        uint256 addLtos = getTosToLtos(_addAmount);
+
+        _stakeInfo.startTime = block.timestamp;
+        _stakeInfo.endTime = _unlockTime;
+
+        uint256 profit = 0;
+        if(stakedAmount > _stakeInfo.deposit) profit = stakedAmount - _stakeInfo.deposit;
+
+        _stakeInfo.ltos += addLtos;
+        totalLtos += addLtos;
+
+        _stakeInfo.deposit = _stakeInfo.deposit + _addAmount + profit;
+        stakingPrincipal = stakingPrincipal + _addAmount + profit;
+    }
+
     function _updateStakeInfo(
         uint256 _stakeId,
         uint256 _unlockTime,
@@ -742,7 +871,7 @@ contract StakingV2 is
         uint256 _claimAmount
     ) internal ifFree {
 
-        require(allStakings[_stakeId].staker != address(0), "non-exist stakeInfo");
+        // require(allStakings[_stakeId].staker != address(0), "non-exist stakeInfo");
         require(_addAmount > 0 || _claimAmount > 0 || _unlockTime > 0, "zero Amounts");
 
         require(allStakings[_stakeId].ltos > 0, "zero ltos");
@@ -775,10 +904,6 @@ contract StakingV2 is
             _stakeInfo.deposit = _stakeInfo.deposit + _addAmount + profit - _claimAmount;
             stakingPrincipal = stakingPrincipal + _addAmount + profit - _claimAmount;
         }
-
-        if (profit > 0) {
-            IITreasury(treasury).requestTransfer(address(this), profit);
-        }
     }
 
 
@@ -792,22 +917,18 @@ contract StakingV2 is
 
         curIndex = userStakingIndex[to][_id];
 
-        if (curIndex < userStakings[to].length) {
-
-            if (curIndex > 1 ) {
-                if (curIndex < userStakings[to].length-1){
-                    uint256 lastId = userStakings[to][userStakings[to].length-1];
-                    userStakings[to][curIndex] = lastId;
-                    userStakingIndex[to][lastId] = curIndex;
-                }
-                userStakingIndex[to][_id] = 0;
-                userStakings[to].pop();
+        if (curIndex > 1 && curIndex < userStakings[to].length ) {
+            if (curIndex < userStakings[to].length-1){
+                uint256 lastId = userStakings[to][userStakings[to].length-1];
+                userStakings[to][curIndex] = lastId;
+                userStakingIndex[to][lastId] = curIndex;
             }
+            userStakingIndex[to][_id] = 0;
+            userStakings[to].pop();
         }
     }
 
-    //index는 ether단위이다.
-    function index() internal returns (uint256) {
+    function index() internal retur ns (uint256) {
         index_ = (index_ * (1 ether + rebasePerEpoch) / 1e18);
         return index_;
     }

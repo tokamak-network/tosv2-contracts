@@ -60,10 +60,8 @@ interface ITreasury {
 
     /// @dev Mint TOS and send tos to recipient. Decide whether to distribute to the foundation or not according to the distribution.
     /// @param _mintAmount      mintAmount
-    /// @param _recipient       recipient Address
-    /// @param _transferAmount  recipient get Amount
     /// @param _distribute      Foundation distribution check
-    function requestMintAndTransfer(uint256 _mintAmount, address _recipient, uint256 _transferAmount, bool _distribute) external ;
+    function requestMint(uint256 _mintAmount, bool _distribute) external ;
 
     /// @dev addbackingList called by bonder
     /// @param _address         erc20 Address

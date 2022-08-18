@@ -129,6 +129,32 @@ interface IStaking {
         uint256 _periodWeeks
     ) external;
 
+    /// @dev Used to adjust the amount of staking after the lockout period ends
+    /// @param _stakeId     the stake id
+    /// @param _addAmount   addAmount
+    /// @param _periodWeeks add lock Weeks
+    function resetStakeGetStosAfterLock(
+        uint256 _stakeId,
+        uint256 _addAmount,
+        uint256 _periodWeeks
+    ) external;
+
+    /// @dev Used to adjust the amount of staking after the lockout period ends
+    /// @param _stakeId     the stake id
+    /// @param _claimAmount claimAmount
+    function resetStakeGetStosAfterLock(
+        uint256 _stakeId,
+        uint256 _claimAmount
+    ) external;
+
+
+    /// @dev Used to add a toss amount before the end of the lock period or to extend the period
+    /// @param _stakeId  the stake id
+    /// @param _amount   add amount
+    function increaseBeforeEndOrNonEnd(
+        uint256 _stakeId,
+        uint256 _amount
+    ) external;
 
 
     /// @dev Used to add a toss amount before the end of the lock period or to extend the period

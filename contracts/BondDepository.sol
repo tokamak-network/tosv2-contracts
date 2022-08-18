@@ -33,7 +33,7 @@ interface IITreasury {
     function getMintRate() external view returns (uint256);
     function mintRateDenominator() external view returns (uint256);
 
-    function requestMintAndTransfer(uint256 _mintAmount, address _recipient, uint256 _transferAmount, bool _distribute) external ;
+    function requestMint(uint256 _mintAmount, bool _distribute) external ;
     function addBondAsset(address _address) external;
 }
 
@@ -209,15 +209,18 @@ contract BondDepository is
     {
         require(msg.value == _amount, "Depository: ETH amounts do not match");
 
-        (payout_) = _deposit(msg.sender, _amount, _id, true);
+        uint256 _tosPrice = 0;
+
+        (payout_, _tosPrice) = _deposit(msg.sender, _amount, _id);
 
         uint256 id = _id;
-        uint256 stakeId = staking.stakeByBond(msg.sender, payout_, id, markets[id].tosPrice);
+        uint256 stakeId = staking.stakeByBond(msg.sender, payout_, id, _tosPrice);
 
         payable(treasury).transfer(msg.value);
 
         emit ETHDeposited(msg.sender, id, stakeId, _amount, payout_);
     }
+
 
     /// @inheritdoc IBondDepository
     function ETHDepositWithSTOS(
@@ -233,11 +236,11 @@ contract BondDepository is
         returns (uint256 payout_)
     {
         require(msg.value == _amount, "Depository: ETH amounts do not match");
-
-        (payout_) = _deposit(msg.sender, _amount, _id, true);
+        uint256 _tosPrice = 0;
+        (payout_, _tosPrice) = _deposit(msg.sender, _amount, _id);
 
         uint256 id = _id;
-        uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, id, _lockWeeks, markets[id].tosPrice);
+        uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, id, _lockWeeks, _tosPrice);
 
         payable(treasury).transfer(msg.value);
 
@@ -248,50 +251,31 @@ contract BondDepository is
     function _deposit(
         address user,
         uint256 _amount,
-        uint256 _marketId,
-        bool _eth
-    ) internal nonReentrant returns (uint256 _payout) {
-
-        require(_amount <= purchasableAssetAmountAtOneTime(_marketId), "Depository : over maxPay");
-
-        _payout = calculateTosAmountForAsset(_marketId, _amount);
-
-        require(_payout > 0, "zero staking amount");
-        uint256 _ethValue = 0; // _payout tos 를 이더로 바꿈.
-
-        if(!_eth) {
-            (bool existedWethPool, , , uint256 convertedAmount) =
-                IITOSValueCalculator(calculator).convertAssetBalanceToWethOrTos(address(tos), _payout);
-
-            if(existedWethPool)  _ethValue =  convertedAmount;
-
-        } else {
-            _ethValue = _amount;
-        }
-
-        require(_ethValue > 0, "zero _ethValue");
-        uint256 _mintRate = IITreasury(treasury).getMintRate();
-        require(_mintRate > 0, "zero mintRate");
-
-        uint256 mrAmount = _ethValue * _mintRate / IITreasury(treasury).mintRateDenominator() ;
-        require(mrAmount >= _payout, "mintableAmount is less than staking amount.");
-        require(_payout <= markets[_marketId].capacity, "Depository: sold out");
+        uint256 _marketId
+    ) internal nonReentrant returns (uint256 _payout, uint256 _tosPrice) {
 
         LibBondDepository.Market storage market = markets[_marketId];
+        _tosPrice = market.tosPrice;
+        require(_amount <= purchasableAssetAmountAtOneTime(_tosPrice, market.maxPayout), "Depository : over maxPay");
+
+        _payout = calculateTosAmountForAsset(_tosPrice, _amount);
+        require(_payout > 0, "zero staking amount");
+
+        uint256 mrAmount = _amount * IITreasury(treasury).getMintRate() / 1e18;
+        require(mrAmount >= _payout, "mintableAmount is less than staking amount.");
+        require(_payout <= market.capacity, "Depository: sold out");
 
         market.capacity -= _payout;
 
         //check closing
-        if (market.capacity <= 100 ether ) {
+        if (market.capacity <= 100 ether) {
            market.capacity = 0;
            emit ClosedMarket(_marketId);
         }
 
-        if(mrAmount > 0 && _payout <= mrAmount) {
-            IITreasury(treasury).requestMintAndTransfer(mrAmount, address(staking), _payout, true);
-        }
+        IITreasury(treasury).requestMint(mrAmount, true);
 
-        emit Deposited(user, _marketId, _amount, _payout, _eth, mrAmount);
+        emit Deposited(user, _marketId, _amount, _payout, true, mrAmount);
     }
 
     ///////////////////////////////////////
@@ -300,20 +284,24 @@ contract BondDepository is
 
     /// @inheritdoc IBondDepository
     function calculateTosAmountForAsset(
-        uint256 _id,
+        uint256 _tosPrice,
         uint256 _amount
     )
         public override
-        view
+        pure
         returns (uint256 payout)
     {
-        return (_amount * markets[_id].tosPrice / 1e18);
+        return (_amount * _tosPrice / 1e18);
     }
 
     /// @inheritdoc IBondDepository
-    function purchasableAssetAmountAtOneTime(uint256 _id) public override view returns (uint256 maxpayout_) {
-
-        return ( markets[_id].maxPayout *  1e18 / markets[_id].tosPrice );
+    function purchasableAssetAmountAtOneTime(
+        uint256 _tosPrice,
+        uint256 _maxPayout
+    )
+        public override pure returns (uint256 maxPayout_)
+    {
+        return ( _maxPayout *  1e18 / _tosPrice );
     }
 
     /// @inheritdoc IBondDepository

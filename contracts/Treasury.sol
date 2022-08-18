@@ -228,32 +228,18 @@ contract Treasury is
 
     /* ========== permissions : LibTreasury.STATUS.RESERVEDEPOSITOR ========== */
 
-    /// @inheritdoc ITreasury
-    function requestMintAndTransfer(
+    function requestMint(
         uint256 _mintAmount,
-        address _recipient,
-        uint256 _transferAmount,
         bool _distribute
-    )
-        external override
+    ) external override nonZero(_mintAmount)
     {
         require(isBonder(msg.sender), notApproved);
-
-        require(_mintAmount > 0 && _mintAmount >= _transferAmount, "_mintAmount is less than _transferAmount");
-
         tos.mint(address(this), _mintAmount);
 
-        uint256 remainedAmount = _mintAmount;
-        if (_transferAmount > 0) {
-            require(_recipient != address(0), "zero recipient");
-            remainedAmount = remainedAmount - _transferAmount;
-            tos.safeTransfer(_recipient, _transferAmount);
-        }
+        if (_distribute && foundationTotalPercentage > 0 )
+          foundationAmount += (_mintAmount * foundationTotalPercentage / 100);
 
-        if(_distribute && foundationTotalPercentage > 0 && remainedAmount > 0)
-            foundationAmount += remainedAmount * foundationTotalPercentage / 100 ;
-
-        emit RquestedMintAndTransfer(_mintAmount, _recipient, _transferAmount, _distribute);
+        emit RquestedMint(_mintAmount, _distribute);
 
     }
 
@@ -272,7 +258,7 @@ contract Treasury is
     ) external override {
         require(isStaker(msg.sender), notApproved);
         require(_recipient != address(0) && _amount > 0, "zero recipient or amount");
-        // require(_amount > 0, "zero amount");
+
         require(enableStaking() >= _amount, "treasury balance is insufficient");
         require(tos.transfer(_recipient, _amount), "transfer fail");
 
