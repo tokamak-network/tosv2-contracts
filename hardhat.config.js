@@ -9,6 +9,8 @@ require("dotenv/config");
 require("dotenv").config();
 
 require("./tasks/tosV2_deploy");
+require("./tasks/tosV2_phase1_market");
+
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html

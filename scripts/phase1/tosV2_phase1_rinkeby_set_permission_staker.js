@@ -11,6 +11,7 @@ let calculatorAbi = require('../../artifacts/contracts/TOSValueCalculator.sol/TO
 let treasuryProxyAbi = require('../../artifacts/contracts/TreasuryProxy.sol/TreasuryProxy.json');
 let bondDepositoryProxyAbi = require('../../artifacts/contracts/BondDepositoryProxy.sol/BondDepositoryProxy.json');
 let stakingV2ProxyAbi = require('../../artifacts/contracts/StakingV2Proxy.sol/StakingV2Proxy.json');
+let stakingV2Abi = require('../../artifacts/contracts/StakingV2.sol/StakingV2.json');
 
 
 //rinkeby
@@ -33,6 +34,15 @@ let lockTOSaddr = "0x89F137913Eb8214A2c91e71009438415BBEF0fD6"
 //mainnet
 // let lockTOSaddr = "0x69b4A202Fa4039B42ab23ADB725aA7b1e9EEBD79"
 
+//rinkeby
+const adminAddress1 = "0x43700f09B582eE2BFcCe4b5Db40ee41B4649D977" //(Suah)
+const adminAddress2 = "0xf0B595d10a92A5a9BC3fFeA7e79f5d266b6035Ea" //(Harvey)
+const RebasePerEpoch = ethers.BigNumber.from("87045050000000")
+const index = ethers.BigNumber.from("1000000000000000000")
+
+//mainnet
+// const adminAddress1 =
+
 async function main() {
     const accounts = await ethers.getSigners();
     const deployer = accounts[0];
@@ -49,60 +59,40 @@ async function main() {
     const stakingProxyAddress = loadDeployed(networkName, "StakingV2Proxy");
     const bondDepositoryProxyAddress = loadDeployed(networkName, "BondDepositoryProxy");
 
-    const calculatorContract = new ethers.Contract( tosCalculatorAddress, calculatorAbi.abi, ethers.provider);
-
-    await calculatorContract.connect(deployer).initialize(
-        rinkeby_address.tos,
-        rinkeby_address.weth,
-        rinkeby_address.npm,
-        rinkeby_address.tosethPool,
-        rinkeby_address.poolfactory
-    )
-    console.log("tosCalculator initialized");
-
-    const terasuryProxyContract = new ethers.Contract( treasuryProxyAddress, treasuryProxyAbi.abi, ethers.provider);
-
-    await terasuryProxyContract.connect(deployer).initialize(
-      rinkeby_address.tos,
-      tosCalculatorAddress,
-      rinkeby_address.weth,
-      rinkeby_address.poolfactory,
-      stakingProxyAddress,
-      rinkeby_address.tosethPool
-    )
-
-    console.log("treasury initialized");
-
+    // 1. StakingV2Setting addPolicy
     const stakingProxyContract = new ethers.Contract( stakingProxyAddress, stakingV2ProxyAbi.abi, ethers.provider);
 
-    const block = await ethers.provider.getBlock('latest')
+    let tx = await stakingProxyContract.connect(deployer).addPolicy(adminAddress1);
+    console.log("stakingProxyContract addPolicy ", adminAddress1);
+    await tx.wait();
 
-    // let epochLength = 3600 * 8;
-    let epochLength = 600;
-    let epochEnd = Number(block.timestamp) + Number(epochLength);
-    // let basicBondPeriod = (86400*5);
-    let basicBondPeriod = 1800;
+    tx = await stakingProxyContract.connect(deployer).addPolicy(adminAddress2);
+    console.log("stakingProxyContract addPolicy ", adminAddress2);
+    await tx.wait();
 
-    await stakingProxyContract.connect(deployer).initialize(
-      rinkeby_address.tos,
-      [epochLength,epochEnd],
-      lockTOSaddr,
-      treasuryProxyAddress,
-      basicBondPeriod
-    )
-    console.log("StakingV2 initialized");
+    let isPolicy = await stakingProxyContract.isPolicy(adminAddress1);
+    console.log("stakingProxyContract isPolicy ", isPolicy, adminAddress1);
 
-    const bondProxyContract = new ethers.Contract( bondDepositoryProxyAddress, bondDepositoryProxyAbi.abi, ethers.provider);
+    isPolicy = await stakingProxyContract.isPolicy(adminAddress2);
+    console.log("stakingProxyContract isPolicy ", isPolicy, adminAddress2);
 
-    await bondProxyContract.connect(deployer).initialize(
-      rinkeby_address.tos,
-      stakingProxyAddress,
-      treasuryProxyAddress,
-      tosCalculatorAddress,
-      rinkeby_address.poolfactory
-    )
+    tx = await stakingProxyContract.connect(deployer).addPolicy(deployer.address);
+    console.log("stakingProxyContract addPolicy ", deployer.address);
+    await tx.wait();
 
-    console.log("bondDepository initialized");
+    isPolicy = await stakingProxyContract.isPolicy(deployer.address);
+    console.log("stakingProxyContract isPolicy ", isPolicy, deployer.address);
+
+    // 2. StakingV2Setting RebasePerEpoch , index
+    const stakingContract = new ethers.Contract(stakingProxyAddress, stakingV2Abi.abi, ethers.provider);
+
+    tx = await stakingContract.connect(deployer).setRebasePerEpoch(RebasePerEpoch);
+    console.log("stakingContract setRebasePerEpoch ", RebasePerEpoch);
+    await tx.wait();
+
+    tx = await stakingContract.connect(deployer).setIndex(index);
+    console.log("stakingContract setIndex ", index);
+    await tx.wait();
 
 }
 

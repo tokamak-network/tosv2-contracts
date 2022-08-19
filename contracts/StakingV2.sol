@@ -649,8 +649,8 @@ contract StakingV2 is
             if(epochNumber == 1)  possibleIndex_ = nextIndex();
             else possibleIndex_ = LibStaking.compound(index_, rebasePerEpoch, epochNumber) ;
             uint256 _runwayTos = runwayTos();
-            uint256 needTos = totalLtos * (possibleIndex_-index_) / 1e18;
-            if(needTos > _runwayTos) possibleIndex_ = _runwayTos/totalLtos * 1e18 + index_;
+            uint256 needTos = totalLtos * (possibleIndex_ - index_) / 1e18;
+            if(needTos > _runwayTos) possibleIndex_ = _runwayTos / totalLtos * 1e18 + index_;
         }
         return possibleIndex_;
     }

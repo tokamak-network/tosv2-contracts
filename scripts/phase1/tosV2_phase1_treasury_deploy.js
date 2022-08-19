@@ -10,7 +10,7 @@ async function main() {
     const { chainId } = await ethers.provider.getNetwork();
     let networkName = "local";
     if(chainId == 1) networkName = "mainnet";
-    if(chainId == 4) networkName = "rinkeby"; 
+    if(chainId == 4) networkName = "rinkeby";
 
     let deployInfo = {
         name: "",
@@ -29,17 +29,16 @@ async function main() {
       name: "LibTreasury",
       address: libTreasury.address
     }
-    
+
     save(networkName, deployInfo);
 
     printGasUsedOfUnits('LibTreasury Deploy',tx);
 
     //Treasury Deploy
 
-    let LibTreasuryAddress = "0x757e2fb31068E60E0fA1517E0C1B26FE58Be7d2E"
     const treasuryLogic = await (await ethers.getContractFactory("Treasury", {
       libraries: {
-        LibTreasury: LibTreasuryAddress
+        LibTreasury: libTreasury.address
       }
     })).connect(deployer).deploy();
 
