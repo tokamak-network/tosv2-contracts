@@ -1299,7 +1299,8 @@ describe("TOSv2 Phase1", function () {
 
         let rebasePerEpoch = await stakingProxylogic.rebasePerEpoch();
         let indexCompound = await libStaking.compound(indexBefore, rebasePerEpoch, 1) ;
-        let nextIndex  = indexBefore.mul(ethers.constants.WeiPerEther.add(rebasePerEpoch)).div(ethers.constants.WeiPerEther)
+        let nextIndex = await stakingProxylogic.possibleIndex();
+        //let nextIndex  = indexBefore.mul(ethers.constants.WeiPerEther.add(rebasePerEpoch)).div(ethers.constants.WeiPerEther)
         let nextIndexContract = await stakingProxylogic.nextIndex();
 
         expect(nextIndex).to.be.eq(nextIndexContract);
@@ -1569,7 +1570,8 @@ describe("TOSv2 Phase1", function () {
 
           let rebasePerEpoch = await stakingProxylogic.rebasePerEpoch();
           let indexCompound = await libStaking.compound(indexBefore, rebasePerEpoch, 1) ;
-          let nextIndex  = indexBefore.mul(ethers.constants.WeiPerEther.add(rebasePerEpoch)).div(ethers.constants.WeiPerEther)
+          //let nextIndex  = indexBefore.mul(ethers.constants.WeiPerEther.add(rebasePerEpoch)).div(ethers.constants.WeiPerEther)
+          let nextIndex = await stakingProxylogic.possibleIndex();
           let nextIndexContract = await stakingProxylogic.nextIndex();
 
           expect(nextIndex).to.be.eq(nextIndexContract);
@@ -1672,7 +1674,8 @@ describe("TOSv2 Phase1", function () {
 
           let indexCompound = await libStaking.compound(indexBefore, rebasePerEpoch, 1) ;
 
-          let nextIndex  = indexBefore.mul(ethers.constants.WeiPerEther.add(rebasePerEpoch)).div(ethers.constants.WeiPerEther)
+          //let nextIndex  = indexBefore.mul(ethers.constants.WeiPerEther.add(rebasePerEpoch)).div(ethers.constants.WeiPerEther)
+          let nextIndex = await stakingProxylogic.possibleIndex();
           let nextIndexContract = await stakingProxylogic.nextIndex();
 
           expect(nextIndex).to.be.eq(nextIndexContract);
@@ -2063,7 +2066,8 @@ describe("TOSv2 Phase1", function () {
 
         let rebasePerEpoch = await stakingProxylogic.rebasePerEpoch();
         let indexCompound = await libStaking.compound(indexBefore, rebasePerEpoch, 1) ;
-        let nextIndex  = indexBefore.mul(ethers.constants.WeiPerEther.add(rebasePerEpoch)).div(ethers.constants.WeiPerEther)
+        //let nextIndex  = indexBefore.mul(ethers.constants.WeiPerEther.add(rebasePerEpoch)).div(ethers.constants.WeiPerEther)
+        let nextIndex = await stakingProxylogic.possibleIndex();        
         let nextIndexContract = await stakingProxylogic.nextIndex();
 
         expect(nextIndex).to.be.eq(nextIndexContract);
@@ -2981,7 +2985,63 @@ describe("TOSv2 Phase1", function () {
 
       });
 
+      it("#3-2-5. time skipped rebaseIndex", async () => {
+        let block = await ethers.provider.getBlock();
+        let currentTime = block.timestamp;
+        await indexEpochPass(stakingProxylogic, 100000);  //time skip
+      
+        let depositData = getUserLastData(depositorUser);
+
+        let runwayTos = await stakingProxylogic.runwayTos();
+        expect(runwayTos).to.be.gt(ethers.constants.Zero);
+
+        let totalLtos = await stakingProxylogic.totalLtos();
+        let remainedLTOSBefore = await stakingProxylogic.remainedLtos(depositData.stakeId);
+        let remainedLTOSToTosBefore = await stakingProxylogic.getLtosToTos(remainedLTOSBefore);
+        let indexBefore = await stakingProxylogic.getIndex();
+        let epochBefore = await stakingProxylogic.epoch();
+
+        let rebasePerEpoch = await stakingProxylogic.rebasePerEpoch();
+
+        let indexCompound = await libStaking.compound(indexBefore, rebasePerEpoch, 1) ;
+
+        //let nextIndex  = indexBefore.mul(ethers.constants.WeiPerEther.add(rebasePerEpoch)).div(ethers.constants.WeiPerEther)
+        let PossibleIndex = await stakingProxylogic.possibleIndex();
+        let nextIndexContract = await stakingProxylogic.nextIndex();
+
+        //expect(nextIndex).to.be.eq(nextIndexContract);
+        let oldIndex = await stakingProxylogic.getIndex();
+        console.log(oldIndex.div(ethers.constants.WeiPerEther))
+
+        let needTos = totalLtos.mul(PossibleIndex.sub(indexBefore)).div(ethers.constants.WeiPerEther);
+
+        await stakingProxylogic.connect(depositor).rebaseIndex();
+
+        let indexAfter = await stakingProxylogic.getIndex();
+        console.log(indexAfter.div(ethers.constants.WeiPerEther))
+        expect(indexAfter).to.be.eql(PossibleIndex);
+
+        if (needTos.lte(runwayTos)) {
+
+          expect(indexAfter).to.be.gte(nextIndexContract);
+          expect(indexAfter).to.be.gt(indexBefore);
+          let epochAfter = await stakingProxylogic.epoch();
+          expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
+          // expect(epochAfter.number).to.be.gte(epochBefore.number.add(ethers.constants.One));
+
+      } else {
+          console.log('didn\'t run rebase Index')
+          expect(indexAfter).to.be.lte(nextIndexContract);
+          expect(indexAfter).to.be.eq(indexBefore);
+          let epochAfter = await stakingProxylogic.epoch();
+          expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
+          // expect(epochAfter.number).to.be.gte(epochBefore.number);
+      }
+
+      expect(await stakingProxylogic.totalLtos()).to.be.eq(totalLtos);
+
     });
+  });
 
   });
 

@@ -547,12 +547,11 @@ contract StakingV2 is
     }
 
     /// @inheritdoc IStaking
-    function rebaseIndex() public override {
+     function rebaseIndex() public override {
 
         if(epoch.end <= block.timestamp ) {
 
             uint256 epochNumber = 0;
-
             if ((block.timestamp - epoch.end) > epoch.length_){
                 epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
             }
@@ -560,7 +559,7 @@ contract StakingV2 is
             epochNumber++;
             epoch.end += (epoch.length_ * epochNumber); // if block.timestamp > epoch.end => we have to rebase at least once
 
-            uint256 newIndex = index_;
+            uint256 newIndex;
             if(epochNumber == 1)  newIndex = nextIndex();
             else newIndex = LibStaking.compound(index_, rebasePerEpoch, epochNumber) ;
 
@@ -575,6 +574,7 @@ contract StakingV2 is
 
             } else   {
                 newIndex = oldIndex + (_runwayTos / totalLtos);
+                index_ = newIndex;
                 emit Rebased(oldIndex, newIndex, totalLtos);
             }
         }
@@ -623,8 +623,18 @@ contract StakingV2 is
 
     /// @inheritdoc IStaking
     function possibleIndex() public view override returns (uint256) {
-        uint256 _possibleEpochNumber = LibStaking.possibleEpochNumber(runwayTos(), getLtosToTos(totalLtos), rebasePerEpoch);
-        return LibStaking.compound(index_, rebasePerEpoch, _possibleEpochNumber);
+        uint256 possibleIndex_ = 0;
+        if(epoch.end <= block.timestamp) {
+            uint256 epochNumber = (block.timestamp - epoch.end) / epoch.length_;
+            epochNumber ++; 
+            if(epochNumber == 1)  possibleIndex_ = nextIndex();
+            else possibleIndex_ = LibStaking.compound(index_, rebasePerEpoch, epochNumber) ;
+            
+            uint256 _runwayTos = runwayTos();
+            uint256 needTos = totalLtos * (possibleIndex_-index_) / 1e18;
+            if(needTos > _runwayTos) possibleIndex_ = _runwayTos/totalLtos * 1e18 + index_;
+        }
+        return possibleIndex_;
     }
 
     /// @inheritdoc IStaking
