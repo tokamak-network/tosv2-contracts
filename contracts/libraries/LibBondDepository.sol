@@ -13,9 +13,9 @@ library LibBondDepository
         uint256 tosPrice;
     }
 
-    struct Deposit {
-        uint256 marketId;
-        uint256 stakeId;
-    }
+    // struct Deposit {
+    //     uint256 marketId;
+    //     uint256 stakeId;
+    // }
 
 }
