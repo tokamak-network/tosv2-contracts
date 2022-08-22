@@ -3,7 +3,7 @@
   "bondDepositoryLogic Deploy": "0xe58ff9c29cc3ff5505f4f1760558156d1c5934680d1638bc909df7c915c2f49f",
   "bondDepositoryProxy Deploy": "0x8bd9c012762b195e0c65006a0c7159112b544f0cc0c706390eb5105709af2c4a",
   "LibStaking Deploy": "0x139becd021b272e5b28e5a6af6183973d3f01aba315d6f7f87f9f261ec9c65d5",
-  "stakingLogic Deploy": "0xeffbcfe6e29e1481d194b8b5e79cfae7e118f24caf01fe3b77c66f52203e2164",
+  "stakingLogic Deploy": "0xd210b4c190d6b246eb038d71e885ba8acb37129f6359832c3242fdf4c91b477f",
   "stakingProxy Deploy": "0xee09115f3cd5fb945038ca9afd6f336d6f42429707ab95a2247298df83585eb6",
   "LibTreasury Deploy": "0x8547fb3dffe4136f86f18214cf84c8fa54026671fc8406fa8ee625a0d8b10815",
   "treasuryLogic Deploy": "0xd3bc8bdb2d83cba5a1faff41859ef524f910c888fe9ac0de3c450a4586cf98e4",
