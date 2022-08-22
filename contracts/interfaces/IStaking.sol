@@ -212,10 +212,6 @@ interface IStaking {
     /// @return return Claimable amount of TOS
     function claimableTos(uint256 _stakeId) external view returns (uint256);
 
-
-    /// @dev Returns the index when rebase is executed once in the current index.
-    function nextIndex() external view returns (uint256);
-
     /// @dev Returns the current Index value
     function getIndex() external view returns(uint256) ;
 

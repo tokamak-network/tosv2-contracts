@@ -571,17 +571,17 @@ contract StakingV2 is
 
         if(epoch.end <= block.timestamp ) {
 
-            uint256 epochNumber = 0;
+            uint256 epochNumber = 1; // if block.timestamp > epoch.end => we have to rebase at least once
 
             if ((block.timestamp - epoch.end) > epoch.length_){
-                epochNumber = (block.timestamp - epoch.end) / epoch.length_ ;
+                epochNumber = (block.timestamp - epoch.end) / epoch.length_ + 1;
             }
 
-            epochNumber++;
-            epoch.end += (epoch.length_ * epochNumber); // if block.timestamp > epoch.end => we have to rebase at least once
+            epoch.end += (epoch.length_ * epochNumber);
 
-            uint256 newIndex = index_;
-            if(epochNumber == 1)  newIndex = nextIndex();
+            uint256 newIndex;
+
+            if (epochNumber == 1)  newIndex = index_ * (1 ether + rebasePerEpoch) / 1e18;
             else newIndex = LibStaking.compound(index_, rebasePerEpoch, epochNumber) ;
 
             uint256 _runwayTos = runwayTos();
@@ -589,12 +589,10 @@ contract StakingV2 is
             uint256 oldIndex = index_;
             uint256 needTos = totalLtos * (newIndex - index_) / 1e18;
 
-            if (needTos <= _runwayTos) {
-                index_ = newIndex;
-                emit Rebased(oldIndex, newIndex, totalLtos);
+            if (needTos > _runwayTos) newIndex = oldIndex + (_runwayTos * 1e18 / totalLtos) ;
 
-            } else   {
-                newIndex = oldIndex + (_runwayTos / totalLtos);
+            if (newIndex > oldIndex){
+                index_ = newIndex;
                 emit Rebased(oldIndex, newIndex, totalLtos);
             }
         }
@@ -631,26 +629,23 @@ contract StakingV2 is
     }
 
     /// @inheritdoc IStaking
-    function nextIndex() public view override returns (uint256) {
-        return (index_ * (1 ether + rebasePerEpoch) / 1e18);
-    }
-
-    /// @inheritdoc IStaking
     function getIndex() public view override returns(uint256){
         return index_;
     }
 
     /// @inheritdoc IStaking
-    function possibleIndex() public view override returns (uint256) {
-        uint256 possibleIndex_ = 0;
+    function possibleIndex() external view override returns (uint256) {
+        uint256 possibleIndex_ = index_;
         if(epoch.end <= block.timestamp) {
-            uint256 epochNumber = (block.timestamp - epoch.end) / epoch.length_;
-            epochNumber ++;
-            if(epochNumber == 1)  possibleIndex_ = nextIndex();
+            uint256 epochNumber = 1;
+            if((block.timestamp - epoch.end) > epoch.length_) epochNumber = (block.timestamp - epoch.end) / epoch.length_+1;
+
+            if(epochNumber == 1)  possibleIndex_ = possibleIndex_ * (1 ether + rebasePerEpoch) / 1e18;
             else possibleIndex_ = LibStaking.compound(index_, rebasePerEpoch, epochNumber) ;
             uint256 _runwayTos = runwayTos();
             uint256 needTos = totalLtos * (possibleIndex_ - index_) / 1e18;
-            if(needTos > _runwayTos) possibleIndex_ = _runwayTos / totalLtos * 1e18 + index_;
+
+            if(needTos > _runwayTos) possibleIndex_ = _runwayTos * 1e18 / totalLtos + index_;
         }
         return possibleIndex_;
     }
