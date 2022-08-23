@@ -156,10 +156,10 @@ contract StakingV2 is
 
         uint256 ltos = _createStakeInfo(_to, stakeId, _amount, unlockTime, _marketId);
 
-        uint256 stosId = _createStos(_to, _amount, _periodWeeks, stosEpochUnit);
+        (uint256 stosId, uint256 stosPrincipal) = _createStos(_to, _amount, _periodWeeks, stosEpochUnit);
         connectId[stakeId] = stosId;
 
-        emit StakedGetStosByBond(_to, _amount, ltos, _periodWeeks, _marketId, stakeId, stosId, tosPrice);
+        emit StakedGetStosByBond(_to, _amount, ltos, _periodWeeks, _marketId, stakeId, stosId, tosPrice, stosPrincipal);
     }
 
     /* ========== Anyone can execute ========== */
@@ -207,10 +207,10 @@ contract StakingV2 is
         rebaseIndex();
         _createStakeInfo(msg.sender, stakeId, _amount, unlockTime, 0);
 
-        uint256 stosId = _createStos(msg.sender, _amount, _periodWeeks, stosEpochUnit);
+        (uint256 stosId, uint256 stosPrincipal) = _createStos(msg.sender, _amount, _periodWeeks, stosEpochUnit);
         connectId[stakeId] = stosId;
 
-        emit StakedGetStos(msg.sender, _amount, _periodWeeks, stakeId, stosId);
+        emit StakedGetStos(msg.sender, _amount, _periodWeeks, stakeId, stosId, stosPrincipal);
     }
 
 
@@ -281,7 +281,7 @@ contract StakingV2 is
 
         IITreasury(treasury).requestTransfer(msg.sender, _claimAmount);
 
-        emit ResetStakedGetStosAfterLock(msg.sender, 0, _claimAmount, 0, _stakeId, 0);
+        emit ResetStakedGetStosAfterLock(msg.sender, 0, _claimAmount, 0, _stakeId, 0, 0);
     }
 
     /// @inheritdoc IStaking
@@ -330,14 +330,15 @@ contract StakingV2 is
         //----
 
         uint256 stosId = 0;
+        uint256 stosPrincipal = 0;
         uint256 stakeId = _stakeId;
 
         if (_periodWeeks > 0) {
-            stosId = _createStos(msg.sender, stakedAmount + _addAmount, _periodWeeks, stosEpochUnit);
+            (stosId, stosPrincipal) = _createStos(msg.sender, stakedAmount + _addAmount, _periodWeeks, stosEpochUnit);
             connectId[stakeId] = stosId;
         }
 
-        emit ResetStakedGetStosAfterLock(msg.sender, _addAmount, 0, _periodWeeks, stakeId, stosId);
+        emit ResetStakedGetStosAfterLock(msg.sender, _addAmount, 0, _periodWeeks, stakeId, stosId, stosPrincipal);
     }
 
     /// @inheritdoc IStaking
@@ -380,17 +381,18 @@ contract StakingV2 is
         _updateStakeInfo(_stakeId, unlockTime, _addAmount, _claimAmount);
 
         uint256 stosId = 0;
+        uint256 stosPrincipal = 0;
         uint256 stakeId = _stakeId;
         if (_periodWeeks > 0) {
             depositPlusAmount += _addAmount;
             depositPlusAmount -= _claimAmount;
-            stosId = _createStos(msg.sender, depositPlusAmount, _periodWeeks, stosEpochUnit);
+            (stosId, stosPrincipal) = _createStos(msg.sender, depositPlusAmount, _periodWeeks, stosEpochUnit);
             connectId[stakeId] = stosId;
         }
 
         if (_claimAmount > 0) IITreasury(treasury).requestTransfer(msg.sender, _claimAmount);
 
-        emit ResetStakedGetStosAfterLock(msg.sender, _addAmount, _claimAmount, _periodWeeks, stakeId, stosId);
+        emit ResetStakedGetStosAfterLock(msg.sender, _addAmount, _claimAmount, _periodWeeks, stakeId, stosId, stosPrincipal);
     }
 
     /// @inheritdoc IStaking
@@ -416,18 +418,19 @@ contract StakingV2 is
         totalLtos += ltos;
 
         uint256 lockId = connectId[_stakeId];
+        uint256 amountCompound = 0;
         if(userStakingIndex[msg.sender][_stakeId] > 1 && lockId > 0) {
             (, uint256 end,) = ILockTosV2(lockTOS).locksInfo(lockId);
             require(end > block.timestamp && _stakeInfo.endTime > block.timestamp, "lock end time has passed");
 
             uint256 n = (_stakeInfo.endTime - block.timestamp) / epoch.length_;
-            uint256 amountCompound = _amount;
+            amountCompound = _amount;
             if (n == 1) amountCompound = _amount * (1 ether + rebasePerEpoch) / 1e18;
             else if (n > 1) amountCompound = LibStaking.compound(_amount, rebasePerEpoch, n);
             ILockTosV2(lockTOS).increaseAmountByStaker(msg.sender, lockId, amountCompound);
         }
 
-        emit IncreasedBeforeEndOrNonEnd(msg.sender, _amount, 0, _stakeId, lockId);
+        emit IncreasedBeforeEndOrNonEnd(msg.sender, _amount, 0, _stakeId, lockId, amountCompound);
     }
 
     /// @inheritdoc IStaking
@@ -451,10 +454,10 @@ contract StakingV2 is
         _increaseAmountAndPeriodStake(msg.sender, _stakeId, _amount, _unlockWeeks);
         uint256 stosEpochUnit = ILockTosV2(lockTOS).epochUnit();
         uint256 lockId = connectId[_stakeId];
-
+        uint256 stosPrincipal = 0;
         if(userStakingIndex[msg.sender][_stakeId] > 1 && lockId == 0 && _unlockWeeks > 0) {
 
-            connectId[_stakeId] = _createStos(msg.sender, _amount + getLtosToTos(remainedLtos(_stakeId)), _unlockWeeks, stosEpochUnit);
+            (connectId[_stakeId], stosPrincipal) = _createStos(msg.sender, _amount + getLtosToTos(remainedLtos(_stakeId)), _unlockWeeks, stosEpochUnit);
 
         } else if(userStakingIndex[msg.sender][_stakeId] > 1 && lockId > 0) {
             (, uint256 end, uint256 principalsAmount) = ILockTosV2(lockTOS).locksInfo(lockId);
@@ -483,7 +486,7 @@ contract StakingV2 is
             }
         }
 
-        emit IncreasedBeforeEndOrNonEnd(msg.sender, _amount, _unlockWeeks, _stakeId, lockId);
+        emit IncreasedBeforeEndOrNonEnd(msg.sender, _amount, _unlockWeeks, _stakeId, lockId, stosPrincipal);
     }
 
     /// @inheritdoc IStaking
@@ -778,9 +781,9 @@ contract StakingV2 is
 
 
     function _createStos(address _to, uint256 _amount, uint256 _periodWeeks, uint256 stosEpochUnit)
-         internal ifFree returns (uint256 stosId)
+         internal ifFree returns (uint256 stosId, uint256 amountCompound)
     {
-        uint256 amountCompound = LibStaking.compound(_amount, rebasePerEpoch, (_periodWeeks * stosEpochUnit / epoch.length_));
+        amountCompound = LibStaking.compound(_amount, rebasePerEpoch, (_periodWeeks * stosEpochUnit / epoch.length_));
         require (amountCompound > 0, "zero compounded amount");
 
         stosId = ILockTosV2(lockTOS).createLockByStaker(_to, amountCompound, _periodWeeks);

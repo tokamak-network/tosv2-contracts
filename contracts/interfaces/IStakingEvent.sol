@@ -28,6 +28,7 @@ interface IStakingEvent{
     /// @param stakeId  stakeId
     /// @param stosId   sTOSId
     /// @param tosPrice    TOS/TOKEN
+    /// @param stosPrincipal    tos principal
     event StakedGetStosByBond(
         address to,
         uint256 amount,
@@ -36,7 +37,8 @@ interface IStakingEvent{
         uint256 marketId,
         uint256 stakeId,
         uint256 stosId,
-        uint256 tosPrice
+        uint256 tosPrice,
+        uint256 stosPrincipal
     );
 
     /// @dev This event occurs when a stking without sTOS
@@ -51,12 +53,14 @@ interface IStakingEvent{
     /// @param periodWeeks lock period
     /// @param stakeId  stakeId
     /// @param stosId   sTOSId
+    /// @param stosPrincipal    tos principal
     event StakedGetStos(
         address to,
         uint256 amount,
         uint256 periodWeeks,
         uint256 stakeId,
-        uint256 stosId
+        uint256 stosId,
+        uint256 stosPrincipal
     );
 
     /// @dev This event occurs when a increaseAmount
@@ -73,13 +77,15 @@ interface IStakingEvent{
     /// @param periodWeeks lock period
     /// @param stakeId  stakeId
     /// @param stosId   sTOSId
+    /// @param stosPrincipal   tos principal
     event ResetStakedGetStosAfterLock(
         address to,
         uint256 addAmount,
         uint256 claimAmount,
         uint256 periodWeeks,
         uint256 stakeId,
-        uint256 stosId
+        uint256 stosId,
+        uint256 stosPrincipal
     );
 
     /// @dev This event occurs increase the amount or lock period before lock
@@ -88,12 +94,14 @@ interface IStakingEvent{
     /// @param unlockWeeks  lock period
     /// @param stakeId  stakeId
     /// @param stosId   sTOSId
+    /// @param stosPrincipal   tos principal
     event IncreasedBeforeEndOrNonEnd(
         address staker,
         uint256 amount,
         uint256 unlockWeeks,
         uint256 stakeId,
-        uint256 stosId
+        uint256 stosId,
+        uint256 stosPrincipal
     );
 
     /// @dev This event occurs claim for non lock stakeId

@@ -10,6 +10,12 @@ require("chai").should();
 const univ3prices = require('@thanpolas/univ3prices');
 const utils = require("./utils");
 
+const {
+  calculateBalanceOfLock,
+  calculateBalanceOfUser,
+  createLockWithPermit,
+} = require("./helpers/lock-tos-helper");
+
 // const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const Web3EthAbi = require('web3-eth-abi');
@@ -57,13 +63,13 @@ let eventETHDeposited ="ETHDeposited(address,uint256,uint256,uint256,uint256)";
 let eventETHDepositWithSTOS ="ETHDepositedWithSTOS(address,uint256,uint256,uint256,uint256,uint256)";
 let eventDeposited ="Deposited(address,uint256,uint256,uint256,bool,uint256)";
 
-let eventStakedGetStosByBond ="StakedGetStosByBond(address,uint256,uint256,uint256,uint256,uint256,uint256,uint256)";
+let eventStakedGetStosByBond ="StakedGetStosByBond(address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)";
 
 let eventStaked ="Staked(address,uint256,uint256)";
-let eventStakedGetStos ="StakedGetStos(address,uint256,uint256,uint256,uint256)";
+let eventStakedGetStos ="StakedGetStos(address,uint256,uint256,uint256,uint256,uint256)";
 let eventIncreasedAmountForSimpleStake ="IncreasedAmountForSimpleStake(address,uint256,uint256)";
-let eventResetStakedGetStosAfterLock ="ResetStakedGetStosAfterLock(address,uint256,uint256,uint256,uint256,uint256)";
-let eventIncreasedBeforeEndOrNonEnd ="IncreasedBeforeEndOrNonEnd(address,uint256,uint256,uint256,uint256)";
+let eventResetStakedGetStosAfterLock ="ResetStakedGetStosAfterLock(address,uint256,uint256,uint256,uint256,uint256,uint256)";
+let eventIncreasedBeforeEndOrNonEnd ="IncreasedBeforeEndOrNonEnd(address,uint256,uint256,uint256,uint256,uint256)";
 
 describe("TOSv2 Phase1", function () {
   //시나리오 : https://www.notion.so/onther/BondDepository-StakingV2-scenario-Suah-497853d6e65f48a390255f3bca29fa36
@@ -124,7 +130,7 @@ describe("TOSv2 Phase1", function () {
 
   //let mintRate = 10;
   //let mintRate = 1000000; // 0.0001
-  let mintRate = ethers.BigNumber.from("2424270000000000000000000");
+  let mintRate = ethers.BigNumber.from("242427000000000000000000000");
   //4124960000000
   let priceLimitTOSETH = {
     minimumTOSPricePerETH: ethers.utils.parseEther("0.00001"),
@@ -213,11 +219,11 @@ describe("TOSv2 Phase1", function () {
     poolAddress: uniswapInfo.tosethPool,
     fee: 0,
     market: {
-      capAmountOfTos: ethers.utils.parseEther("10000000"),
+      capAmountOfTos: ethers.utils.parseEther("10000"),
       closeTime: 0,
       priceTokenPerTos: ethers.BigNumber.from("4124960000000"),
       priceTosPerToken: ethers.BigNumber.from("242427000000000000000000"),
-      purchasableTOSAmountAtOneTime: ethers.utils.parseEther("1000000")
+      purchasableTOSAmountAtOneTime: ethers.utils.parseEther("100")
     },
     tosValuationSimple: 0,
     tosValuationLock: 0
@@ -288,6 +294,9 @@ describe("TOSv2 Phase1", function () {
     if( index < depositList.length) return depositList[index];
     else return null;
   }
+
+
+
   before(async () => {
     accounts = await ethers.getSigners();
     [admin1, admin2, user1, user2, user3, user4, user5, user6 ] = accounts;
@@ -308,11 +317,11 @@ describe("TOSv2 Phase1", function () {
     ]);
     await hre.ethers.provider.send("hardhat_setBalance", [
       user1.address,
-      "0x8ac7230489e80000",
+      "0x4EE2D6D415B85ACEF8100000000",
     ]);
     await hre.ethers.provider.send("hardhat_setBalance", [
       user2.address,
-      "0x8ac7230489e80000",
+      "0x4EE2D6D415B85ACEF8100000000",
     ]);
 
     await hre.ethers.provider.send("hardhat_impersonateAccount",[lockTosAdmin]);
@@ -740,7 +749,7 @@ describe("TOSv2 Phase1", function () {
       it(" send ETH to treasury", async () => {
         let balanceEthPrev =  await ethers.provider.getBalance(treasuryProxylogic.address);
 
-        let amount = ethers.utils.parseEther("10000000000000");
+        let amount = ethers.utils.parseEther("5");
 
         let transaction = {
           to: treasuryProxylogic.address,
@@ -1182,30 +1191,24 @@ describe("TOSv2 Phase1", function () {
 
     })
 
-    it("#3-1-4. ETHDeposit : fail, The minting amount cannot be less than the staking amount (TOS evaluation amount).", async () => {
+    // it("#3-1-4. ETHDeposit : fail, The minting amount cannot be less than the staking amount (TOS evaluation amount).", async () => {
 
-        let _mr = ethers.BigNumber.from("1000000000000000000000");
+    //     let _mr = ethers.BigNumber.from("242426000000000000000000");
 
-        await treasuryProxylogic.connect(admin1).setMR( _mr, ethers.utils.parseEther("0"))
+    //     await treasuryProxylogic.connect(admin1).setMR( _mr, ethers.utils.parseEther("0"))
 
-        let purchasableAssetAmountAtOneTime
-          = bondInfoEther.market.purchasableTOSAmountAtOneTime
-          .mul(ethers.utils.parseEther("1"))
-          .div(bondInfoEther.market.priceTosPerToken)
-          .div(ethers.constants.WeiPerEther);
+    //     let amount = ethers.utils.parseEther("0.0001");
 
-        let amount = purchasableAssetAmountAtOneTime;
+    //     await expect(
+    //       bondDepositoryProxylogic.connect(user1).ETHDeposit(
+    //         bondInfoEther.marketId,
+    //         amount,
+    //         {value: amount}
+    //       )
+    //     ).to.be.reverted;
 
-        await expect(
-          bondDepositoryProxylogic.connect(user1).ETHDeposit(
-            bondInfoEther.marketId,
-            amount,
-            {value: amount}
-          )
-        ).to.be.revertedWith("mintableAmount is less than staking amount.");
-
-        await  treasuryProxylogic.connect(admin1).setMR( mintRate, ethers.utils.parseEther("0"));
-    })
+    //     await  treasuryProxylogic.connect(admin1).setMR(mintRate, ethers.utils.parseEther("0"));
+    // })
 
     it("#3-1-5. ETHDeposit  ", async () => {
 
@@ -1225,17 +1228,15 @@ describe("TOSv2 Phase1", function () {
       let purchasableAssetAmountAtOneTime = bondInfoEther.market.purchasableTOSAmountAtOneTime
         .mul(ethers.utils.parseEther("1"))
         .div(bondInfoEther.market.priceTosPerToken);
-      // console.log('purchasableAssetAmountAtOneTime', purchasableAssetAmountAtOneTime);
+
 
       let purchasableAssetAmountAtOneTime_
         = await bondDepositoryProxylogic.purchasableAssetAmountAtOneTime(
           bondInfoEther.market.priceTosPerToken,
           bondInfoEther.market.purchasableTOSAmountAtOneTime
           );
-      // console.log('purchasableAssetAmountAtOneTime_', purchasableAssetAmountAtOneTime_);
 
-
-      let amount = purchasableAssetAmountAtOneTime;
+      let amount = purchasableAssetAmountAtOneTime ;
 
       let tx = await bondDepositoryProxylogic.connect(depositor).ETHDeposit(
           bondInfoEther.marketId,
@@ -1394,8 +1395,6 @@ describe("TOSv2 Phase1", function () {
         let foundationTotalPercentage = await treasuryProxylogic.foundationTotalPercentage();
         let foundationAmountPrev = await treasuryProxylogic.foundationAmount();
 
-        let sTosBalancePrev = await treasuryProxylogic.foundationAmount();
-
         let balanceEtherPrevTreasury = await ethers.provider.getBalance(treasuryProxylogic.address);
         let balanceEtherPrevDepositor = await ethers.provider.getBalance(depositor.address);
         let balanceTOSPrevStaker = await tosContract.balanceOf(treasuryProxylogic.address);
@@ -1403,15 +1402,15 @@ describe("TOSv2 Phase1", function () {
         let balanceSTOSPrevDepositor = await lockTosContract.balanceOf(depositor.address);
         //balanceOfLock(uint256 _lockId)
         let purchasableAssetAmountAtOneTime = bondInfoEther.market.purchasableTOSAmountAtOneTime
-            .mul(ethers.constants.WeiPerEther)
-            .div(bondInfoEther.market.priceTosPerToken)
-            .div(ethers.constants.WeiPerEther);
+        .mul(ethers.utils.parseEther("1"))
+        .div(bondInfoEther.market.priceTosPerToken);
 
         let indexBefore = await stakingProxylogic.getIndex();
         let epochBefore = await stakingProxylogic.epoch();
 
         let amount = purchasableAssetAmountAtOneTime;
         let lockPeriod = ethers.constants.One;
+        // console.log('purchasableAssetAmountAtOneTime',purchasableAssetAmountAtOneTime) ;
 
         let tx = await bondDepositoryProxylogic.connect(depositor).ETHDepositWithSTOS(
             bondInfoEther.marketId,
@@ -1424,19 +1423,23 @@ describe("TOSv2 Phase1", function () {
 
         let tosValuation = 0;
         let mintAmount = 0;
+        let stosId = 0;
+        let stosPrincipal = 0;
         let interface = bondDepositoryProxylogic.interface;
+        let interfaceStaking = stakingProxylogic.interface;
+
         for (let i = 0; i < receipt.events.length; i++){
             if(receipt.events[i].topics[0] == interface.getEventTopic(eventETHDepositWithSTOS)){
                 let data = receipt.events[i].data;
                 let topics = receipt.events[i].topics;
                 let log = interface.parseLog({data, topics});
-                // console.log('log.args',log.args)
+                // console.log('ETHDepositWithSTOS log.args',log.args)
 
                 tosValuation = log.args.tosValuation;
 
                 bondInfoEther.tosValuationLock = tosValuation;
 
-                let stosId = await stakingProxylogic.connectId(log.args.stakeId);
+                stosId = await stakingProxylogic.connectId(log.args.stakeId);
 
                 deposits[depositorUser+""].push(
                   {
@@ -1450,14 +1453,28 @@ describe("TOSv2 Phase1", function () {
                 expect(lockPeriod).to.be.eq(log.args.lockWeeks);
                 expect(stosId).to.be.gt(ethers.constants.Zero);
             }
+
             if(receipt.events[i].topics[0] == interface.getEventTopic(eventDeposited)){
               let data = receipt.events[i].data;
               let topics = receipt.events[i].topics;
               let log = interface.parseLog({data, topics});
-
+              // console.log('Deposited log.args',log.args)
               mintAmount = log.args.mintAmount;
               expect(mintAmount).to.be.gt(ethers.constants.Zero);
               expect(mintAmount).to.be.gt(tosValuation);
+            }
+
+            if(receipt.events[i].topics[0] == interfaceStaking.getEventTopic(eventStakedGetStosByBond)){
+              let data = receipt.events[i].data;
+              let topics = receipt.events[i].topics;
+              let log = interfaceStaking.parseLog({data, topics});
+              // console.log('StakedGetStosByBond log.args',log.args)
+              stosPrincipal = log.args.stosPrincipal;
+
+              // console.log('stosPrincipal',stosPrincipal)
+
+              expect(stosPrincipal).to.be.gt(ethers.constants.Zero);
+              expect(stosPrincipal).to.be.gt(tosValuation);
             }
         }
 
@@ -1488,12 +1505,109 @@ describe("TOSv2 Phase1", function () {
 
         let epochAfter = await stakingProxylogic.epoch();
         expect(epochAfter.end).to.be.gte(epochBefore.end.add(epochBefore.length_));
-        // expect(epochAfter.number).to.be.eq(epochBefore.number.add(ethers.constants.One));
 
         expect(await stakingProxylogic.getIndex()).to.be.gt(indexBefore);
 
         let balanceSTOSAfterDepositor = await lockTosContract.balanceOf(depositor.address);
-        let addSTOSAmount = await lockTosContract.balanceOfLock(await stakingProxylogic.connectId(depositData.stakeId));
+
+        let lockTosId = await stakingProxylogic.connectId(depositData.stakeId);
+        let addSTOSAmount = await lockTosContract.balanceOfLock(lockTosId);
+        // console.log('depositData.stakeId',depositData.stakeId)
+        // console.log('lockTosId',lockTosId)
+
+        let rebasePerEpoch = await stakingProxylogic.rebasePerEpoch();
+        let stosEpochUnit = await lockTosContract.epochUnit();
+        // console.log('rebasePerEpoch',rebasePerEpoch)
+        // console.log('stosEpochUnit',stosEpochUnit)
+        // console.log('epochAfter.length_',epochAfter.length_)
+        let n = lockPeriod.mul(stosEpochUnit).div(epochAfter.length_);
+
+        // console.log('n',n)
+        // console.log('tosValuation',tosValuation)
+
+        const bigIntEther = JSBI.BigInt("1000000000000000000");
+        const bigIntN  = JSBI.BigInt(n.toString());
+        let bnAmountCompound = JSBI.BigInt("0");
+
+        if (n.gt(ethers.BigNumber.from("2"))){
+          bnAmountCompound =
+            JSBI.divide(
+              JSBI.multiply(
+                JSBI.BigInt(tosValuation.toString()),
+                JSBI.divide(
+                  JSBI.exponentiate(
+                    JSBI.add(bigIntEther, JSBI.BigInt(rebasePerEpoch.toString())),
+                    bigIntN
+                  ),
+                  JSBI.exponentiate(bigIntEther, JSBI.subtract(bigIntN, JSBI.BigInt("2")))
+                )
+                ),
+              JSBI.exponentiate(bigIntEther, JSBI.BigInt("2"))
+            )
+
+
+        } else {
+          bnAmountCompound =
+            JSBI.divide(
+              JSBI.multiply(
+                JSBI.BigInt(tosValuation.toString()),
+                JSBI.divide(
+                  JSBI.exponentiate(
+                    JSBI.add(bigIntEther, JSBI.BigInt(rebasePerEpoch.toString())),
+                    bigIntN
+                  ),
+                  JSBI.exponentiate(bigIntEther, JSBI.subtract(bigIntN, JSBI.BigInt("1")))
+                )
+                ),
+              JSBI.exponentiate(bigIntEther, JSBI.BigInt("1"))
+            )
+        }
+
+        // console.log('bnAmountCompound',bnAmountCompound, bnAmountCompound.toString())
+        let amountCompound = ethers.BigNumber.from(bnAmountCompound.toString());
+        // console.log('amountCompound',amountCompound.toString())
+        // console.log('tosValuation',tosValuation.toString())
+
+        let gweiStosPrincipal = Math.floor(parseFloat(ethers.utils.formatUnits(stosPrincipal, "gwei")));
+        let gweiAmountCompound = Math.floor(parseFloat(ethers.utils.formatUnits(amountCompound, "gwei")));
+
+        // console.log('stosPrincipal gwei',gweiStosPrincipal)
+        // console.log('amountCompound gwei',gweiAmountCompound)
+
+        // 자바스크립트 계산과 솔리디티 계산에 약간 오차가 있습니다. 오차없는 정보를 얻으려면 컨트랙에서 조회하는것이 나을것 같습니다.
+        expect(gweiStosPrincipal).to.be.eq(gweiAmountCompound);
+
+        // let amountCalculatedStos = amountCompound.div(ethers.BigNumber.from("156"));
+        // console.log('amountCalculatedStos',amountCalculatedStos)
+
+        const currentTime = await lockTosContract.getCurrentTime();
+        // console.log('currentTime',currentTime)
+
+        const estimate = await calculateBalanceOfLock({
+          lockId: stosId,
+          lockTOS: lockTosContract,
+          timestamp: currentTime,
+        });
+
+        const balance = parseInt(await lockTosContract.balanceOfLock(stosId));
+
+        // console.log('stosId',stosId)
+        // console.log('estimate',estimate)
+        // console.log('balance',balance)
+        // console.log('addSTOSAmount',addSTOSAmount)
+
+        expect(lockTosId).to.be.eq(stosId);
+
+
+        // 자바스크립트 계산과 솔리디티 계산에 약간 오차가 있습니다. 오차없는 정보를 얻으려면 컨트랙에서 조회하는것이 나을것 같습니다.
+        // 기준이 되는 주수는 해당 목요일 0시 기준이므로, 2주를 설정하였다고 하더라도, 실제 2주의 이자를 모두 가져가지 못할 수 있습니다.
+        // LockTOS에서 계산되는 방법으로 화면에 보여주어야 합니다.
+        expect(balance).to.be.eq(estimate);
+
+        // 자바스크립트 계산과 솔리디티 계산에 약간 오차가 있습니다. 오차없는 정보를 얻으려면 컨트랙에서 조회하는것이 나을것 같습니다.
+        let gweiStosBalance = Math.floor(parseFloat(ethers.utils.formatUnits(balance+"", "gwei")));
+        let gweiAddSTOSAmount = Math.floor(parseFloat(ethers.utils.formatUnits(addSTOSAmount.toString(), "gwei")));
+        expect(gweiStosBalance).to.be.eq(gweiAddSTOSAmount);
 
         expect(balanceSTOSAfterDepositor).to.be.gt(balanceSTOSPrevDepositor);
         expect(balanceSTOSAfterDepositor).to.be.eq(balanceSTOSPrevDepositor.add(addSTOSAmount));
