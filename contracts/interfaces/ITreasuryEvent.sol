@@ -45,6 +45,14 @@ interface ITreasuryEvent{
         uint256[] _percents
     );
 
+    /// @dev This event occurs when call foundationDistribute function
+    /// @param to    the address
+    /// @param amount    the tos amount
+    event DistributedFoundation(
+        address to,
+        uint256 amount
+    );
+
     /// @dev This event occurs when request mint and transfer TOS
     /// @param _mintAmount    the TOS amount to mint
     /// @param _distribute   If true,  distribute a percentage of the remaining amount to the foundation after mint and transfer.

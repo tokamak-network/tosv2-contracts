@@ -17,10 +17,6 @@ interface ITreasury {
     /// @param _toDisable permission the address
     function disable(uint _status, address _toDisable) external;
 
-    /// @dev Approval of token use, (Approve to staking contract)
-    /// @param _addr  approve Address
-    function approve(address _addr) external ;
-
     /// @dev Set mintRate. mintRate is the ratio of setting how many TOS mint per 1 ETH as TOS/ETH.
     /// @param _mrRate mintRate
     /// @param amount  mint amount (After checking whether backing is performed even after mint by amount, mint TOS in treasury.)

@@ -55,6 +55,7 @@ let lockTosAdmin = "0x5b6e72248b19F2c5b88A4511A6994AD101d0c287";
 let eventCreatedMarket ="CreatedMarket(uint256,address,uint256[4])";
 let eventETHDeposited ="ETHDeposited(address,uint256,uint256,uint256,uint256)";
 let eventETHDepositWithSTOS ="ETHDepositedWithSTOS(address,uint256,uint256,uint256,uint256,uint256)";
+let eventDeposited ="Deposited(address,uint256,uint256,uint256,bool,uint256)";
 
 let eventStakedGetStosByBond ="StakedGetStosByBond(address,uint256,uint256,uint256,uint256,uint256,uint256,uint256)";
 
@@ -254,6 +255,20 @@ describe("TOSv2 Phase1", function () {
   let deposits = {user1 : [], user2: []};
   let depositor, depositorUser, index, depositData;
 
+  let foundations = {
+    address: [
+      "0x5b6e72248b19F2c5b88A4511A6994AD101d0c287",
+      "0x3b9878Ef988B086F13E5788ecaB9A35E74082ED9"
+    ],
+    percentages: [
+      ethers.BigNumber.from("100"),
+      ethers.BigNumber.from("50"),
+    ],
+    balances : [
+      ethers.BigNumber.from("0"),
+      ethers.BigNumber.from("0")
+    ]
+  }
   async function indexEpochPass(_stakingProxylogic, passNextEpochCount) {
       let block = await ethers.provider.getBlock();
       let epochInfo = await _stakingProxylogic.epoch();
@@ -645,23 +660,35 @@ describe("TOSv2 Phase1", function () {
         ).to.be.equal(true)
       })
 
+      it("#1-1-4. setFoundationDistributeInfo : user can't call setFoundationDistributeInfo ", async () => {
+        expect(await treasuryProxy.isPolicy(user1.address)).to.be.equal(false)
 
-      it("#1-1-4. user can't call approve (stakingV2)", async () => {
         await expect(
-          treasuryProxylogic.connect(user1).approve(
-            stakingProxy.address
+          treasuryProxylogic.connect(user1).setFoundationDistributeInfo(
+            foundations.address, foundations.percentages
           )
         ).to.be.revertedWith("Accessible: Caller is not an policy admin")
       })
 
-      it("#1-1-4. approve : policy can call approve (stakingV2)", async () => {
-        let beforeApprove = await tosContract.allowance(treasuryProxy.address, stakingProxy.address);
-        expect(beforeApprove).to.be.equal(0)
-        await treasuryProxylogic.connect(admin1).approve(stakingProxy.address)
+      it("#1-1-4. setFoundationDistributeInfo : policy can call setFoundationDistributeInfo", async () => {
 
-        let afterApprove = await tosContract.allowance(treasuryProxy.address, stakingProxy.address);
-        expect(afterApprove).to.be.above(0)
+
+        expect(await treasuryProxy.isPolicy(admin1.address)).to.be.equal(true)
+
+        await treasuryProxylogic.connect(admin1).setFoundationDistributeInfo(
+          foundations.address, foundations.percentages
+        );
+
+        let totalPercantage = ethers.BigNumber.from("0");
+        for (let i=0; i< foundations.percentages.length; i++) {
+          totalPercantage = totalPercantage.add(foundations.percentages[i]);
+        }
+
+
+        expect(await treasuryProxylogic.foundationTotalPercentage()).to.be.equal(totalPercantage)
+
       })
+
 
       it("#1-1-5. disable : user can't call disable", async () => {
         await expect(
@@ -1036,6 +1063,7 @@ describe("TOSv2 Phase1", function () {
 
   })
 
+
   describe("#2. lockTOS setting", async () => {
     it("#2-1-1. user can't set the stakingContarct", async () => {
       await expect(
@@ -1184,6 +1212,9 @@ describe("TOSv2 Phase1", function () {
       let depositor = user1;
       let depositorUser = "user1";
 
+      let foundationTotalPercentage = await treasuryProxylogic.foundationTotalPercentage();
+      let foundationAmountPrev = await treasuryProxylogic.foundationAmount();
+
       let balanceEtherPrevTreasury = await ethers.provider.getBalance(treasuryProxylogic.address);
       let balanceEtherPrevDepositor = await ethers.provider.getBalance(depositor.address);
 
@@ -1215,6 +1246,7 @@ describe("TOSv2 Phase1", function () {
       const receipt = await tx.wait();
 
       let tosValuation = 0;
+      let mintAmount = 0;
       let interface = bondDepositoryProxylogic.interface;
       for (let i = 0; i < receipt.events.length; i++){
           if(receipt.events[i].topics[0] == interface.getEventTopic(eventETHDeposited)){
@@ -1237,6 +1269,15 @@ describe("TOSv2 Phase1", function () {
 
               expect(amount).to.be.eq(log.args.amount);
               // console.log('amount', amount);
+          }
+          if(receipt.events[i].topics[0] == interface.getEventTopic(eventDeposited)){
+            let data = receipt.events[i].data;
+            let topics = receipt.events[i].topics;
+            let log = interface.parseLog({data, topics});
+
+            mintAmount = log.args.mintAmount;
+            expect(mintAmount).to.be.gt(ethers.constants.Zero);
+            expect(mintAmount).to.be.gt(tosValuation);
           }
       }
 
@@ -1276,6 +1317,16 @@ describe("TOSv2 Phase1", function () {
 
       // let stakeIdList = await stakingProxylogic.stakingOf(depositor.address);
       // console.log('stakeIdList',stakeIdList);
+
+      let foundationAmountAfter = await treasuryProxylogic.foundationAmount();
+
+      if (foundationTotalPercentage.gt(ethers.constants.Zero)) {
+        let addAmountToFoundation = mintAmount.mul(foundationTotalPercentage).div(ethers.BigNumber.from("10000"));
+        expect(foundationAmountAfter).to.be.eq(foundationAmountPrev.add(addAmountToFoundation));
+
+      } else {
+        expect(foundationAmountAfter).to.be.eq(foundationAmountPrev);
+      }
 
     })
 
@@ -1340,6 +1391,9 @@ describe("TOSv2 Phase1", function () {
         let depositor = user1;
         let depositorUser = "user1";
 
+        let foundationTotalPercentage = await treasuryProxylogic.foundationTotalPercentage();
+        let foundationAmountPrev = await treasuryProxylogic.foundationAmount();
+
         let balanceEtherPrevTreasury = await ethers.provider.getBalance(treasuryProxylogic.address);
         let balanceEtherPrevDepositor = await ethers.provider.getBalance(depositor.address);
         let balanceTOSPrevStaker = await tosContract.balanceOf(treasuryProxylogic.address);
@@ -1367,6 +1421,7 @@ describe("TOSv2 Phase1", function () {
         const receipt = await tx.wait();
 
         let tosValuation = 0;
+        let mintAmount = 0;
         let interface = bondDepositoryProxylogic.interface;
         for (let i = 0; i < receipt.events.length; i++){
             if(receipt.events[i].topics[0] == interface.getEventTopic(eventETHDepositWithSTOS)){
@@ -1392,6 +1447,15 @@ describe("TOSv2 Phase1", function () {
                 expect(amount).to.be.eq(log.args.amount);
                 expect(lockPeriod).to.be.eq(log.args.lockWeeks);
                 expect(stosId).to.be.gt(ethers.constants.Zero);
+            }
+            if(receipt.events[i].topics[0] == interface.getEventTopic(eventDeposited)){
+              let data = receipt.events[i].data;
+              let topics = receipt.events[i].topics;
+              let log = interface.parseLog({data, topics});
+
+              mintAmount = log.args.mintAmount;
+              expect(mintAmount).to.be.gt(ethers.constants.Zero);
+              expect(mintAmount).to.be.gt(tosValuation);
             }
         }
 
@@ -1434,7 +1498,15 @@ describe("TOSv2 Phase1", function () {
 
         // let stakeIdList = await stakingProxylogic.stakingOf(depositor.address);
         // console.log('stakeIdList',stakeIdList);
+        let foundationAmountAfter = await treasuryProxylogic.foundationAmount();
 
+        if (foundationTotalPercentage.gt(ethers.constants.Zero)) {
+          let addAmountToFoundation = mintAmount.mul(foundationTotalPercentage).div(ethers.BigNumber.from("10000"));
+          expect(foundationAmountAfter).to.be.eq(foundationAmountPrev.add(addAmountToFoundation));
+
+        } else {
+          expect(foundationAmountAfter).to.be.eq(foundationAmountPrev);
+        }
 
     });
 
@@ -1473,6 +1545,44 @@ describe("TOSv2 Phase1", function () {
           bondInfoEther.marketId,
           ethers.utils.parseEther("100")
       );
+    })
+
+    it("#3-1-12. foundationDistribute :  user can't call foundationDistribute ", async () => {
+
+      await expect(
+        treasuryProxylogic.connect(user1).foundationDistribute()
+      ).to.be.revertedWith("Accessible: Caller is not an policy admin");
+    })
+
+    it("#3-1-13. foundationDistribute :  policy admin can call foundationDistribute ", async () => {
+
+      for (let i=0; i < foundations.address.length; i++){
+        foundations.balances[i] = await tosContract.balanceOf(foundations.address[i]);
+      }
+
+      let balanceOfPrev = await tosContract.balanceOf(treasuryProxylogic.address);
+      let foundationAmount = await treasuryProxylogic.foundationAmount()
+      let foundationTotalPercentage = await treasuryProxylogic.foundationTotalPercentage()
+
+      expect(await treasuryProxy.isPolicy(admin1.address)).to.be.equal(true)
+
+      await treasuryProxylogic.connect(admin1).foundationDistribute();
+
+      let totalDistributedAmount = ethers.constants.Zero;
+      for (let i = 0; i < foundations.address.length; i++){
+        let distributedAmount = foundationAmount.mul(foundations.percentages[i]).div(foundationTotalPercentage);
+        totalDistributedAmount = totalDistributedAmount.add(distributedAmount);
+
+        expect(await tosContract.balanceOf(foundations.address[i])).to.be.equal(
+          foundations.balances[i].add(distributedAmount)
+        )
+      }
+
+      let foundationAmountAfter = await treasuryProxylogic.foundationAmount()
+
+      expect(await tosContract.balanceOf(treasuryProxylogic.address)).to.be.equal(balanceOfPrev.sub(totalDistributedAmount))
+      expect(foundationAmountAfter).to.be.equal(foundationAmount.sub(totalDistributedAmount))
+
     })
 
   });
@@ -3137,5 +3247,7 @@ describe("TOSv2 Phase1", function () {
     });
 
   });
+
+
 
 });

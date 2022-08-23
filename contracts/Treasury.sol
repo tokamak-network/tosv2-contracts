@@ -92,12 +92,14 @@ contract Treasury is
         emit Permissioned(_toDisable, uint(role), false);
     }
 
+    /*
     /// @inheritdoc ITreasury
     function approve(
         address _address
     ) external override onlyPolicyOwner {
         tos.approve(_address, 1e45);
     }
+    */
 
     /// @inheritdoc ITreasury
     function setMR(uint256 _mrRate, uint256 amount) external override onlyPolicyOwner {
@@ -197,7 +199,7 @@ contract Treasury is
             require(_percents[i] > 0, "zero _percents");
             foundationTotalPercentage += _percents[i];
         }
-        require(foundationTotalPercentage < 100, "wrong _percents");
+        require(foundationTotalPercentage < 10000, "wrong _percents");
 
         delete mintings;
 
@@ -214,13 +216,14 @@ contract Treasury is
     }
 
     function foundationDistribute() external onlyPolicyOwner {
-        require(foundationAmount > 0 && mintings.length > 0, "No funds or no distribution");
+        require(foundationAmount > 0 && foundationTotalPercentage > 0 && mintings.length > 0, "No funds or no distribution");
         uint256 _amount = foundationAmount;
 
         for (uint256 i = 0; i < mintings.length ; i++) {
-            uint256 _distributeAmount = foundationAmount * mintings[i].mintPercents / 100;
+            uint256 _distributeAmount = foundationAmount * mintings[i].mintPercents / foundationTotalPercentage;
             _amount -= _distributeAmount;
             tos.safeTransfer(mintings[i].mintAddress, _distributeAmount);
+            emit DistributedFoundation(mintings[i].mintAddress, _distributeAmount);
         }
 
         foundationAmount = _amount;
@@ -237,7 +240,7 @@ contract Treasury is
         tos.mint(address(this), _mintAmount);
 
         if (_distribute && foundationTotalPercentage > 0 )
-          foundationAmount += (_mintAmount * foundationTotalPercentage / 100);
+          foundationAmount += (_mintAmount * foundationTotalPercentage / 10000);
 
         emit RquestedMint(_mintAmount, _distribute);
 
