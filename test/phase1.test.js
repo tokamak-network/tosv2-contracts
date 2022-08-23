@@ -1394,6 +1394,8 @@ describe("TOSv2 Phase1", function () {
         let foundationTotalPercentage = await treasuryProxylogic.foundationTotalPercentage();
         let foundationAmountPrev = await treasuryProxylogic.foundationAmount();
 
+        let sTosBalancePrev = await treasuryProxylogic.foundationAmount();
+
         let balanceEtherPrevTreasury = await ethers.provider.getBalance(treasuryProxylogic.address);
         let balanceEtherPrevDepositor = await ethers.provider.getBalance(depositor.address);
         let balanceTOSPrevStaker = await tosContract.balanceOf(treasuryProxylogic.address);

@@ -905,11 +905,6 @@ contract StakingV2 is
         }
     }
 
-    function index() internal returns (uint256) {
-        index_ = (index_ * (1 ether + rebasePerEpoch) / 1e18);
-        return index_;
-    }
-
     function _checkStakeId(address to) internal {
          if(userStakings[to].length == 0) {
             userStakings[to].push(0); // 0번때는 더미
