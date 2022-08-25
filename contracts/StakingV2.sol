@@ -427,7 +427,9 @@ contract StakingV2 is
             amountCompound = _amount;
             if (n == 1) amountCompound = _amount * (1 ether + rebasePerEpoch) / 1e18;
             else if (n > 1) amountCompound = LibStaking.compound(_amount, rebasePerEpoch, n);
-            ILockTosV2(lockTOS).increaseAmountByStaker(msg.sender, lockId, amountCompound);
+
+            if (amountCompound > _amount)
+                ILockTosV2(lockTOS).increaseAmountByStaker(msg.sender, lockId, amountCompound - _amount);
         }
 
         emit IncreasedBeforeEndOrNonEnd(msg.sender, _amount, 0, _stakeId, lockId, amountCompound);

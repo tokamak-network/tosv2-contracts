@@ -1,4 +1,6 @@
 const { time } = require("@openzeppelin/test-helpers");
+const JSBI = require('jsbi');
+
 const MAXTIME = 94608000;
 
 const name = "TONStarter";
@@ -114,8 +116,53 @@ const createLockWithPermit = async ({
   return lockId;
 };
 
+const calculateCompound = async ({ tosValuation, rebasePerEpoch, n}) => {
+  // console.log('calculateCompound tosValuation',tosValuation, 'rebasePerEpoch',rebasePerEpoch, "n", n) ;
+  // console.log('n.toString()', n.toString());
+
+  const bigIntEther = JSBI.BigInt("1000000000000000000");
+  const bigIntN  = JSBI.BigInt(n.toString());
+  let bnAmountCompound = JSBI.BigInt("0");
+
+  if (n.gt(ethers.BigNumber.from("2"))){
+    bnAmountCompound =
+      JSBI.divide(
+        JSBI.multiply(
+          JSBI.BigInt(tosValuation.toString()),
+          JSBI.divide(
+            JSBI.exponentiate(
+              JSBI.add(bigIntEther, JSBI.BigInt(rebasePerEpoch.toString())),
+              bigIntN
+            ),
+            JSBI.exponentiate(bigIntEther, JSBI.subtract(bigIntN, JSBI.BigInt("2")))
+          )
+          ),
+        JSBI.exponentiate(bigIntEther, JSBI.BigInt("2"))
+      )
+
+
+  } else {
+    bnAmountCompound =
+      JSBI.divide(
+        JSBI.multiply(
+          JSBI.BigInt(tosValuation.toString()),
+          JSBI.divide(
+            JSBI.exponentiate(
+              JSBI.add(bigIntEther, JSBI.BigInt(rebasePerEpoch.toString())),
+              bigIntN
+            ),
+            JSBI.exponentiate(bigIntEther, JSBI.subtract(bigIntN, JSBI.BigInt("1")))
+          )
+          ),
+        JSBI.exponentiate(bigIntEther, JSBI.BigInt("1"))
+      )
+  }
+  return bnAmountCompound;
+};
+
 module.exports = {
   calculateBalanceOfUser,
   calculateBalanceOfLock,
   createLockWithPermit,
+  calculateCompound,
 };
