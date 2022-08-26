@@ -462,14 +462,14 @@ contract StakingV2 is
             (connectId[_stakeId], stosPrincipal) = _createStos(msg.sender, _amount + getLtosToTos(remainedLtos(_stakeId)), _unlockWeeks, stosEpochUnit);
 
         } else if(userStakingIndex[msg.sender][_stakeId] > 1 && lockId > 0) {
-            (, uint256 end, uint256 principalsAmount) = ILockTosV2(lockTOS).locksInfo(lockId);
+            (, uint256 end, uint256 principalAmount) = ILockTosV2(lockTOS).locksInfo(lockId);
             require(end > block.timestamp && _stakeInfo.endTime > block.timestamp, "lock end time has passed");
 
             if (_unlockWeeks == 0) { // 물량만 늘릴때 이자도 같이 늘린다.
                 uint256 n = (_stakeInfo.endTime - block.timestamp) / epoch.length_;
                 uint256 amountCompound = LibStaking.compound(_amount, rebasePerEpoch, n);
                 // require (amountCompound > 0, "zero compounded amount");
-                stosPrincipal = principalsAmount + amountCompound;
+                stosPrincipal = principalAmount + amountCompound;
                 ILockTosV2(lockTOS).increaseAmountByStaker(msg.sender, lockId, amountCompound);
 
             } else if(_unlockWeeks > 0) { // 기간만 들어날때는 물량도 같이 늘어난다고 본다. 이자때문에 .
@@ -477,14 +477,14 @@ contract StakingV2 is
                 uint256 amountCompound2 = 0; // 추가금액이 있을경우, 늘어나는 부분
 
                 uint256 n1 = (_unlockWeeks * stosEpochUnit) / epoch.length_;
-                amountCompound1 = LibStaking.compound(principalsAmount, rebasePerEpoch, n1);
-                amountCompound1 = amountCompound1 - principalsAmount;
+                amountCompound1 = LibStaking.compound(principalAmount, rebasePerEpoch, n1);
+                amountCompound1 = amountCompound1 - principalAmount;
 
                 if (_amount > 0) {
                     uint256 n2 = (end - block.timestamp  + (_unlockWeeks * stosEpochUnit)) / epoch.length_;
                     amountCompound2 = LibStaking.compound(_amount, rebasePerEpoch, n2);
                 }
-                stosPrincipal = principalsAmount + amountCompound1 + amountCompound2;
+                stosPrincipal = principalAmount + amountCompound1 + amountCompound2;
                 ILockTosV2(lockTOS).increaseAmountUnlockTimeByStaker(msg.sender, lockId, amountCompound1 + amountCompound2, _unlockWeeks);
             }
         }
