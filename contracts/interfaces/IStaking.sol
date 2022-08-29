@@ -170,10 +170,10 @@ interface IStaking {
 
     /// @dev For staking items that are not locked up, use when claiming
     /// @param _stakeId  the stake id
-    /// @param _claimAmount claimAmount
+    /// @param claimLtos an ltos amount of claiming
     function claimForSimpleType(
         uint256 _stakeId,
-        uint256 _claimAmount
+        uint256 claimLtos
     ) external;
 
 

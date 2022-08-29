@@ -1899,11 +1899,11 @@ describe("TOSv2 Phase1", function () {
 
         let depositData = getUserLastData(depositorUser);
         let amount = ethers.utils.parseEther("10");
-
+        let amountLtos = await stakingProxylogic.getTosToLtos(amount);
         await expect(
           stakingProxylogic.connect(user1).claimForSimpleType(
             depositData.stakeId,
-            amount
+            amountLtos
           ))
         .to.be.revertedWith("caller is not staker");
       });
@@ -1912,6 +1912,10 @@ describe("TOSv2 Phase1", function () {
 
         let depositData = getUserLastData(depositorUser);
         let amount = ethers.utils.parseEther("10");
+        let amountLtos = await stakingProxylogic.getTosToLtos(amount);
+        let possibleIndex = await stakingProxylogic.possibleIndex();
+        let amountTos = amountLtos.mul(possibleIndex).div(ethers.utils.parseEther("1"));
+
 
         let totalLtos = await stakingProxylogic.totalLtos();
         let stakingPrincipal = await stakingProxylogic.stakingPrincipal();
@@ -1925,11 +1929,11 @@ describe("TOSv2 Phase1", function () {
 
         await stakingProxylogic.connect(depositor).claimForSimpleType(
             depositData.stakeId,
-            amount
+            amountLtos
           );
 
         expect(await stakingProxylogic.balanceOfId(depositData.stakeId)).to.be.lt(balanceOfId);
-        expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfTOSPrev.add(amount));
+        expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfTOSPrev.add(amountTos));
 
         expect(await stakingProxylogic.totalLtos()).to.be.lt(totalLtos);
 
@@ -2467,11 +2471,11 @@ describe("TOSv2 Phase1", function () {
       it("#3-2-2-7. claimForSimpleType : this is for non-lock product, fail ", async () => {
         let depositData = getUserLastData(depositorUser);
         let amount = ethers.utils.parseEther("10");
-
+        let amountLtos = await stakingProxylogic.getTosToLtos(amount);
         await expect(
           stakingProxylogic.connect(user2).claimForSimpleType(
             depositData.stakeId,
-            amount
+            amountLtos
           ))
         .to.be.revertedWith("this is for non-lock product");
       });
@@ -2698,6 +2702,9 @@ describe("TOSv2 Phase1", function () {
 
         let depositData = getUserLastData(depositorUser);
         let amount = ethers.utils.parseEther("10");
+        let amountLtos = await stakingProxylogic.getTosToLtos(amount);
+        let possibleIndex = await stakingProxylogic.possibleIndex();
+        let amountTos = amountLtos.mul(possibleIndex).div(ethers.utils.parseEther("1"));
 
         let totalLtos = await stakingProxylogic.totalLtos();
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
@@ -2705,10 +2712,10 @@ describe("TOSv2 Phase1", function () {
 
         await stakingProxylogic.connect(depositor).claimForSimpleType(
             depositData.stakeId,
-            amount
+            amountLtos
         );
-        expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfPrev.add(amount));
-        expect(await tosContract.balanceOf(treasuryProxylogic.address)).to.be.gte(balanceOfPrevStakeContract.sub(amount));
+        expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfPrev.add(amountTos));
+        expect(await tosContract.balanceOf(treasuryProxylogic.address)).to.be.gte(balanceOfPrevStakeContract.sub(amountTos));
 
       });
 
@@ -2826,7 +2833,7 @@ describe("TOSv2 Phase1", function () {
 
         let depositData = getUserLastData(depositorUser);
         let amount = ethers.utils.parseEther("10");
-
+        let amountLtos = await stakingProxylogic.getTosToLtos(amount);
         let totalLtos = await stakingProxylogic.totalLtos();
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
@@ -2834,7 +2841,7 @@ describe("TOSv2 Phase1", function () {
         await expect(
           stakingProxylogic.connect(depositor).claimForSimpleType(
             depositData.stakeId,
-            amount
+            amountLtos
           ))
         .to.be.revertedWith("this is for non-lock product.");
 
@@ -2930,11 +2937,11 @@ describe("TOSv2 Phase1", function () {
 
 
         let amount = ethers.utils.parseEther("10");
-
+        let amountLtos = await stakingProxylogic.getTosToLtos(amount);
         await expect(
           stakingProxylogic.connect(user2).claimForSimpleType(
             depositData.stakeId,
-            amount
+            amountLtos
           ))
         .to.be.revertedWith("caller is not staker");
       });
@@ -2944,6 +2951,9 @@ describe("TOSv2 Phase1", function () {
         // console.log("bondInfoEther.tosValuationSimple", bondInfoEther.tosValuationSimple);
 
         let amount = bondInfoEther.tosValuationSimple.div(ethers.BigNumber.from("2"));
+        let amountLtos = await stakingProxylogic.getTosToLtos(amount);
+        let possibleIndex = await stakingProxylogic.possibleIndex();
+        let amountTos = amountLtos.mul(possibleIndex).div(ethers.utils.parseEther("1"));
 
         let totalLtos = await stakingProxylogic.totalLtos();
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
@@ -2952,11 +2962,11 @@ describe("TOSv2 Phase1", function () {
 
         await stakingProxylogic.connect(depositor).claimForSimpleType(
             depositData.stakeId,
-            amount
+            amountLtos
         ) ;
 
-        expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfPrev.add(amount));
-        expect(await tosContract.balanceOf(treasuryProxylogic.address)).to.be.gte(balanceOfPrevStakeContract.sub(amount));
+        expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfPrev.add(amountTos));
+        expect(await tosContract.balanceOf(treasuryProxylogic.address)).to.be.gte(balanceOfPrevStakeContract.sub(amountTos));
 
         let stakingPrincipal = await stakingProxylogic.stakingPrincipal();
         expect(await tosContract.balanceOf(treasuryProxylogic.address)).to.be.gte(stakingPrincipal);
@@ -3432,11 +3442,11 @@ describe("TOSv2 Phase1", function () {
       it("#3-2-4-3. claimForSimpleType : this is for non-lock product, fail ", async () => {
 
         let amount = ethers.utils.parseEther("10");
-
+        let amountLtos = await stakingProxylogic.getTosToLtos(amount);
         await expect(
           stakingProxylogic.connect(user2).claimForSimpleType(
             depositData.stakeId,
-            amount
+            amountLtos
           ))
         .to.be.revertedWith("this is for non-lock product");
       });
@@ -3688,7 +3698,7 @@ describe("TOSv2 Phase1", function () {
       it("#3-2-4-8. claimForSimpleType :  if it is lockup status, staker can not claim.", async () => {
 
         let amount = ethers.utils.parseEther("10");
-
+        let amountLtos = await stakingProxylogic.getTosToLtos(amount);
         let totalLtos = await stakingProxylogic.totalLtos();
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
@@ -3696,7 +3706,7 @@ describe("TOSv2 Phase1", function () {
         await expect(
           stakingProxylogic.connect(depositor).claimForSimpleType(
             depositData.stakeId,
-            amount
+            amountLtos
           ))
         .to.be.revertedWith("this is for non-lock product.");
 

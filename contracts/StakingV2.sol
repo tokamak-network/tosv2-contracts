@@ -494,11 +494,11 @@ contract StakingV2 is
     /// @inheritdoc IStaking
     function claimForSimpleType(
         uint256 _stakeId,
-        uint256 _claimAmount
+        uint256 claimLtos
     )
         external override
         nonZero(_stakeId)
-        nonZero(_claimAmount)
+        nonZero(claimLtos)
     {
         require(connectId[_stakeId] == 0, "this is for non-lock product.");
 
@@ -506,13 +506,14 @@ contract StakingV2 is
 
         require(_stakeInfo.staker == msg.sender, "caller is not staker");
         require(_stakeInfo.endTime < block.timestamp, "end time has not passed.");
+        require(claimLtos <= _stakeInfo.ltos, "ltos is insufficient");
 
         rebaseIndex();
         uint256 stakedAmount = getLtosToTos(_stakeInfo.ltos);
+        uint256 _claimAmount = getLtosToTos(claimLtos);
 
         require(_claimAmount <= stakedAmount, "remainedTos is insufficient");
-
-        uint256 claimLtos = getTosToLtos(_claimAmount);
+        // uint256 claimLtos = getTosToLtos(_claimAmount);
         uint256 profit = 0;
         if(stakedAmount > _stakeInfo.deposit) profit = stakedAmount - _stakeInfo.deposit;
 
