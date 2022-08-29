@@ -512,8 +512,6 @@ contract StakingV2 is
         uint256 stakedAmount = getLtosToTos(_stakeInfo.ltos);
         uint256 _claimAmount = getLtosToTos(claimLtos);
 
-        require(_claimAmount <= stakedAmount, "remainedTos is insufficient");
-        // uint256 claimLtos = getTosToLtos(_claimAmount);
         uint256 profit = 0;
         if(stakedAmount > _stakeInfo.deposit) profit = stakedAmount - _stakeInfo.deposit;
 
