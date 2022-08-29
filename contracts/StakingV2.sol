@@ -292,7 +292,7 @@ contract StakingV2 is
     )
         external override
     {
-        require(_addAmount > 0 ||  _periodWeeks > 0, "all zero input");
+        require(_addAmount > 0 || _periodWeeks > 0, "all zero input");
 
         LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
         require(_stakeInfo.staker == msg.sender, "caller is not staker");
@@ -539,7 +539,7 @@ contract StakingV2 is
 
         rebaseIndex();
 
-        uint256 amount = claimableTos(_stakeId);
+        uint256 amount = getLtosToTos(_stakeInfo.ltos);
         require(amount > 0, "zero claimable amount");
 
         stakingPrincipal -= _stakeInfo.deposit;
@@ -613,24 +613,13 @@ contract StakingV2 is
     function claimableLtos(
         uint256 _stakeId
     )
-        public view override nonZero(_stakeId) returns (uint256)
+        external view override nonZero(_stakeId) returns (uint256)
     {
         if (allStakings[_stakeId].endTime < block.timestamp)
             return remainedLtos(_stakeId);
         else return 0;
     }
 
-    /// @inheritdoc IStaking
-    function claimableTos(
-        uint256 _stakeId
-    )
-        public view override nonZero(_stakeId) returns (uint256)
-    {
-        if (allStakings[_stakeId].endTime < block.timestamp){
-            return getLtosToTos(remainedLtos(_stakeId));
-        }
-        else return 0;
-    }
 
     /// @inheritdoc IStaking
     function getIndex() public view override returns(uint256){
@@ -638,7 +627,7 @@ contract StakingV2 is
     }
 
     /// @inheritdoc IStaking
-    function possibleIndex() external view override returns (uint256) {
+    function possibleIndex() public view override returns (uint256) {
         uint256 possibleIndex_ = index_;
         if(epoch.end <= block.timestamp) {
             uint256 epochNumber = 1;
@@ -696,13 +685,14 @@ contract StakingV2 is
     }
 
     /// @inheritdoc IStaking
-    function runwayTos() public override view returns (uint256) {
+    function runwayTosPossibleIndex() external override view returns (uint256) {
         uint256 treasuryAmount = IITreasury(treasury).enableStaking() ;
-        uint256 debtTos =  getLtosToTos(totalLtos);
+        uint256 debtTos =  getLtosToTosPossibleIndex(totalLtos);
 
         if( treasuryAmount < debtTos ) return 0;
         else return (treasuryAmount - debtTos);
     }
+
 
     /// @inheritdoc IStaking
     function getTosToLtos(uint256 amount) public override view returns (uint256) {
@@ -714,14 +704,23 @@ contract StakingV2 is
         return (ltos * index_) / 1e18;
     }
 
+    function getTosToLtosPossibleIndex(uint256 amount) public override view returns (uint256) {
+        return (amount * 1e18) / possibleIndex();
+    }
+
     /// @inheritdoc IStaking
-    function stakedOf(uint256 stakeId) public override view returns (uint256) {
-        return getLtosToTos(allStakings[stakeId].ltos);
+    function getLtosToTosPossibleIndex(uint256 ltos) public override view returns (uint256) {
+        return (ltos * possibleIndex()) / 1e18;
+    }
+
+    /// @inheritdoc IStaking
+    function stakedOf(uint256 stakeId) external override view returns (uint256) {
+        return getLtosToTosPossibleIndex(allStakings[stakeId].ltos);
     }
 
     /// @inheritdoc IStaking
     function stakedOfAll() external override view returns (uint256) {
-        return getLtosToTos(totalLtos);
+        return getLtosToTosPossibleIndex(totalLtos);
     }
 
     /// @inheritdoc IStaking
@@ -742,7 +741,16 @@ contract StakingV2 is
         );
     }
 
+    function runwayTos() public override view returns (uint256) {
+        uint256 treasuryAmount = IITreasury(treasury).enableStaking() ;
+        uint256 debtTos =  getLtosToTos(totalLtos);
+
+        if( treasuryAmount < debtTos ) return 0;
+        else return (treasuryAmount - debtTos);
+    }
+
     /* ========== internal ========== */
+
 
     function _stakeForSync(
         address to,

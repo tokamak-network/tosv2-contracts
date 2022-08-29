@@ -207,11 +207,6 @@ interface IStaking {
     /// @return return Claimable amount of LTOS
     function claimableLtos(uint256 _stakeId) external view returns (uint256);
 
-    /// @dev Returns the claimable TOS amount of a specific staking ID.
-    /// @param _stakeId  the stake id
-    /// @return return Claimable amount of TOS
-    function claimableTos(uint256 _stakeId) external view returns (uint256);
-
     /// @dev Returns the current Index value
     function getIndex() external view returns(uint256) ;
 
@@ -248,9 +243,14 @@ interface IStaking {
     /// @return time
     function secondsToNextEpoch() external view returns (uint256);
 
-    /// @dev  Compensation for LTOS with TOS and the remaining amount of TOS
+    /// @dev  Compensation for LTOS with TOS and the remaining amount of TOS (Based on current index)
     /// @return TOS with treasury - minus staking interest
     function runwayTos() external view returns (uint256);
+
+
+    /// @dev  Compensation for LTOS with TOS and the remaining amount of TOS
+    /// @return TOS with treasury - minus staking interest
+    function runwayTosPossibleIndex() external view returns (uint256);
 
     /// @dev Convert tos amount to LTOS (based on current index)
     /// @param amount  tosAmount
@@ -261,6 +261,17 @@ interface IStaking {
     /// @param ltos  LTOS Amount
     /// @return return TOS Amount
     function getLtosToTos(uint256 ltos) external view returns (uint256);
+
+
+    /// @dev Convert tos amount to LTOS (based on posibble index)
+    /// @param amount  tosAmount
+    /// @return return LTOS Amount
+    function getTosToLtosPossibleIndex(uint256 amount) external view returns (uint256);
+
+    /// @dev Convert LTOS to TOS (based on posibble index)
+    /// @param ltos  LTOS Amount
+    /// @return return TOS Amount
+    function getLtosToTosPossibleIndex(uint256 ltos) external view returns (uint256);
 
     /// @dev Amount of TOS staked by users
     /// @param stakeId  the stakeId
