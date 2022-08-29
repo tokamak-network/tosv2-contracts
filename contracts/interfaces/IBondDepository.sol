@@ -152,13 +152,13 @@ interface IBondDepository {
     function totalMarketCount() external view returns (uint256) ;
 
     /// @dev Returns information about the market.
-    /// @param _index  the market id
+    /// @param _marketId  the market id
     /// @return quoteToken  saleToken Address
     /// @return capacity  tokenSaleAmount
     /// @return endSaleTime  market endTime
     /// @return maxPayout  Amount of tokens that can be purchased for one tx in the market
     /// @return tosPrice  tos price
-    function viewMarket(uint256 _index) external view
+    function viewMarket(uint256 _marketId) external view
         returns (
             address quoteToken,
             uint256 capacity,
@@ -168,9 +168,9 @@ interface IBondDepository {
             );
 
     /// @dev Return Whether The index market Whether is closed
-    /// @param _index  Index in the market
+    /// @param _marketId  Index in the market
     /// @return closedBool Whether the market is closed
-    function isOpened(uint256 _index) external view returns (bool closedBool);
+    function isOpened(uint256 _marketId) external view returns (bool closedBool);
 
 
 

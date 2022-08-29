@@ -342,7 +342,7 @@ contract BondDepository is
     }
 
     /// @inheritdoc IBondDepository
-    function viewMarket(uint256 _index) external override view
+    function viewMarket(uint256 _marketId) external override view
         returns (
             address quoteToken,
             uint256 capacity,
@@ -352,18 +352,18 @@ contract BondDepository is
             )
     {
         return (
-            markets[_index].quoteToken,
-            markets[_index].capacity,
-            markets[_index].endSaleTime,
-            markets[_index].maxPayout,
-            markets[_index].tosPrice
+            markets[_marketId].quoteToken,
+            markets[_marketId].capacity,
+            markets[_marketId].endSaleTime,
+            markets[_marketId].maxPayout,
+            markets[_marketId].tosPrice
         );
     }
 
     /// @inheritdoc IBondDepository
-    function isOpened(uint256 _index) external override view returns (bool closedBool)
+    function isOpened(uint256 _marketId) external override view returns (bool closedBool)
     {
-        if (block.timestamp < markets[_index].endSaleTime && markets[_index].capacity > 0) {
+        if (block.timestamp < markets[_marketId].endSaleTime && markets[_marketId].capacity > 0) {
             return true;
         } else {
             return false;
