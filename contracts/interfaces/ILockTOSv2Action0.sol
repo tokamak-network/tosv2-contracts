@@ -25,7 +25,7 @@ interface ILockTOSv2Action0 {
     /// @dev Total locked amount of `_addr`
     function totalLockedAmountOf(address _addr) external view returns (uint256);
 
-    /// @dev     jhswuqhdiuwjhdoiehdoijijf   bhabcgfzvg tqafstqfzys amount of `_addr`
+    /// @dev Returns total withdrawable number of TOS of ‘_addr’
     function withdrawableAmountOf(address _addr) external view returns (uint256);
 
     /// @dev Returns all locks of `_addr`

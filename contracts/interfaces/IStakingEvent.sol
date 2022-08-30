@@ -3,13 +3,13 @@ pragma solidity ^0.8.4;
 
 interface IStakingEvent{
 
-    /// @dev This event occurs when a stking by Bond without sTOS.
-    /// @param to  user address
-    /// @param amount  tosAmount
-    /// @param ltos get LTOS
-    /// @param marketId  marketId
+    /// @dev            this event occurs when bonding without sTOS
+    /// @param to       user address
+    /// @param amount   TOS amount used for staking
+    /// @param ltos     LTOS amount from staking
+    /// @param marketId marketId
     /// @param stakeId  stakeId
-    /// @param tosPrice    TOS/TOKEN
+    /// @param tosPrice amount of TOS per 1 ETH
     event StakedByBond(
         address to,
         uint256 amount,
@@ -19,16 +19,16 @@ interface IStakingEvent{
         uint256 tosPrice
     );
 
-    /// @dev This event occurs when a stking by Bond with sTOS.
-    /// @param to  user address
-    /// @param amount  tosAmount
-    /// @param ltos get LTOS
-    /// @param periodWeeks lock period
-    /// @param marketId  marketId
-    /// @param stakeId  stakeId
-    /// @param stosId   sTOSId
-    /// @param tosPrice    TOS/TOKEN
-    /// @param stosPrincipal    tos principal
+    /// @dev                 this event occurs when bonding with sTOS
+    /// @param to            user address
+    /// @param amount        TOS amount used for staking
+    /// @param ltos          LTOS amount from staking
+    /// @param periodWeeks   lock period
+    /// @param marketId      marketId
+    /// @param stakeId       stakeId
+    /// @param stosId        sTOSId
+    /// @param tosPrice      amount of TOS per 1 ETH
+    /// @param stosPrincipal number of TOS used for sTOS calculation
     event StakedGetStosByBond(
         address to,
         uint256 amount,
@@ -41,19 +41,19 @@ interface IStakingEvent{
         uint256 stosPrincipal
     );
 
-    /// @dev This event occurs when a stking without sTOS
-    /// @param to  user address
-    /// @param amount  tosAmount
+    /// @dev           this event occurs when staking without sTOS
+    /// @param to      user address
+    /// @param amount  TOS amount used for staking
     /// @param stakeId stakeId
     event Staked(address to, uint256 amount, uint256 stakeId);
 
-    /// @dev This event occurs when a stking with sTOS
-    /// @param to  user address
-    /// @param amount  tosAmount
-    /// @param periodWeeks lock period
-    /// @param stakeId  stakeId
-    /// @param stosId   sTOSId
-    /// @param stosPrincipal    tos principal
+    /// @dev                 this event occurs when staking with sTOS
+    /// @param to            user address
+    /// @param amount        TOS amount used for staking
+    /// @param periodWeeks   lock period
+    /// @param stakeId       stakeId
+    /// @param stosId        sTOSId
+    /// @param stosPrincipal number of TOS used for sTOS calculation
     event StakedGetStos(
         address to,
         uint256 amount,
@@ -63,21 +63,21 @@ interface IStakingEvent{
         uint256 stosPrincipal
     );
 
-    /// @dev This event occurs when a increaseAmount
-    /// @param to  user address
-    /// @param amount  tosAmount
-    /// @param stakeId  stakeId
+    /// @dev           this event occurs when additional TOS is used for staking for LTOS
+    /// @param to      user address
+    /// @param amount  additional TOS used for staking
+    /// @param stakeId stakeId
     event IncreasedAmountForSimpleStake(address to, uint256 amount, uint256 stakeId);
 
 
-    /// @dev This event occurs when a stking and claim after lock
-    /// @param to  user address
-    /// @param addAmount  tosAmount
-    /// @param claimAmount  claimAmount
-    /// @param periodWeeks lock period
-    /// @param stakeId  stakeId
-    /// @param stosId   sTOSId
-    /// @param stosPrincipal   tos principal
+    /// @dev                 this event occurs when staking amount or/and lockup period is updated after the lockup period is passed
+    /// @param to            user address
+    /// @param addAmount     additional TOS used for staking
+    /// @param claimAmount   amount of LTOS to claim
+    /// @param periodWeeks   lock period
+    /// @param stakeId       stakeId
+    /// @param stosId        sTOSId
+    /// @param stosPrincipal number of TOS used for sTOS calculation
     event ResetStakedGetStosAfterLock(
         address to,
         uint256 addAmount,
@@ -88,13 +88,13 @@ interface IStakingEvent{
         uint256 stosPrincipal
     );
 
-    /// @dev This event occurs increase the amount or lock period before lock
-    /// @param staker  user address
-    /// @param amount  tosAmount
-    /// @param unlockWeeks  lock period
-    /// @param stakeId  stakeId
-    /// @param stosId   sTOSId
-    /// @param stosPrincipal   tos principal
+    /// @dev                 this event occurs when staking amount or/and lockup period is updated before the lockup period is passed
+    /// @param staker        user address
+    /// @param amount        additional TOS used for staking
+    /// @param unlockWeeks   lock period
+    /// @param stakeId       stakeId
+    /// @param stosId        sTOSId
+    /// @param stosPrincipal number of TOS used for sTOS calculation
     event IncreasedBeforeEndOrNonEnd(
         address staker,
         uint256 amount,
@@ -104,21 +104,21 @@ interface IStakingEvent{
         uint256 stosPrincipal
     );
 
-    /// @dev This event occurs claim for non lock stakeId
-    /// @param staker  user address
-    /// @param claimAmount  claimAmount
-    /// @param stakeId  stakeId
+    /// @dev               this event occurs claim for non lock stakeId
+    /// @param staker      user address
+    /// @param claimAmount amount of LTOS to claim
+    /// @param stakeId     stakeId
     event ClaimedForNonLock(address staker, uint256 claimAmount, uint256 stakeId);
 
-    /// @dev This event occurs when unstaking stakeId that has passed the lockup period.
+    /// @dev           this event occurs when unstaking stakeId that has passed the lockup period
     /// @param staker  user address
-    /// @param amount  claimAmount(tos)
-    /// @param stakeId  stakeId
+    /// @param amount  amount of TOS given to the user
+    /// @param stakeId stakeId
     event Unstaked(address staker, uint256 amount, uint256 stakeId);
 
-    /// @dev This event occurs when the index is rebase.
-    /// @param oldIndex   before index
-    /// @param newIndex   newly calculated index
-    /// @param totalLTOS  Total amount of LTOS in the staking contract
+    /// @dev              this event occurs when the LTOS index updated
+    /// @param oldIndex   LTOS index before rebase() is called
+    /// @param newIndex   LTOS index after rebase() is called
+    /// @param totalLTOS  Total amount of LTOS
     event Rebased(uint256 oldIndex, uint256 newIndex, uint256 totalLTOS);
 }
