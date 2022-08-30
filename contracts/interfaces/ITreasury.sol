@@ -7,43 +7,42 @@ interface ITreasury {
 
 
     /* ========== onlyPolicyOwner ========== */
-    /// @dev            set permissions enable to Address
+    /// @dev            sets permissions to enable policy changes
     /// @param _status  permission number you want to change
     /// @param _address permission the address
     function enable(uint _status,  address _address) external ;
 
-    /// @dev Set Permissions disable to Address
-    /// @param _status  permission number you want to change
+    /// @dev              disables permissions 
+    /// @param _status    permission number you want to change
     /// @param _toDisable permission the address
     function disable(uint _status, address _toDisable) external;
 
-    /// @dev Set mintRate. mintRate is the ratio of setting how many TOS mint per 1 ETH as TOS/ETH.
-    /// @param _mrRate mintRate
-    /// @param amount  mint amount (After checking whether backing is performed even after mint by amount, mint TOS in treasury.)
+    /// @dev           sets mintRate and mints new TOS amount based on the mintRate
+    /// @param _mrRate mintRate is the ratio of setting how many TOS to be minted per 1 ETH
+    /// @param amount  mint amount 
     function setMR(uint256 _mrRate, uint256 amount) external;
 
-
-    /// @dev set the TOS-ETH Pool address
+    /// @dev                       sets the TOS-ETH Pool address
     /// @param _poolAddressTOSETH  TOS-ETH Pool address
     function setPoolAddressTOSETH(address _poolAddressTOSETH) external;
 
-    /// @dev set the uniswapV3Factory address
+    /// @dev                    sets the uniswapV3Factory address
     /// @param _uniswapFactory  uniswapV3factory address
     function setUniswapV3Factory(address _uniswapFactory) external;
 
-    /// @dev set the mintRateDenominator
+    /// @dev                         sets the mintRateDenominator
     /// @param _mintRateDenominator  mintRateDenominator
     function setMintRateDenominator(uint256 _mintRateDenominator) external;
 
-    /// @dev Add erc20 token, which is used as a backing asset in treasury.
-    /// @param _address  erc20 Address
+    /// @dev             adds erc20 token, which is used as a backing asset in Treasury
+    /// @param _address  erc20 address
     function addBackingList(address _address) external ;
 
-    /// @dev delete erc20 token, which is used as a backing asset in treasury.
-    /// @param _address  erc20 Address
+    /// @dev             deletes erc20 token, which is used as a backing asset in Treasury
+    /// @param _address  erc20 address
     function deleteBackingList(address _address) external;
 
-    /// @dev Set the foundation address and distribution rate.
+    /// @dev              sets the foundation address and distribution rate
     /// @param _addr      foundation Address
     /// @param _percents  percents
     function setFoundationDistributeInfo(
@@ -54,13 +53,13 @@ interface ITreasury {
 
     /* ========== onlyOwner ========== */
 
-    /// @dev Mint TOS and send tos to recipient. Decide whether to distribute to the foundation or not according to the distribution.
+    /// @dev                    mints TOS and send TOS to recipient. Decides whether to distribute to the foundation or not
     /// @param _mintAmount      mintAmount
-    /// @param _distribute      Foundation distribution check
+    /// @param _distribute      foundation distribution check
     function requestMint(uint256 _mintAmount, bool _distribute) external ;
 
-    /// @dev addbackingList called by bonder
-    /// @param _address         erc20 Address
+    /// @dev            addbackingList can be called by bonder
+    /// @param _address erc20 Address
     function addBondAsset(
         address _address
     )
@@ -68,106 +67,106 @@ interface ITreasury {
 
     /* ========== onlyStaker ========== */
 
-    /// @dev TOS transfer called by Staker
-    /// @param _recipient   recipient Address
-    /// @param _amount      recipient get Amount
+    /// @dev              TOS transfer called by staker
+    /// @param _recipient recipient address
+    /// @param _amount    amount transferred to the recipient
     function requestTransfer(address _recipient, uint256 _amount)  external;
 
     /* ========== Anyone can execute ========== */
 
     /* ========== VIEW ========== */
 
-    /// @dev return the now mintRate
+    /// @dev             returns the current mintRate
     /// @return uint256  mintRate
     function getMintRate() external view returns (uint256);
 
-    /// @dev How much tokens are valued as TOS
-    /// @return uint256  the amount evaluated as TOS
+    /// @dev             ETH backing value per 1 TOS
+    /// @return uint256  returns ETH backing value per 1 TOS 
     function backingRateETHPerTOS() external view returns (uint256);
 
-    /// @dev check if registry contains address
+    /// @dev    checks if registry contains a particular address
     /// @return (bool, uint256)
     function indexInRegistry(address _address, LibTreasury.STATUS _status) external view returns (bool, uint256);
 
 
-    /// @dev return treasury tos balance
-    /// @return uint256
+    /// @dev            returns treasury's TOS balance
+    /// @return uint256 TOS owned by the treasury (not including the amount owned by the foundation) 
     function enableStaking() external view returns (uint256);
 
-    /// @dev The assets held by the treasury are converted into ETH and returned
-    /// @return uint256
+    /// @dev            returns assets held by the treasury are converted into ETH
+    /// @return uint256 assets held by the treasury are converted into ETH
     function backingReserve() external view returns (uint256) ;
 
-    /// @dev Total number of tokens backing by treasury
-    /// @return uint256
+    /// @dev            number of token types backed by treasury
+    /// @return uint256 returns the number of token types backed by treasury
     function totalBacking() external view returns (uint256);
 
-    /// @dev Returns the backing information of all backings
-    /// @return erc20Address   erc20Address
+    /// @dev                 returns list of erc20 token types counted in backing
+    /// @return erc20Address erc20Address
     function allBacking() external view returns (
         address[] memory erc20Address
     );
 
-    /// @dev Returns the total length of mintings
-    /// @return uint256  mintings
+    /// @dev            returns the total length of mintings
+    /// @return uint256 mintings
     function totalMinting() external view returns(uint256) ;
 
-    /// @dev Returns the mintings information of mintings index
-    /// @param _index   mintings.index
-    /// @return mintAddress   mintAddress
-    /// @return mintPercents  mintPercents
+    /// @dev                 returns the foundation distribute minting information of a particular minting index
+    /// @param _index        mintings.index
+    /// @return mintAddress  mintAddress
+    /// @return mintPercents mintPercents
     function viewMintingInfo(uint256 _index)
         external view returns(address mintAddress, uint256 mintPercents);
 
-    /// @dev Returns the mintings information of all mintings
-    /// @return mintAddress   mintAddress
-    /// @return mintPercents  mintPercents
+    /// @dev                 returns the foundation distribute minting information in an array
+    /// @return mintAddress  mintAddress
+    /// @return mintPercents mintPercents
     function allMinting() external view
         returns (
             address[] memory mintAddress,
             uint256[] memory mintPercents
             );
 
-    /// @dev check the permission
-    /// @param role      STATUS
-    /// @param account   address
-    /// @return bool     true or false
+    /// @dev           checks if an account has a particular permission
+    /// @param role    role
+    /// @param account address
+    /// @return bool   true or false
     function hasPermission(uint role, address account) external view returns (bool);
 
-    /// @dev Check if mint can be added as much as amount when mintRate is change
-    /// @param _checkMintRate      change mintRate
-    /// @param amount              mint Amount
-    /// @return bool               true or false
+    /// @dev                  checks if "_checkMintRate" can be set as a new minting rate if "amount" of TOS is minted
+    /// @param _checkMintRate changes mintRate
+    /// @param amount         mint amount
+    /// @return bool          true or false
     function checkTosSolvencyAfterTOSMint (uint256 _checkMintRate, uint256 amount) external view returns (bool);
 
-    /// @dev Check if mint can be added as much as amount when now mintRate
-    /// @param amount              mint Amount
-    /// @return bool               true or false
+    /// @dev          checks if there is enough backing in the treasury to mint more TOS at current minting rate
+    /// @param amount mints amount
+    /// @return bool  true or false
     function checkTosSolvency (uint256 amount) external view returns (bool);
 
-    /// @dev return The value calculated by converting the value of all assets held by the treasury into ETH
+    /// @dev            returns backing owned by Treasury converted in ETH 
     /// @return uint256 ETH Value
     function backingReserveETH() external view returns (uint256);
 
-    /// @dev return The value calculated by converting the value of all assets owned by the treasury into TOS
+    /// @dev            returns backing owned by Treasury converted in TOS
     /// @return uint256 TOS Value
     function backingReserveTOS() external view returns (uint256);
 
-    /// @dev Return the current ETH/TOS price
-    /// @return uint256 ETH/TOS
+    /// @dev            returns the current ETH/TOS price
+    /// @return uint256 amount of ETH per 1 TOS
     function getETHPricePerTOS() external view returns (uint256);
 
-    /// @dev Return the current TOS/ETH price
-    /// @return uint256 TOS/ETH
+    /// @dev            returns the current TOS/ETH price
+    /// @return uint256 amount of TOS per 1 ETH
     function getTOSPricePerETH() external view returns (uint256);
 
-    /// @dev Check if the account is bond permission
-    /// @param account   BonderAddress
-    /// @return bool     true or false
+    /// @dev           checks if the account has a bonder permission
+    /// @param account BonderAddress
+    /// @return bool   true or false
     function isBonder(address account) external view returns (bool);
 
-    /// @dev Check if the account has staker permission
-    /// @param account   stakerAddress
-    /// @return bool     true or false
+    /// @dev           checks if the account has a staker permission
+    /// @param account stakerAddress
+    /// @return bool   true or false
     function isStaker(address account) external view returns (bool);
 }

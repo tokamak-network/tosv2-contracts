@@ -3,77 +3,67 @@ pragma solidity ^0.8.4;
 
 interface ITreasuryEvent{
 
-    /// @dev This event occurs when permission is change.
-    /// @param addr    address
-    /// @param status  STATUS
-    /// @param result  true or false
+    /// @dev          this event occurs when permission is updated.
+    /// @param addr   address
+    /// @param status status
+    /// @param result true or false
     event Permissioned(address addr, uint indexed status, bool result);
 
-    /// @dev This event occurs when setting the mint rate.
-    /// @param mrRate    the mint rate
-    /// @param amount    the TOS amountto add
+    /// @dev          this event occurs mint rate has been updated
+    /// @param mrRate mint rate
+    /// @param amount TOS amount that is minted
     event SetMintRate(uint256 mrRate, uint256 amount);
 
-    /// @dev This event occurs when set the PoolAddressTOSETH
-    /// @param _poolAddressTOSETH    the pool address of TOS-ETH pair
+    /// @dev                      this event occurs when PoolAddressTOSETH is set
+    /// @param _poolAddressTOSETH pool address of TOS-ETH pair
     event SetPoolAddressTOSETH(address _poolAddressTOSETH);
 
-    /// @dev This event occurs when set the UniswapV3Factory
-    /// @param _uniswapFactory    the address of uniswapFactory
+    /// @dev                   this event occurs when UniswapV3Factory is set
+    /// @param _uniswapFactory address of uniswapFactory
     event SetUniswapV3Factory(address _uniswapFactory);
 
-    /// @dev This event occurs when set the MintRateDenominator
-    /// @param _mintRateDenominator    the _mintRateDenominator
+    /// @dev                        this event occurs when MintRateDenominator is set
+    /// @param _mintRateDenominator _mintRateDenominator
     event SetMintRateDenominator(uint256 _mintRateDenominator);
 
-    /// @dev This event occurs when add the BackingList
-    /// @param _address    the asset address
+    /// @dev            this event occurs when a new token is added to the backing list
+    /// @param _address asset address
     event AddedBackingList(address _address);
 
-    /// @dev This event occurs when delete the BackingList
-    /// @param _address    the asset address
+    /// @dev            this event occurs when a token is deleted from the backing list
+    /// @param _address asset address
     event DeletedBackingList(
         address _address
     );
 
 
-    /// @dev This event occurs when set the Foundation Distribute Info
-    /// @param _addr    the address list
-    /// @param _percents    the percentage list
+    /// @dev             this event occurs when Foundation Distribute Info has been added
+    /// @param _addr     address list
+    /// @param _percents percentage list
     event SetFoundationDistributeInfo(
         address[]  _addr,
         uint256[] _percents
     );
 
-    /// @dev This event occurs when call foundationDistribute function
-    /// @param to    the address
-    /// @param amount    the tos amount
+    /// @dev          this event occurs when accmulated TOS from bonding (for the foundation) is transferred to foundation based on the predefined percentage 
+    /// @param to     the address
+    /// @param amount TOS amount distributed to the address
     event DistributedFoundation(
         address to,
         uint256 amount
     );
 
-    /// @dev This event occurs when request mint and transfer TOS
-    /// @param _mintAmount    the TOS amount to mint
-    /// @param _distribute   If true,  distribute a percentage of the remaining amount to the foundation after mint and transfer.
+    /// @dev               this event occurs when request mint and transfer TOS
+    /// @param _mintAmount minted TOS amount 
+    /// @param _distribute if true, distribute a percentage of the remaining amount to the foundation after mint and transfer
     event RquestedMint(
         uint256 _mintAmount,
         bool _distribute
     );
 
-    /// @dev This event occurs when add the BondAsset
-    /// @param _address    the asset address
-    /// @param _tosPooladdress    the asset's _tosPooladdress
-    /// @param _fee    the _tosPool's fee
-    event AddedBondAsset(
-        address _address,
-        address _tosPooladdress,
-        uint24 _fee
-    );
-
-    /// @dev This event occurs when request transfer TOS
-    /// @param _recipient    the recipient
-    /// @param _amount   the TOS amount to transfer
+    /// @dev              this event occurs when request transfer TOS
+    /// @param _recipient recipient address
+    /// @param _amount    transferred TOS amount
     event RequestedTransfer(
         address _recipient,
         uint256 _amount

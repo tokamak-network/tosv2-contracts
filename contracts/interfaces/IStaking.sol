@@ -220,9 +220,9 @@ interface IStaking {
         view
         returns (uint256[] memory);
 
-    /// @dev returns the staked LTOS amount of user
-    /// @param _addr user account
-    /// @return balance the staked LTOS amount of user
+    /// @dev            returns the staked LTOS amount of the user in TOS
+    /// @param _addr    user account
+    /// @return balance staked LTOS amount of the user in TOS
     function balanceOf(address _addr) external view returns (uint256 balance);
 
     /// @dev returns the time left until next rebase
@@ -243,8 +243,8 @@ interface IStaking {
     /// @return return LTOS amount
     function getTosToLtos(uint256 amount) external view returns (uint256);
 
-    /// @dev         converts LTOS to TOS (if rebase() is not called)
-    /// @param ltos  LTOS Amount
+    /// @dev           converts LTOS to TOS (if rebase() is not called)
+    /// @param ltos    LTOS Amount
     /// @return return TOS Amount
     function getLtosToTos(uint256 ltos) external view returns (uint256);
 
