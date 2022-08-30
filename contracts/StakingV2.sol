@@ -522,7 +522,7 @@ contract StakingV2 is
 
         IITreasury(treasury).requestTransfer(msg.sender, _claimAmount);
 
-        emit ClaimdForNonLock(msg.sender, _claimAmount, _stakeId);
+        emit ClaimedForNonLock(msg.sender, _claimAmount, _stakeId);
     }
 
 

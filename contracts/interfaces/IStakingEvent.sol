@@ -108,7 +108,7 @@ interface IStakingEvent{
     /// @param staker  user address
     /// @param claimAmount  claimAmount
     /// @param stakeId  stakeId
-    event ClaimdForNonLock(address staker, uint256 claimAmount, uint256 stakeId);
+    event ClaimedForNonLock(address staker, uint256 claimAmount, uint256 stakeId);
 
     /// @dev This event occurs when unstaking stakeId that has passed the lockup period.
     /// @param staker  user address
