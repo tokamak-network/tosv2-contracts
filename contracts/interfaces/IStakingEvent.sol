@@ -104,10 +104,17 @@ interface IStakingEvent{
         uint256 stosPrincipal
     );
 
+<<<<<<< HEAD
     /// @dev               this event occurs claim for non lock stakeId
     /// @param staker      user address
     /// @param claimAmount amount of LTOS to claim
     /// @param stakeId     stakeId
+=======
+    /// @dev This event occurs claim for non lock stakeId
+    /// @param staker  user address
+    /// @param claimAmount  claimAmount
+    /// @param stakeId  stakeId
+>>>>>>> c66bf1e5d68841103d9f9f18892eebb93033e980
     event ClaimedForNonLock(address staker, uint256 claimAmount, uint256 stakeId);
 
     /// @dev           this event occurs when unstaking stakeId that has passed the lockup period
