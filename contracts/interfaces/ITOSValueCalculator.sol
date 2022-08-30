@@ -3,12 +3,12 @@ pragma solidity ^0.8.0;
 
 interface ITOSValueCalculator {
 
-    /// @dev                     initialize function
-    /// @param _tos              the address of TOS
-    /// @param _weth             the address of WETH
-    /// @param _npm              the address of NonFungibleManager of UniswapV3
-    /// @param _basicpool        the address of WETH-TOS pool
-    /// @param _uniswapV3factory the address of UniswapV3Factory
+    /// @dev                     initializes addresses
+    /// @param _tos              address of TOS
+    /// @param _weth             address of WETH
+    /// @param _npm              address of NonFungibleManager of UniswapV3
+    /// @param _basicpool        address of WETH-TOS pool
+    /// @param _uniswapV3factory address of UniswapV3Factory
     function initialize(
         address _tos,
         address _weth,
@@ -17,77 +17,77 @@ interface ITOSValueCalculator {
         address _uniswapV3factory
     ) external;
 
-    /// @dev           gets the TOS price from the WETH-TOS pool.
-    /// @return price  price of TOS
+    /// @dev           gets the TOS price from the WETH-TOS pool
+    /// @return price  returns price of TOS per 1 WETH
     function getWETHPoolTOSPrice() external view returns (uint256 price);
 
-    /// @dev                  It tells that _erc20Addresss-TOS pool is existed, and if it is a TOS pool, it tells that the TOS token is which token among first ot second.
-    /// @param _erc20Addresss the address of pool
-    /// @param _fee           the fee of pool
-    /// @return uint          returns 0 if token0 is TOS, returns 1, token1 is TOS, returns 2 if the pool does not exist, returns 3 if it is not a TOS pool.
+    /// @dev                  returns information about TOS-token0 pool using token0 address 
+    /// @param _erc20Addresss pool address
+    /// @param _fee           fee of pool
+    /// @return uint          returns 0 if token0 is TOS, returns 1 if token1 is TOS, returns 2 if the pool does not exist, returns 3 if it is not a TOS pool
     function getTOStoken0(address _erc20Addresss, uint24 _fee) external view returns (uint);
 
-    /// @dev                It tells that _poolAddress is TOS pool or not, and if it is TOS pool, It tells that the TOS token is which token among first ot second.
-    /// @param _poolAddress The address of pool
-    /// @return uint        returns 0 if token0 is TOS, returns 1 if token1 is TOS, returns 3 if is not TOS pool.
+    /// @dev                returns information about TOS-token pool using pool address
+    /// @param _poolAddress pool address
+    /// @return uint        returns 0 if token0 is TOS, returns 1 if token1 is TOS, returns 3 if it is not a TOS pool
     function getTOStoken(address _poolAddress) external view returns (uint);
 
-    /// @dev It tells the price of token0 in the pool.
-    /// @param poolAddress The address of pool
-    /// @return priceX96 The token0's price of pool
+    /// @dev               returns the pool price of token0
+    /// @param poolAddress pool address
+    /// @return priceX96   returns token0's price of pool
     function getPriceToken0(address poolAddress) external view returns (uint256 priceX96);
 
-    /// @dev It tells the price of token1 in the pool.
-    /// @param poolAddress The address of pool
-    /// @return priceX96 The token1's price of pool
+    /// @dev               returns the pool price of token1
+    /// @param poolAddress pool address
+    /// @return priceX96   returns token1's price of pool
     function getPriceToken1(address poolAddress) external view returns(uint256 priceX96);
 
-    /// @dev It tells the TOS price per ETH token
-    /// @return price The TOS price per ETH token
+    /// @dev          returns the price of TOS per ETH
+    /// @return price returns TOS price per 1 ETH
     function getTOSPricePerETH() external view returns (uint256 price);
 
-    /// @dev It tells the ETH price per TOS token
-    /// @return price The ETH price per TOS token
+    /// @dev          returns the price of ETH per TOS
+    /// @return price returns ETH price per 1 TOS token
     function getETHPricePerTOS() external view returns (uint256 price);
 
-    /// @dev It tells you how many TOS tokens are equal to each _asset token.
-    /// @param _asset The token address
-    /// @return price The TOS price per _asset token
+    /// @dev          returns the price of TOS per _asset
+    /// @param _asset _asset's token address
+    /// @return price returns TOS price per 1 _asset token
     function getTOSPricePerAsset(address _asset) external view returns (uint256 price);
 
-    /// @dev It tells you how many tokens are equal to each TOS.
-    /// @param _asset The token address
-    /// @return price The _asset price per TOS
+    /// @dev          returns the price of _asset per TOS
+    /// @param _asset _asset's token address
+    /// @return price returns _asset price per 1 TOS
     function getAssetPricePerTOS(address _asset) external view returns (uint256 price);
 
     /// @dev
-    /// @param tokenA The first token used to create the pool
-    /// @param tokenB  The second token used to create the pool
-    /// @param _fee  the fee used to create the pool
-    /// @return isWeth  true if WETH pool
+    /// @param tokenA  first token used to create the pool
+    /// @param tokenB  second token used to create the pool
+    /// @param _fee    fee used to create the pool
+    /// @return isWeth true if WETH pool
     /// @return isTos  true if it is a TOS pool
-    /// @return pool  the address of pool
-    /// @return token0  the address of token0
-    /// @return token1  the address of token1
+    /// @return pool   pool address
+    /// @return token0 address of token0
+    /// @return token1 address of token1
     function existPool(address tokenA, address tokenB, uint24 _fee)
         external view returns (bool isWeth, bool isTos, address pool, address token0, address token1);
 
-    /// @dev When you create a pool with two tokens, you can know the address of the pool that is created.
-    /// @param tokenA The first token used to create the pool
-    /// @param tokenB  The second token used to create the pool
-    /// @param _fee  the fee used to create the pool
-    /// @return pool  the address of pool
-    /// @return token0  the address of token0
-    /// @return token1  the address of token1
+    /// @dev           used to compute the pool address of token0 and token1
+    /// @param tokenA  first token used to create the pool
+    /// @param tokenB  second token used to create the pool
+    /// @param _fee    fee used to create the pool
+    /// @return pool   pool address
+    /// @return token0 address of token0
+    /// @return token1 address of token1
     function computePoolAddress(address tokenA, address tokenB, uint24 _fee)
         external view returns (address pool, address token0, address token1);
 
-    /// @dev                            It tells you how much Ether or TOS a certain amount of tokens can be exchanged for.
-    /// @param _asset                   the token address
-    /// @param _amount                  the amount of token
-    /// @return  existedWethPool        true is assigned when an Ether-specific token pool exists, which will indicate the amount in Ether basis.
-    /// @return  existedTosPool         true is assigned when an TOS-specific token pool exists, which will indicate the amount in TOS basis.
-    /// @return  priceWethOrTosPerAsset Ether price per token or TOS price per token
+    /// @dev                            used to calculate the price of the asset in in ETH or TOS
+    /// @param _asset                   _asset's token address
+    /// @param _amount                  amount of token
+    /// @return  existedWethPool        true is assigned when an Ether-specific token pool exists, which will indicate the amount in Ether basis
+    /// @return  existedTosPool         true is assigned when an TOS-specific token pool exists, which will indicate the amount in TOS basis
+    /// @return  priceWethOrTosPerAsset ETH price per token or TOS price per token
     /// @return  convertedAmount        amount of ether or TOS
     function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
         external view
