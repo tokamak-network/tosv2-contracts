@@ -83,6 +83,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
     address public npm_;
     address public ethTosPool;
 
+    /// @inheritdoc ITOSValueCalculator
     function initialize(
         address _tos,
         address _weth,
@@ -101,7 +102,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
     }
 
 
-    //WETH-TOS Pool에서 1TOS = ? ETH를 반환한다 (ether단위로 반환) -> ? ETH/1TOS
+    /// @inheritdoc ITOSValueCalculator
     function getWETHPoolTOSPrice() public override view returns (uint256 price) {
         uint tosOrder = getTOStoken0(weth, 3000);
         if(tosOrder == 2 && tosOrder == 3) {
@@ -116,6 +117,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
+    /// @inheritdoc ITOSValueCalculator
     function getTOStoken0(address _erc20Addresss, uint24 _fee) public override view returns (uint) {
         address getPool = UniswapV3Factory.getPool(address(tos), address(_erc20Addresss), _fee);
         if(getPool == address(0)) {
@@ -133,6 +135,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
+    /// @inheritdoc ITOSValueCalculator
     function getTOStoken(address _poolAddress) public override view returns (uint) {
         address token0Address = IIUniswapV3Pool(_poolAddress).token0();
         address token1Address = IIUniswapV3Pool(_poolAddress).token1();
@@ -144,7 +147,6 @@ contract TOSValueCalculator is ITOSValueCalculator {
             return 3;
         }
     }
-
 
     function getAmounts(address npm, address poolAddress, uint256 tokenId)
         public view returns (uint256 amount0, uint256 amount1) {
@@ -186,6 +188,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
              );
     }
 
+    /// @inheritdoc ITOSValueCalculator
     function getPriceToken1(address poolAddress) public override  view returns(uint256 priceX96) {
 
         (, int24 tick, , , , ,) = IIUniswapV3Pool(poolAddress).slot0();
@@ -221,7 +224,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         }
     }
 
-
+    /// @inheritdoc ITOSValueCalculator
     function getTOSPricePerETH() public override view  returns (uint256 price) {
         (bool isWeth1, bool isTos1, address poolA, address token0A, address token1A) = existPool(tos, weth, 3000);
 
@@ -229,6 +232,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         if (isWeth1 && isTos1 && token1A == tos) price = getPriceToken0(poolA);
     }
 
+    /// @inheritdoc ITOSValueCalculator
     function getETHPricePerTOS() public override view returns (uint256 price) {
         (bool isWeth1, bool isTos1, address poolA, address token0A, address token1A) = existPool(tos, weth, 3000);
 
@@ -236,6 +240,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         if (isWeth1 && isTos1 && token1A == weth) price = getPriceToken0(poolA);
     }
 
+    /// @inheritdoc ITOSValueCalculator
     function getTOSPricePerAsset(address _asset) public override view returns (uint256 price) {
         (, bool isTos1, address poolA, address token0A, address token1A) = existPool(tos, _asset, 3000);
 
@@ -243,6 +248,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         if (isTos1 && token1A == tos) price = getPriceToken0(poolA);
     }
 
+    /// @inheritdoc ITOSValueCalculator
     function getAssetPricePerTOS(address _asset) public override view returns (uint256 price) {
         (, bool isTos1, address poolA, address token0A, address token1A) = existPool(tos, _asset, 3000);
 
@@ -250,6 +256,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         if (isTos1 && token1A == _asset) price = getPriceToken0(poolA);
     }
 
+    /// @inheritdoc ITOSValueCalculator
     function existPool(address tokenA, address tokenB, uint24 _fee)
         public override view returns (bool isWeth, bool isTos, address pool, address token0, address token1) {
 
@@ -265,7 +272,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         if(token0 == tos || token1 == tos) isTos = true;
     }
 
-
+    /// @inheritdoc ITOSValueCalculator
     function computePoolAddress(address tokenA, address tokenB, uint24 _fee)
         public override view returns (address pool, address token0, address token1)
     {
@@ -294,7 +301,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
 
     }
 
-
+    /// @inheritdoc ITOSValueCalculator
     function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
         public override view
         returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmount)
