@@ -654,16 +654,6 @@ contract StakingV2 is
     }
 
     /// @inheritdoc IStaking
-    function balanceOfId(uint256 _stakeId)
-        public
-        override
-        view
-        returns (uint256)
-    {
-        return remainedLtos(_stakeId);
-    }
-
-    /// @inheritdoc IStaking
     function balanceOf(address _addr)
         public
         override
@@ -673,7 +663,7 @@ contract StakingV2 is
         uint256[] memory stakings = userStakings[_addr];
         if (stakings.length == 0) return 0;
         for (uint256 i = 0; i < stakings.length; ++i) {
-            balance += balanceOfId(stakings[i]);
+            balance += remainedLtos(stakings[i]);
         }
     }
 

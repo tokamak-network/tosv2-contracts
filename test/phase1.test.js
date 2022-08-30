@@ -1805,7 +1805,7 @@ describe("TOSv2 Phase1", function () {
         let amount = ethers.utils.parseEther("10");
 
         let stakedOf = await stakingProxylogic.stakedOf(depositData.stakeId);
-        let balanceOfId = await stakingProxylogic.balanceOfId(depositData.stakeId);
+        let balanceOfId = await stakingProxylogic.remainedLtos(depositData.stakeId);
 
         let totalLtos = await stakingProxylogic.totalLtos();
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
@@ -1826,7 +1826,7 @@ describe("TOSv2 Phase1", function () {
         expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfPrev.sub(amount));
         expect(await tosContract.balanceOf(treasuryProxylogic.address)).to.be.gte(balanceOfPrevStakeContract.add(amount));
 
-        expect(await stakingProxylogic.balanceOfId(depositData.stakeId)).to.be.gt(balanceOfId);
+        expect(await stakingProxylogic.remainedLtos(depositData.stakeId)).to.be.gt(balanceOfId);
 
         expect(await stakingProxylogic.totalLtos()).to.be.gt(totalLtos);
       });
@@ -1925,14 +1925,14 @@ describe("TOSv2 Phase1", function () {
         expect(stakingPrincipal).to.be.lte(balanceOfStakeContract);
 
         let balanceOfTOSPrev = await tosContract.balanceOf(depositor.address);
-        let balanceOfId = await stakingProxylogic.balanceOfId(depositData.stakeId);
+        let balanceOfId = await stakingProxylogic.remainedLtos(depositData.stakeId);
 
         await stakingProxylogic.connect(depositor).claimForSimpleType(
             depositData.stakeId,
             amountLtos
           );
 
-        expect(await stakingProxylogic.balanceOfId(depositData.stakeId)).to.be.lt(balanceOfId);
+        expect(await stakingProxylogic.remainedLtos(depositData.stakeId)).to.be.lt(balanceOfId);
         expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfTOSPrev.add(amountTos));
 
         expect(await stakingProxylogic.totalLtos()).to.be.lt(totalLtos);
@@ -1953,7 +1953,7 @@ describe("TOSv2 Phase1", function () {
         let totalLtos = await stakingProxylogic.totalLtos();
 
         let balanceOfTOSPrev = await tosContract.balanceOf(depositor.address);
-        let balanceOfId = await stakingProxylogic.balanceOfId(depositData.stakeId);
+        let balanceOfId = await stakingProxylogic.remainedLtos(depositData.stakeId);
         // let staked = await stakingProxylogic.allStakings(depositData.stakeId);
         // let stakedOf = await stakingProxylogic.getLtosToTosPossibleIndex(staked.ltos);
         // console.log('depositData.stakedOf',stakedOf);
@@ -1969,7 +1969,7 @@ describe("TOSv2 Phase1", function () {
             depositData.stakeId
         );
 
-        expect(await stakingProxylogic.balanceOfId(depositData.stakeId)).to.be.eq(ethers.constants.Zero);
+        expect(await stakingProxylogic.remainedLtos(depositData.stakeId)).to.be.eq(ethers.constants.Zero);
 
         let balanceTosUser = await tosContract.balanceOf(depositor.address);
         // console.log('balanceTosUser depositor',balanceTosUser);
@@ -2897,7 +2897,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
-        let balanceOfId = await stakingProxylogic.balanceOfId(depositData.stakeId);
+        let balanceOfId = await stakingProxylogic.remainedLtos(depositData.stakeId);
         let stakedOf = await stakingProxylogic.stakedOf(depositData.stakeId);
 
         // console.log('depositData.stakeId',depositData.stakeId);
@@ -2908,7 +2908,7 @@ describe("TOSv2 Phase1", function () {
             depositData.stakeId
         );
 
-        expect(await stakingProxylogic.balanceOfId(depositData.stakeId)).to.be.eq(ethers.constants.Zero);
+        expect(await stakingProxylogic.remainedLtos(depositData.stakeId)).to.be.eq(ethers.constants.Zero);
         expect(await tosContract.balanceOf(depositor.address)).to.be.gte(balanceOfPrev.add(stakedOf));
         if (balanceOfId.gt(ethers.constants.Zero))
           expect(await stakingProxylogic.totalLtos()).to.be.lt(totalLtos);
@@ -3407,14 +3407,14 @@ describe("TOSv2 Phase1", function () {
 
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
-        let balanceOfId = await stakingProxylogic.balanceOfId(depositData.stakeId);
+        let balanceOfId = await stakingProxylogic.remainedLtos(depositData.stakeId);
         let stakedOf = await stakingProxylogic.stakedOf(depositData.stakeId);
 
         await stakingProxylogic.connect(depositor).unstake(
             depositData.stakeId
         );
 
-        expect(await stakingProxylogic.balanceOfId(depositData.stakeId)).to.be.eq(ethers.constants.Zero);
+        expect(await stakingProxylogic.remainedLtos(depositData.stakeId)).to.be.eq(ethers.constants.Zero);
         expect(await tosContract.balanceOf(depositor.address)).to.be.gte(balanceOfPrev.add(stakedOf));
         if (balanceOfId.gt(ethers.constants.Zero))
           expect(await stakingProxylogic.totalLtos()).to.be.lt(totalLtos);
@@ -3747,7 +3747,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
-        let balanceOfId = await stakingProxylogic.balanceOfId(depositData.stakeId);
+        let balanceOfId = await stakingProxylogic.remainedLtos(depositData.stakeId);
         let stakedOf = await stakingProxylogic.stakedOf(depositData.stakeId);
         // console.log('stakedOf',stakedOf);
 
@@ -3755,7 +3755,7 @@ describe("TOSv2 Phase1", function () {
             depositData.stakeId
         );
 
-        expect(await stakingProxylogic.balanceOfId(depositData.stakeId)).to.be.eq(ethers.constants.Zero);
+        expect(await stakingProxylogic.remainedLtos(depositData.stakeId)).to.be.eq(ethers.constants.Zero);
         expect(await tosContract.balanceOf(depositor.address)).to.be.gte(balanceOfPrev.sub(stakedOf));
         if (balanceOfId.gt(ethers.constants.Zero))
           expect(await stakingProxylogic.totalLtos()).to.be.lt(totalLtos);

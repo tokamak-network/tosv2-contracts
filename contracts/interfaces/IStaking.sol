@@ -222,15 +222,6 @@ interface IStaking {
         returns (uint256[] memory);
 
 
-    /// @dev Returns the amount of remaining LTOS in _stakeId
-    /// @param _stakeId stakeId
-    /// @return return Amount of LTOS remaining
-    function balanceOfId(uint256 _stakeId)
-        external
-        view
-        returns (uint256);
-
-
     /// @dev Returns the amount of LTOS remaining on the account
     /// @param _addr address
     /// @return balance Returns the amount of LTOS remaining
