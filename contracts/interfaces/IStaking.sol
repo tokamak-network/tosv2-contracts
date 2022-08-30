@@ -30,7 +30,7 @@ interface IStaking {
         uint256 _index
     ) external;
 
-    /// @dev            set minimum bonding period 
+    /// @dev            set minimum bonding period
     /// @param _period  _period (seconds)
     function setBasicBondPeriod(uint256 _period) external ;
 
@@ -119,7 +119,7 @@ interface IStaking {
 
     /// @dev                used to update the amount of staking after the lockup period is passed
     /// @param _stakeId     stake id
-    /// @param _addAmount   additional TOS to be staked 
+    /// @param _addAmount   additional TOS to be staked
     /// @param _claimAmount amount of LTOS to claim
     /// @param _periodWeeks lockup period
     function resetStakeGetStosAfterLock(
@@ -219,6 +219,11 @@ interface IStaking {
         external
         view
         returns (uint256[] memory);
+
+    /// @dev returns the staked LTOS amount of user
+    /// @param _addr user account
+    /// @return balance the staked LTOS amount of user
+    function balanceOf(address _addr) external view returns (uint256 balance);
 
     /// @dev returns the time left until next rebase
     /// @return time
