@@ -24,7 +24,7 @@ interface ILockTOS {
     /// @dev Total locked amount of `_addr`
     function totalLockedAmountOf(address _addr) external view returns (uint256);
 
-    /// @dev     jhswuqhdiuwjhdoiehdoijijf   bhabcgfzvg tqafstqfzys amount of `_addr`
+    /// @dev Returns total withdrawable number of TOS of ‘_addr’
     function withdrawableAmountOf(address _addr) external view returns (uint256);
 
     /// @dev Returns all locks of `_addr`
@@ -64,7 +64,7 @@ interface ILockTOS {
         view
         returns (uint256 balance);
 
-    /// @dev Vote weight of a iser
+    /// @dev Vote weight of ‘_addr’
     function balanceOf(address _addr) external view returns (uint256 balance);
 
     /// @dev Increase amount

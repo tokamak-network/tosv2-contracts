@@ -11,9 +11,9 @@ interface IBondDepository {
 
     /**
      * @dev                creates a new market type
-     * @param _token       토큰 주소
-     * @param _market      [팔려고 하는 tos의 목표치, 판매 끝나는 시간, tos token의 가격, 한번에 구매 가능한 TOS물량]
-     * @return id_         ID of new bond market
+     * @param _token       token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3 
+     * @param _market      [capacity of the market, market closing time, return on the deposit in TOS, maximum purchasable bond in TOS]
+     * @return id_         returns ID of new bond market
      */
     function create(
         address _token,
@@ -21,9 +21,9 @@ interface IBondDepository {
     ) external returns (uint256 id_);
 
     /**
-     * @dev                increase the market Capacity
+     * @dev                increases the market capacity
      * @param _marketId    marketId
-     * @param amount       increase amount
+     * @param amount       increases the capacity by amount
      */
     function increaseCapacity(
         uint256 _marketId,
@@ -31,9 +31,9 @@ interface IBondDepository {
     )   external;
 
     /**
-     * @dev                decrease the market Capacity
+     * @dev                decreases the market capacity
      * @param _marketId    marketId
-     * @param amount       decrease amount
+     * @param amount       decreases the capacity by amount
      */
     function decreaseCapacity(
         uint256 _marketId,
@@ -41,7 +41,7 @@ interface IBondDepository {
     ) external;
 
     /**
-     * @dev                change the market closeTime
+     * @dev                changes the market closeTime
      * @param _marketId    marketId
      * @param closeTime    closeTime
      */
@@ -51,9 +51,9 @@ interface IBondDepository {
     )   external ;
 
     /**
-     * @dev                change the market maxpayout(Maximum amount that can be purchased at one time)
+     * @dev                changes the maxPayout (maximum purchasable bond in TOS)
      * @param _marketId    marketId
-     * @param _amount      maxPayout Amount
+     * @param _amount      maxPayout amount
      */
     function changeMaxPayout(
         uint256 _marketId,
@@ -61,9 +61,9 @@ interface IBondDepository {
     )   external;
 
     /**
-     * @dev                change the market price
+     * @dev                changes the market price
      * @param _marketId    marketId
-     * @param _tosPrice  tosPrice
+     * @param _tosPrice    tosPrice
      */
     function changePrice(
         uint256 _marketId,
@@ -71,8 +71,8 @@ interface IBondDepository {
     )   external ;
 
     /**
-     * @dev        close the market
-     * @param _id  ID of market to close
+     * @dev        closes the market
+     * @param _id  market id
      */
     function close(uint256 _id) external;
 
@@ -80,21 +80,21 @@ interface IBondDepository {
     /// Anyone can use.
     //////////////////////////////////////
 
-    /// @dev deposit with ether
-    /// @param _id  the market id
-    /// @param _amount  the amount of deposit
-    /// @return payout_  the amount of staking
+    /// @dev             deposit with ether that does not earn sTOS
+    /// @param _id       market id
+    /// @param _amount   amount of deposit in ETH
+    /// @return payout_  returns amount of TOS earned by the user
     function ETHDeposit(
         uint256 _id,
         uint256 _amount
     ) external payable returns (uint256 payout_ );
 
 
-    /// @dev deposit with erc20 token
-    /// @param _id  the market id
-    /// @param _amount  the amount of deposit
-    /// @param _lockWeeks  the number of weeks for lock
-    /// @return payout_  the amount of staking
+    /// @dev              deposit with ether that earns sTOS
+    /// @param _id        market id
+    /// @param _amount    amount of deposit in ETH
+    /// @param _lockWeeks number of weeks for lock
+    /// @return payout_   returns amount of TOS earned by the user
     function ETHDepositWithSTOS(
         uint256 _id,
         uint256 _amount,
@@ -106,10 +106,10 @@ interface IBondDepository {
     /// VIEW
     //////////////////////////////////////
 
-    /// @dev How much tokens are valued as TOS
-    /// @param _tosPrice  the tos price
-    /// @param _amount the amount of asset
-    /// @return payout  the amount evaluated as TOS
+    /// @dev              how much is ETH worth in TOS? 
+    /// @param _tosPrice  amount of TOS per 1 ETH
+    /// @param _amount    amount of ETH
+    /// @return payout    returns amount of TOS to be earned by the user
     function calculateTosAmountForAsset(
         uint256 _tosPrice,
         uint256 _amount
@@ -119,21 +119,21 @@ interface IBondDepository {
         returns (uint256 payout);
 
 
-    /// @dev purchasable Asset amount At One Time
-    /// @param _tosPrice  the tos price
-    /// @param _maxPayout  the max payout
-    /// @return maxPayout_  the asset amount
+    /// @dev               maximum purchasable bond amount in TOS
+    /// @param _tosPrice   amount of TOS per 1 ETH
+    /// @param _maxPayout  maximum purchasable bond amount in TOS
+    /// @return maxPayout_ returns maximum amount of ETH that can be used
     function purchasableAssetAmountAtOneTime(
         uint256 _tosPrice,
         uint256 _maxPayout
     ) external pure returns (uint256 maxPayout_);
 
-    /// @dev Return information from all markets
-    /// @return marketIds Array of total MarketIDs
-    /// @return quoteTokens Array of total market's quoteTokens
-    /// @return capacities Array of total market's capacities
-    /// @return endSaleTimes Array of total market's endSaleTimes
-    /// @return pricesTos Array of total market's pricesTos
+    /// @dev                 returns information from active markets
+    /// @return marketIds    array of total marketIds
+    /// @return quoteTokens  array of total market's quoteTokens
+    /// @return capacities   array of total market's capacities
+    /// @return endSaleTimes array of total market's endSaleTimes
+    /// @return pricesTos    array of total market's pricesTos
     function getBonds() external view
         returns (
             uint256[] memory marketIds,
@@ -143,21 +143,21 @@ interface IBondDepository {
             uint256[] memory pricesTos
         );
 
-    /// @dev Returns all generated marketIDs.
-    /// @return memory[]  marketList
+    /// @dev              returns all generated marketIDs
+    /// @return memory[]  returns marketList
     function getMarketList() external view returns (uint256[] memory) ;
 
-    /// @dev Returns the number of created markets.
+    /// @dev          returns the number of created markets
     /// @return Total number of markets
     function totalMarketCount() external view returns (uint256) ;
 
-    /// @dev Returns information about the market.
-    /// @param _marketId  the market id
+    /// @dev                returns information about the market
+    /// @param _marketId    market id
     /// @return quoteToken  saleToken Address
-    /// @return capacity  tokenSaleAmount
-    /// @return endSaleTime  market endTime
-    /// @return maxPayout  Amount of tokens that can be purchased for one tx in the market
-    /// @return tosPrice  tos price
+    /// @return capacity    tokenSaleAmount
+    /// @return endSaleTime market endTime
+    /// @return maxPayout   maximum purchasable bond in TOS
+    /// @return tosPrice    amount of TOS per 1 ETH
     function viewMarket(uint256 _marketId) external view
         returns (
             address quoteToken,
@@ -167,9 +167,9 @@ interface IBondDepository {
             uint256 tosPrice
             );
 
-    /// @dev Return Whether The index market Whether is closed
-    /// @param _marketId  Index in the market
-    /// @return closedBool Whether the market is closed
+    /// @dev               checks whether a market is opened or not
+    /// @param _marketId   market id
+    /// @return closedBool true if market is open, false if market is closed  
     function isOpened(uint256 _marketId) external view returns (bool closedBool);
 
 

@@ -6,7 +6,7 @@ interface IStaking {
 
     /* ========== onlyPolicyOwner ========== */
 
-    /// @dev set the tos, lockTOS, treasury Address
+    /// @dev              set tosAddress, lockTOS, treasuryAddress
     /// @param _tos       tosAddress
     /// @param _lockTOS   lockTOSAddress
     /// @param _treasury  treausryAddress
@@ -16,32 +16,32 @@ interface IStaking {
         address _treasury
     ) external;
 
-    /// @dev set setRebasePerEpoch
-    /// @param _rebasePerEpoch  the rate for rebase per epoch (eth uint)
+    /// @dev                    set setRebasePerEpoch
+    /// @param _rebasePerEpoch  rate for rebase per epoch (eth uint)
     ///                         If input the 0.9 -> 900000000000000000
     function setRebasePerEpoch(
         uint256 _rebasePerEpoch
     ) external;
 
 
-    /// @dev set index
+    /// @dev           set index
     /// @param _index  index (eth uint)
     function setIndex(
         uint256 _index
     ) external;
 
-    /// @dev set bond staking
+    /// @dev            set minimum bonding period 
     /// @param _period  _period (seconds)
     function setBasicBondPeriod(uint256 _period) external ;
 
 
     /* ========== onlyOwner ========== */
 
-    /// @dev set basic lock period
-    /// @param accounts  the array of account for sync
-    /// @param balances  the array of tos amount for sync
-    /// @param period  the array of end time for sync
-    /// @param tokenId  the array of locktos id for sync
+    /// @dev             migration of existing lockTOS contract data
+    /// @param accounts  array of account for sync
+    /// @param balances  array of tos amount for sync
+    /// @param period    array of end time for sync
+    /// @param tokenId   array of locktos id for sync
     function syncStos(
         address[] memory accounts,
         uint256[] memory balances,
@@ -54,15 +54,15 @@ interface IStaking {
     /* ========== onlyBonder ========== */
 
 
-    /// @dev Increment and return the market ID.
+    /// @dev Increment and returns the market ID.
     function generateMarketId() external returns (uint256);
 
-    /// @dev bonder stake the tos mintted when user purchase the bond with asset.
-    /// @param to  the user address
-    /// @param _amount  the tos amount
-    /// @param _marketId  the market id
-    /// @param tosPrice  the tos price per Token
-    /// @return stakeId  the stake id
+    /// @dev             TOS minted from bonding is automatically staked for the user, and user receives LTOS. Lock-up period is based on the basicBondPeriod
+    /// @param to        user address
+    /// @param _amount   TOS amount
+    /// @param _marketId market id
+    /// @param tosPrice  amount of TOS per 1 ETH
+    /// @return stakeId  stake id
     function stakeByBond(
         address to,
         uint256 _amount,
@@ -72,13 +72,13 @@ interface IStaking {
 
 
 
-    /// @dev bonder stake the tos mintted when user purchase the bond with asset.
-    /// @param _to  the user address
-    /// @param _amount  the tos amount
-    /// @param _marketId  the market id
-    /// @param _periodWeeks  the number of lockup weeks
-    /// @param tosPrice  the tos price per Token
-    /// @return stakeId  the stake id
+    /// @dev                TOS minted from bonding is automatically staked for the user, and user receives LTOS and sTOS.
+    /// @param _to          user address
+    /// @param _amount      TOS amount
+    /// @param _marketId    market id
+    /// @param _periodWeeks number of lockup weeks
+    /// @param tosPrice     amount of TOS per 1 ETH
+    /// @return stakeId     stake id
     function stakeGetStosByBond(
         address _to,
         uint256 _amount,
@@ -91,37 +91,37 @@ interface IStaking {
     /* ========== Anyone can execute ========== */
 
 
-    /// @dev user can stake the tos amount.
-    /// @param _amount  the tos amount
-    /// @return stakeId  the stake id
+    /// @dev            user can stake TOS for LTOS without lockup period
+    /// @param _amount  TOS amount
+    /// @return stakeId stake id
     function stake(
         uint256 _amount
     ) external  returns (uint256 stakeId);
 
 
-    /// @dev user can stake the tos amount and get stos.
-    /// @param _amount  the tos amount
-    /// @param _periodWeeks the number of lockup weeks
-    /// @return stakeId  the stake id
+    /// @dev                user can stake TOS for LTOS and sTOS with lockup period
+    /// @param _amount      TOS amount
+    /// @param _periodWeeks number of lockup weeks
+    /// @return stakeId     stake id
     function stakeGetStos(
         uint256 _amount,
         uint256 _periodWeeks
     ) external  returns (uint256 stakeId);
 
 
-    /// @dev increase the tos amount in stakeId of simple stake product (without lock, without maeketid)
-    /// @param _stakeId  the stake id
-    /// @param _amount the tos amount
+    /// @dev            increase the tos amount in stakeId of the simple stake product (without lock, without marketId)
+    /// @param _stakeId stake id
+    /// @param _amount  TOS amount
     function increaseAmountForSimpleStake(
         uint256 _stakeId,
         uint256 _amount
     )   external;
 
-    /// @dev Used to adjust the amount of staking after the lockout period ends
-    /// @param _stakeId     the stake id
-    /// @param _addAmount   addAmount
-    /// @param _claimAmount claimAmount
-    /// @param _periodWeeks add lock Weeks
+    /// @dev                used to update the amount of staking after the lockup period is passed
+    /// @param _stakeId     stake id
+    /// @param _addAmount   additional TOS to be staked 
+    /// @param _claimAmount amount of LTOS to claim
+    /// @param _periodWeeks lockup period
     function resetStakeGetStosAfterLock(
         uint256 _stakeId,
         uint256 _addAmount,
@@ -129,38 +129,38 @@ interface IStaking {
         uint256 _periodWeeks
     ) external;
 
-    /// @dev Used to adjust the amount of staking after the lockout period ends
-    /// @param _stakeId     the stake id
-    /// @param _addAmount   addAmount
-    /// @param _periodWeeks add lock Weeks
+    /// @dev                used to update the amount of staking after the lockup period is passed
+    /// @param _stakeId     stake id
+    /// @param _addAmount   additional TOS to be staked
+    /// @param _periodWeeks lockup period
     function resetStakeGetStosAfterLock(
         uint256 _stakeId,
         uint256 _addAmount,
         uint256 _periodWeeks
     ) external;
 
-    /// @dev Used to adjust the amount of staking after the lockout period ends
-    /// @param _stakeId     the stake id
-    /// @param _claimAmount claimAmount
+    /// @dev                used to update the amount of staking after the lockup period is passed
+    /// @param _stakeId     stake id
+    /// @param _claimAmount amount of LTOS to claim
     function resetStakeGetStosAfterLock(
         uint256 _stakeId,
         uint256 _claimAmount
     ) external;
 
 
-    /// @dev Used to add a toss amount before the end of the lock period or to extend the period
-    /// @param _stakeId  the stake id
-    /// @param _amount   add amount
+    /// @dev             used to update the amount of staking before the lockup period is not passed
+    /// @param _stakeId  stake id
+    /// @param _amount   additional TOS to be staked
     function increaseBeforeEndOrNonEnd(
         uint256 _stakeId,
         uint256 _amount
     ) external;
 
 
-    /// @dev Used to add a toss amount before the end of the lock period or to extend the period
-    /// @param _stakeId  the stake id
-    /// @param _amount   add amount
-    /// @param _unlockWeeks add lock weeks
+    /// @dev                used to update the amount of staking before the lockup period is not passed
+    /// @param _stakeId     stake id
+    /// @param _amount      additional TOS to be staked
+    /// @param _unlockWeeks additional lockup period
     function increaseBeforeEndOrNonEnd(
         uint256 _stakeId,
         uint256 _amount,
@@ -168,111 +168,101 @@ interface IStaking {
     ) external;
 
 
-    /// @dev For staking items that are not locked up, use when claiming
-    /// @param _stakeId  the stake id
-    /// @param claimLtos an ltos amount of claiming
+    /// @dev             claiming LTOS from stakeId without sTOS
+    /// @param _stakeId  stake id
+    /// @param claimLtos amount of LTOS to claim
     function claimForSimpleType(
         uint256 _stakeId,
         uint256 claimLtos
     ) external;
 
 
-    /// @dev Used to unstake a specific staking ID
-    /// @param _stakeId  the stake id
+    /// @dev             used to unstake a specific staking ID
+    /// @param _stakeId  stake id
     function unstake(
         uint256 _stakeId
     ) external;
 
-    /// @dev Used when unstaking multiple staking IDs
-    /// @param _stakeIds  the stake id
+    /// @dev             used to unstake multiple staking IDs
+    /// @param _stakeIds stake id
     function multiUnstake(
         uint256[] calldata _stakeIds
     ) external;
 
 
-    /// @dev Index adjustment, compound interest
+    /// @dev LTOS index adjustment. Apply compound interest to the LTOS index
     function rebaseIndex() external;
 
     /* ========== VIEW ========== */
 
 
-    /// @dev Returns the remaining amount of LTOS for a specific staking ID.
-    /// @param _stakeId  the stake id
-    /// @return return Amount of LTOS remaining
+    /// @dev             returns the amount of LTOS for a specific stakingId.
+    /// @param _stakeId  stake id
+    /// @return return   LTOS balance of stakingId
     function remainedLtos(uint256 _stakeId) external view returns (uint256) ;
 
-
-    /// @dev Returns the claimable amount of LTOS for a specific staking ID.
-    /// @param _stakeId  the stake id
-    /// @return return Claimable amount of LTOS
+    /// @dev             returns the claimable amount of LTOS for a specific staking ID.
+    /// @param _stakeId  stake id
+    /// @return return   claimable amount of LTOS
     function claimableLtos(uint256 _stakeId) external view returns (uint256);
 
-    /// @dev Returns the current Index value
+    /// @dev returns the current LTOS index value
     function getIndex() external view returns(uint256) ;
 
-    /// @dev Returns the possible Index value
+    /// @dev returns the LTOS index value if rebase() is called
     function possibleIndex() external view returns (uint256);
 
-    /// @dev Returns a list of staking IDs owned by a specific account.
-    /// @param _addr ownerAddress
-    /// @return return List of staking IDs you have
+    /// @dev           returns a list of stakingIds owned by a specific account
+    /// @param _addr   user account
+    /// @return return list of stakingIds owned by account
     function stakingOf(address _addr)
         external
         view
         returns (uint256[] memory);
 
-
-    /// @dev Returns the amount of LTOS remaining on the account
-    /// @param _addr address
-    /// @return balance Returns the amount of LTOS remaining
-    function balanceOf(address _addr)
-        external
-        view
-        returns (uint256 balance);
-
-    /// @dev Returns the time remaining until the next rebase time
+    /// @dev returns the time left until next rebase
     /// @return time
     function secondsToNextEpoch() external view returns (uint256);
 
-    /// @dev  Compensation for LTOS with TOS and the remaining amount of TOS (Based on current index)
-    /// @return TOS with treasury - minus staking interest
+    /// @dev        returns amount of TOS owned by Treasury that can be used for staking interest in the future (if rebase() is not called)
+    /// @return TOS returns number of TOS owned by the treasury that is not owned by the foundation nor for LTOS
     function runwayTos() external view returns (uint256);
 
 
-    /// @dev  Compensation for LTOS with TOS and the remaining amount of TOS
-    /// @return TOS with treasury - minus staking interest
+    /// @dev        returns amount of TOS owned by Treasury that can be used for staking interest in the future (if rebase() is called)
+    /// @return TOS returns number of TOS owned by the treasury that is not owned by the foundation nor for LTOS
     function runwayTosPossibleIndex() external view returns (uint256);
 
-    /// @dev Convert tos amount to LTOS (based on current index)
-    /// @param amount  tosAmount
-    /// @return return LTOS Amount
+    /// @dev           converts TOS amount to LTOS (if rebase() is not called)
+    /// @param amount  TOS amount
+    /// @return return LTOS amount
     function getTosToLtos(uint256 amount) external view returns (uint256);
 
-    /// @dev Convert LTOS to TOS (based on current index)
+    /// @dev         converts LTOS to TOS (if rebase() is not called)
     /// @param ltos  LTOS Amount
     /// @return return TOS Amount
     function getLtosToTos(uint256 ltos) external view returns (uint256);
 
 
-    /// @dev Convert tos amount to LTOS (based on posibble index)
-    /// @param amount  tosAmount
+    /// @dev           converts TOS amount to LTOS (if rebase() is called)
+    /// @param amount  TOS Amount
     /// @return return LTOS Amount
     function getTosToLtosPossibleIndex(uint256 amount) external view returns (uint256);
 
-    /// @dev Convert LTOS to TOS (based on posibble index)
-    /// @param ltos  LTOS Amount
+    /// @dev           converts LTOS to TOS (if rebase() is called)
+    /// @param ltos    LTOS Amount
     /// @return return TOS Amount
     function getLtosToTosPossibleIndex(uint256 ltos) external view returns (uint256);
 
-    /// @dev Amount of TOS staked by users
-    /// @param stakeId  the stakeId
+    /// @dev           returns number of LTOS staked (converted to TOS) in stakeId
+    /// @param stakeId stakeId
     function stakedOf(uint256 stakeId) external view returns (uint256);
 
-    /// @dev Total staked toss amount (principal + interest of all users)
+    /// @dev returns the total number of LTOS staked (converted to TOS) by users
     function stakedOfAll() external view returns (uint256) ;
 
-    /// @dev Detailed information of specific staking ID
-    /// @param stakeId  the stakeId
+    /// @dev            detailed information of specific staking ID
+    /// @param stakeId  stakeId
     function stakeInfo(uint256 stakeId) external view returns (
         address staker,
         uint256 deposit,

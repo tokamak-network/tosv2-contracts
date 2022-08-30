@@ -7,7 +7,7 @@ interface ITreasury {
 
 
     /* ========== onlyPolicyOwner ========== */
-    /// @dev Set Permissions enable to Address
+    /// @dev            set permissions enable to Address
     /// @param _status  permission number you want to change
     /// @param _address permission the address
     function enable(uint _status,  address _address) external ;
