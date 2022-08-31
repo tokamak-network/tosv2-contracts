@@ -731,7 +731,8 @@ describe("TOSv2 Phase1", function () {
       it("#1-1-6. setMR : user can't call setMR(mintRate)", async () => {
         await expect(
           treasuryProxylogic.connect(user1).setMR(mintRate,
-            ethers.utils.parseEther("100")
+            ethers.utils.parseEther("100"),
+            false
             )
         ).to.be.revertedWith("Accessible: Caller is not an policy admin")
       })
@@ -739,7 +740,10 @@ describe("TOSv2 Phase1", function () {
       it("#1-1-6. setMR : setMR(mintRate) fail: TOS is insufficient for backing", async () => {
 
         await expect(
-          treasuryProxylogic.connect(admin1).setMR(mintRate, ethers.utils.parseEther("100"))
+          treasuryProxylogic.connect(admin1).setMR(
+            mintRate,
+            ethers.utils.parseEther("100"),
+            false)
         ).to.be.revertedWith("unavailable mintRate")
 
       })
@@ -773,8 +777,10 @@ describe("TOSv2 Phase1", function () {
       })
 
       it("#1-1-6. setMR : onlyPolicyAdmin can call setMR(mintRate)", async () => {
-        await treasuryProxylogic.connect(admin1).setMR(mintRate,
-          ethers.utils.parseEther("0")
+        await treasuryProxylogic.connect(admin1).setMR(
+          mintRate,
+          ethers.utils.parseEther("0"),
+          false
           );
 
         expect(await treasuryProxylogic.mintRate()).to.be.equal(mintRate);
@@ -1192,7 +1198,7 @@ describe("TOSv2 Phase1", function () {
       expect(checkTosSolvencyAfterTOSMint).to.be.eq(false);
 
       await expect(
-        treasuryProxylogic.connect(admin1).setMR( _mr, ethers.utils.parseEther("0"))
+        treasuryProxylogic.connect(admin1).setMR( _mr, ethers.utils.parseEther("0"), false)
       ).to.be.revertedWith("unavailable mintRate");
 
     })
