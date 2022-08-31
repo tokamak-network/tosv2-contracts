@@ -12,15 +12,16 @@ interface ITreasury {
     /// @param _address permission the address
     function enable(uint _status,  address _address) external ;
 
-    /// @dev              disables permissions 
+    /// @dev              disables permissions
     /// @param _status    permission number you want to change
     /// @param _toDisable permission the address
     function disable(uint _status, address _toDisable) external;
 
-    /// @dev           sets mintRate and mints new TOS amount based on the mintRate
+    /// @dev           sets mintRate and mints or burns TOS amount based on the mintRate
     /// @param _mrRate mintRate is the ratio of setting how many TOS to be minted per 1 ETH
-    /// @param amount  mint amount 
-    function setMR(uint256 _mrRate, uint256 amount) external;
+    /// @param amount  mint amount
+    /// @param _isBurn if true burn TOS "amount", else mint TOS "amount”
+    function setMR(uint256 _mrRate, uint256 amount, bool _isBurn) external;
 
     /// @dev                       sets the TOS-ETH Pool address
     /// @param _poolAddressTOSETH  TOS-ETH Pool address
@@ -81,7 +82,7 @@ interface ITreasury {
     function getMintRate() external view returns (uint256);
 
     /// @dev             ETH backing value per 1 TOS
-    /// @return uint256  returns ETH backing value per 1 TOS 
+    /// @return uint256  returns ETH backing value per 1 TOS
     function backingRateETHPerTOS() external view returns (uint256);
 
     /// @dev    checks if registry contains a particular address
@@ -90,7 +91,7 @@ interface ITreasury {
 
 
     /// @dev            returns treasury's TOS balance
-    /// @return uint256 TOS owned by the treasury (not including the amount owned by the foundation) 
+    /// @return uint256 TOS owned by the treasury (not including the amount owned by the foundation)
     function enableStaking() external view returns (uint256);
 
     /// @dev            returns assets held by the treasury are converted into ETH
@@ -139,12 +140,18 @@ interface ITreasury {
     /// @return bool          true or false
     function checkTosSolvencyAfterTOSMint (uint256 _checkMintRate, uint256 amount) external view returns (bool);
 
+    /// @dev                  checks if "_checkMintRate" can be set as a new minting rate if "amount" of TOS is burned
+    /// @param _checkMintRate changes mintRate
+    /// @param amount         burn amount
+    /// @return bool          true or false
+    function checkTosSolvencyAfterTOSBurn (uint256 _checkMintRate, uint256 amount) external view returns (bool);
+
     /// @dev          checks if there is enough backing in the treasury to mint more TOS at current minting rate
     /// @param amount mints amount
     /// @return bool  true or false
     function checkTosSolvency (uint256 amount) external view returns (bool);
 
-    /// @dev            returns backing owned by Treasury converted in ETH 
+    /// @dev            returns backing owned by Treasury converted in ETH
     /// @return uint256 ETH Value
     function backingReserveETH() external view returns (uint256);
 

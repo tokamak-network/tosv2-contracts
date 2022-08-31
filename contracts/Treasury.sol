@@ -12,10 +12,6 @@ import "./interfaces/ITreasuryEvent.sol";
 
 // import "hardhat/console.sol";
 
-interface IIERC20 {
-    function burn(address account, uint256 amount) external returns (bool);
-}
-
 interface IITOSValueCalculator {
 
     function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
@@ -48,6 +44,18 @@ contract Treasury is
     }
 
     /* ========== onlyPolicyOwner ========== */
+
+    function tosBurn(
+        uint256 amount
+    )
+        external onlyPolicyOwner
+    {
+        require(tos.balanceOf(address(this)) >= amount, "balance is insufficient.");
+        tos.burn(address(this), amount);
+
+        emit BurnedTos(amount);
+    }
+
 
     /// @inheritdoc ITreasury
     function enable(
@@ -102,16 +110,22 @@ contract Treasury is
     */
 
     /// @inheritdoc ITreasury
-    function setMR(uint256 _mrRate, uint256 amount) external override onlyPolicyOwner {
+    function setMR(uint256 _mrRate, uint256 amount, bool _isBurn) external override onlyPolicyOwner {
 
         require(mintRate != _mrRate || amount > 0, "check input value");
 
-        require(checkTosSolvencyAfterTOSMint(_mrRate, amount), "unavailable mintRate");
+        if (_isBurn) {
+            require(checkTosSolvencyAfterTOSBurn(_mrRate, amount), "unavailable mintRate");
+            if (amount > 0) tos.burn(address(this), amount);
+
+        } else {
+            require(checkTosSolvencyAfterTOSMint(_mrRate, amount), "unavailable mintRate");
+            if (amount > 0) tos.mint(address(this), amount);
+        }
 
         if (mintRate != _mrRate) mintRate = _mrRate;
-        if (amount > 0) tos.mint(address(this), amount);
 
-        emit SetMintRate(_mrRate, amount);
+        emit SetMintRate(_mrRate, amount, _isBurn);
     }
 
     /// @inheritdoc ITreasury
@@ -396,6 +410,13 @@ contract Treasury is
         public override view returns (bool)
     {
         if (tos.totalSupply() + amount  <= backingReserve() * _checkMintRate / mintRateDenominator)  return true;
+        else return false;
+    }
+
+    function checkTosSolvencyAfterTOSBurn(uint256 _checkMintRate, uint256 amount)
+        public override view returns (bool)
+    {
+        if (tos.totalSupply() - amount  <= backingReserve() * _checkMintRate / mintRateDenominator)  return true;
         else return false;
     }
 

@@ -3,7 +3,11 @@ pragma solidity ^0.8.4;
 
 interface ITreasuryEvent{
 
-    /// @dev          this event occurs when permission is updated.
+    /// @dev          this event occurs when Treasury's TOS is burned
+    /// @param amount burned TOS amount
+    event BurnedTos(uint256 amount);
+
+    /// @dev          this event occurs when permission is updated
     /// @param addr   address
     /// @param status status
     /// @param result true or false
@@ -12,7 +16,8 @@ interface ITreasuryEvent{
     /// @dev          this event occurs mint rate has been updated
     /// @param mrRate mint rate
     /// @param amount TOS amount that is minted
-    event SetMintRate(uint256 mrRate, uint256 amount);
+    /// @param isBurn if true burn TOS "amount", else mint TOS "amount”
+    event SetMintRate(uint256 mrRate, uint256 amount, bool isBurn);
 
     /// @dev                      this event occurs when PoolAddressTOSETH is set
     /// @param _poolAddressTOSETH pool address of TOS-ETH pair
@@ -45,7 +50,7 @@ interface ITreasuryEvent{
         uint256[] _percents
     );
 
-    /// @dev          this event occurs when accmulated TOS from bonding (for the foundation) is transferred to foundation based on the predefined percentage 
+    /// @dev          this event occurs when accmulated TOS from bonding (for the foundation) is transferred to foundation based on the predefined percentage
     /// @param to     the address
     /// @param amount TOS amount distributed to the address
     event DistributedFoundation(
@@ -54,7 +59,7 @@ interface ITreasuryEvent{
     );
 
     /// @dev               this event occurs when request mint and transfer TOS
-    /// @param _mintAmount minted TOS amount 
+    /// @param _mintAmount minted TOS amount
     /// @param _distribute if true, distribute a percentage of the remaining amount to the foundation after mint and transfer
     event RquestedMint(
         uint256 _mintAmount,
