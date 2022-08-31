@@ -48,12 +48,12 @@ contract StakeProxyAccess is StakeAccessRole, AccessControl {
     /// @dev add admin
     /// @param account  address to add
     function addAdmin(address account) public virtual onlyProxyOwner {
-        grantRole(PROJECT_ADMIN_ROLE, account);
+        grantRole(ADMIN_ROLE, account);
     }
 
     /// @dev remove admin
     function removeAdmin() public virtual onlyOwner {
-        renounceRole(PROJECT_ADMIN_ROLE, msg.sender);
+        renounceRole(ADMIN_ROLE, msg.sender);
     }
 
     /// @dev transfer admin
@@ -62,8 +62,8 @@ contract StakeProxyAccess is StakeAccessRole, AccessControl {
         require(newAdmin != address(0), "Accessible: zero address");
         require(msg.sender != newAdmin, "Accessible: same admin");
 
-        grantRole(PROJECT_ADMIN_ROLE, newAdmin);
-        renounceRole(PROJECT_ADMIN_ROLE, msg.sender);
+        grantRole(ADMIN_ROLE, newAdmin);
+        renounceRole(ADMIN_ROLE, msg.sender);
     }
 
     function addPolicy(address _account) public virtual onlyProxyOwner {
@@ -88,7 +88,7 @@ contract StakeProxyAccess is StakeAccessRole, AccessControl {
     /// @dev whether admin
     /// @param account  address to check
     function isAdmin(address account) public view virtual returns (bool) {
-        return hasRole(PROJECT_ADMIN_ROLE, account);
+        return hasRole(ADMIN_ROLE, account);
     }
 
     function isProxyAdmin(address account) public view virtual returns (bool) {

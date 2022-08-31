@@ -17,8 +17,8 @@ contract TreasuryVaultProxy is ProxyAccessCommon, VaultStorage, IProxyEvent, IPr
      * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
      */
     constructor () {
-        _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
-        _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
+        _setupRole(ADMIN_ROLE, msg.sender);
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
