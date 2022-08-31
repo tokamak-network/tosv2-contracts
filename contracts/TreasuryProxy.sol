@@ -2,11 +2,11 @@
 pragma solidity ^0.8.4;
 
 import "./TreasuryStorage.sol";
-import "./proxy/TreasuryVaultProxy.sol";
+import "./proxy/VaultProxy.sol";
 
 contract TreasuryProxy is
     TreasuryStorage,
-    TreasuryVaultProxy
+    VaultProxy
 {
 
     function initialize(
@@ -34,6 +34,10 @@ contract TreasuryProxy is
         mintRateDenominator = 1;
         stakingV2 = _stakingV2;
         poolAddressTOSETH = _poolAddressTOSETH;
+    }
+
+    function isTreasury() public view returns (bool) {
+        return true;
     }
 
 }

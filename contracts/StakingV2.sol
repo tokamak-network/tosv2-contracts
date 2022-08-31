@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "./StakingV2Storage.sol";
-import "./common/StakeProxyAccess.sol";
+import "./common/ProxyAccessCommon.sol";
 
 import "./libraries/SafeERC20.sol";
 import {DSMath} from "./libraries/DSMath.sol";
@@ -40,7 +40,7 @@ interface IITreasury {
 
 contract StakingV2 is
     StakingV2Storage,
-    StakeProxyAccess,
+    ProxyAccessCommon,
     DSMath,
     IStaking,
     IStakingEvent

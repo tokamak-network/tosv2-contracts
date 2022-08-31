@@ -143,7 +143,11 @@ contract VaultProxy is ProxyAccessCommon, VaultStorage, IProxyEvent, IProxyActio
 
     /// @dev receive ether
     receive() external payable {
-        revert("cannot receive Ether");
+        (bool success, bytes memory returnData) = address(this).call{value: 0}(
+            abi.encodeWithSignature("isTreasury()")
+        );
+        (bool isTreasury) = abi.decode(returnData, (bool));
+        if (!isTreasury) revert("cannot receive Ether");
     }
 
     /// @dev fallback function , execute on undefined function call

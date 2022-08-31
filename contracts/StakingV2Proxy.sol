@@ -2,11 +2,11 @@
 pragma solidity ^0.8.4;
 
 import "./StakingV2Storage.sol";
-import "./proxy/StakeBaseProxy.sol";
+import "./proxy/VaultProxy.sol";
 
 contract StakingV2Proxy is
     StakingV2Storage,
-    StakeBaseProxy
+    VaultProxy
 {
     // addr[0] = tos, addr[1] = lockTOS
     //_epoch[0] = _epochLength, _epoch[1] =  _firstEpochTime
@@ -35,4 +35,7 @@ contract StakingV2Proxy is
         basicBondPeriod = _basicBondPeriod;
     }
 
+    function isTreasury() public view returns (bool) {
+        return false;
+    }
 }
