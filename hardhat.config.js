@@ -31,6 +31,7 @@ require("./tasks/tosV2_phase1_market");
  */
 module.exports = {
   defaultNetwork: "hardhat",
+  live: false,
   networks: {
     hardhat: {
       chainId: 31337,

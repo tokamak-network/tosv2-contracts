@@ -327,17 +327,14 @@ describe("TOSv2 Phase1", function () {
 
     await hre.ethers.provider.send("hardhat_impersonateAccount",[lockTosAdmin]);
 
-    //_lockTosAdmin = await ethers.getSigner(lockTosAdmin);
-    _lockTosAdmin = await ethers.provider.getSigner(lockTosAdmin);
-    // console.log("_lockTosAdmin",_lockTosAdmin);
-    // console.log("_lockTosAdmin address",_lockTosAdmin._address);
+    _lockTosAdmin = await ethers.getSigner(lockTosAdmin);
 
   });
 
   describe("#0. lockTOSContract update", () => {
     if(firstExcute == false) {
       it("bring the LockTOSProxyContract", async () => {
-        lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSProxyabi, ethers.provider);
+        lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSProxyabi, _lockTosAdmin);
 
         let code = await ethers.provider.getCode(lockTosContract.address);
         expect(code).to.not.eq("0x");
@@ -366,7 +363,12 @@ describe("TOSv2 Phase1", function () {
       // })
 
       it("bring the newLockTOSProxyContract", async () => {
-        lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSProxy2abi, ethers.provider);
+        lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSProxy2abi, _lockTosAdmin);
+      })
+      it("lockTOS isAdmin", async () => {
+        console.log("_lockTosAdmin.address : ",_lockTosAdmin.address);
+        let tx = await lockTosContract.isAdmin(_lockTosAdmin.address);
+        console.log("lockTos Admin : ",tx);
       })
 
       it("lockTOSProxy2 set impletation", async () => {
