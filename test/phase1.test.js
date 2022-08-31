@@ -326,7 +326,6 @@ describe("TOSv2 Phase1", function () {
     ]);
 
     await hre.ethers.provider.send("hardhat_impersonateAccount",[lockTosAdmin]);
-
     _lockTosAdmin = await ethers.getSigner(lockTosAdmin);
 
   });
@@ -334,7 +333,7 @@ describe("TOSv2 Phase1", function () {
   describe("#0. lockTOSContract update", () => {
     if(firstExcute == false) {
       it("bring the LockTOSProxyContract", async () => {
-        lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSProxyabi, ethers.provider);
+        lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSProxyabi, _lockTosAdmin);
 
         let code = await ethers.provider.getCode(lockTosContract.address);
         expect(code).to.not.eq("0x");
@@ -363,7 +362,12 @@ describe("TOSv2 Phase1", function () {
       // })
 
       it("bring the newLockTOSProxyContract", async () => {
-        lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSProxy2abi, ethers.provider);
+        lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSProxy2abi, _lockTosAdmin);
+      })
+      it("lockTOS isAdmin", async () => {
+        console.log("_lockTosAdmin.address : ",_lockTosAdmin.address);
+        let tx = await lockTosContract.isAdmin(_lockTosAdmin.address);
+        console.log("lockTos Admin : ",tx);
       })
 
       it("lockTOSProxy2 set impletation", async () => {
@@ -568,7 +572,7 @@ describe("TOSv2 Phase1", function () {
 
   describe("#1. setting the contract", () => {
     it("grantRole: give the mintRole to treasury", async () => {
-      await tosContract.connect(admin1).grantRole(minter_role,treasuryProxy.address);
+      await tosContract.connect(_lockTosAdmin).grantRole(minter_role,treasuryProxy.address);
 
       let tx = await tosContract.hasRole(minter_role,treasuryProxy.address);
       expect(tx).to.be.equal(true);
@@ -1082,7 +1086,7 @@ describe("TOSv2 Phase1", function () {
     })
 
     it("#2-1-1. onlyLockTOSContract admin set the stakingContarct", async () => {
-      await lockTosContract.connect(admin1).setStaker(stakingProxylogic.address);
+      await lockTosContract.connect(_lockTosAdmin).setStaker(stakingProxylogic.address);
 
       let staker = await lockTosContract.staker();
       expect(staker).to.be.equal(stakingProxylogic.address);
@@ -3847,7 +3851,7 @@ describe("TOSv2 Phase1", function () {
         depositor = user2;
         depositorUser = "user2";
         let amountMint="20000000000"
-        let mintedBool = await tosContract.connect(admin1).mint(user2.address, ethers.utils.parseEther(amountMint));
+        let mintedBool = await tosContract.connect(_lockTosAdmin).mint(user2.address, ethers.utils.parseEther(amountMint));
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
         let amount = ethers.utils.parseEther(amountMint);
