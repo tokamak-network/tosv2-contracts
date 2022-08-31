@@ -3774,7 +3774,7 @@ describe("TOSv2 Phase1", function () {
         depositor = user2;
         depositorUser = "user2";
         let amountMint="200000"
-        let mintedBool = await tosContract.connect(admin1).mint(user2.address, ethers.utils.parseEther(amountMint));
+        let mintedBool = await tosContract.connect(_lockTosAdmin).mint(user2.address, ethers.utils.parseEther(amountMint));
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
