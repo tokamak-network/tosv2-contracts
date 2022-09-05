@@ -7,7 +7,7 @@
   "StakingV2Proxy": "0x2Ea85Eab600BDE1d05ec08bAda48497Fa123438c",\
   "LibTreasury": "0x45864F1fBFDa1Ddeb62Bbbdc28Fa6A022095E679",\
   "Treasury": "0x0ad71735d9aC039b08f197D3847C69c716fc426E",\
-  "TreasuryProxy": "0xb7fD7020211288586E8270099Dcb91f436029EE9"\
+  "TreasuryProxy": "0xb7fD7020211288586E8270099Dcb91f436029EE9"
 
 # Basic Sample Hardhat Project
 
