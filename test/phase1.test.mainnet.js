@@ -58,6 +58,31 @@ let totalTosSupplyTarget = ethers.utils.parseEther("1000000");
 
 let tosAdmin = "0x12a936026f072d4e97047696a9d11f97eae47d21";
 let lockTosAdmin = "0x15280a52E79FD4aB35F4B9Acbb376DCD72b44Fd1";
+let burnTosContractList = [
+  "0xbede575486e1f103fbe258a00d046f09e837fa17",
+  "0xa13eec91b9e0ee4cf96d8040b3ecc729a37882be",
+  "0x14de03d4629c9c4d3bfc38f222b03ada675f64b1",
+  "0xb9845e926256dcd54de112e06daa49f53b4f4830",
+  "0xe8960d506fec3ec3e2736bf72b495f1ec5a63cc6",
+ // "0x0620492babe0a2ce13688025f8b783b8d6c28955" // airdrop 용, 아직 결정 안됨.
+]
+
+let burnTosAddressList = [
+  "0x70115ba3b49d60776aaa2976adffb5cfabf31689",
+  "0x065fb9cc1bc59c9ed74e504e0491e8bc08b9a960",
+  "0xa615864e084e369ab2bbe226077f4ae376bb9205",
+  "0x9d60f292b049a7655f0b48a2a8d4d27ee66a9329",
+  "0x178c2037d085ec47dee56cd16e603202a8b9dd62",
+  "0x7c514f4a08ab59d90a1262595d57a69870584568",
+  "0xa7c1767c2dd44d34eace5adbb7ed0bd1db61c1b9",
+  "0x31a8da16f83d2a155981df1e41f77b823439c8b5",
+  "0x18e622d66c63d395720fbabebcba62a560fe49a2",
+  "0x3ccfbbc2eebdc793a88db0f824f6bef7f7ee12d5",
+  "0xa63b141a6834c05cc3c9fae478661ed18e8fdea5",
+  "0x1e26634945a6e756098585335a88882b13d0ad67",
+  "0xd213118151117445f8c4c8447fa533213f2f80e8",
+  "0xcb585d90c047f5f39b52a96154e02948db0a3178"
+]
 
 let eventCreatedMarket ="CreatedMarket(uint256,address,uint256[4])";
 let eventETHDeposited ="ETHDeposited(address,uint256,uint256,uint256,uint256)";
@@ -71,6 +96,8 @@ let eventStakedGetStos ="StakedGetStos(address,uint256,uint256,uint256,uint256,u
 let eventIncreasedAmountForSimpleStake ="IncreasedAmountForSimpleStake(address,uint256,uint256)";
 let eventResetStakedGetStosAfterLock ="ResetStakedGetStosAfterLock(address,uint256,uint256,uint256,uint256,uint256,uint256)";
 let eventIncreasedBeforeEndOrNonEnd ="IncreasedBeforeEndOrNonEnd(address,uint256,uint256,uint256,uint256,uint256)";
+
+
 
 describe("TOSv2 Phase1", function () {
   //시나리오 : https://www.notion.so/onther/BondDepository-StakingV2-scenario-Suah-497853d6e65f48a390255f3bca29fa36
@@ -103,6 +130,8 @@ describe("TOSv2 Phase1", function () {
   let bondDepositoryProxy;
   let bondDepositoryProxylogic;
 
+  let _lockTosAdmin;
+  let _tosAdmin;
 
   // rinkeby
   // let firstEpochNumber = 0;
@@ -154,6 +183,7 @@ describe("TOSv2 Phase1", function () {
   let TOSPrice = 1000
 
   let minter_role = "0xf0887ba65ee2024ea881d91b74c2450ef19e1557f03bed3ea9f16b037cbe2dc9";
+  let burner_role = "0x9667e80708b6eeeb0053fa0cca44e028ff548e2a9f029edfeac87c118b08b7c8";
 
   ///
   let basicBondPeriod = 1800 ;
@@ -361,6 +391,9 @@ describe("TOSv2 Phase1", function () {
 
     _lockTosAdmin = await ethers.getSigner(lockTosAdmin);
 
+    await hre.ethers.provider.send("hardhat_impersonateAccount",[tosAdmin]);
+    _tosAdmin = await ethers.getSigner(tosAdmin);
+
   });
 
   describe("#0. lockTOSContract update", () => {
@@ -400,13 +433,6 @@ describe("TOSv2 Phase1", function () {
         expect(await lockTosContract.implementation2(0)).to.be.eq(lockTOSLogic2Address);
       })
 
-      // it("bring the lockTOSProxy2Contract", async () => {
-      //   lockTos2Contract = new ethers.Contract(lockTOSProxyAddress, lockTOSLogic2abi.abi, _lockTosAdmin);
-
-      //   let code = await ethers.provider.getCode(lockTos2Contract.address);
-      //   expect(code).to.not.eq("0x");
-      // })
-
       it("lockTOS isAdmin", async () => {
         console.log("_lockTosAdmin.address : ",_lockTosAdmin.address);
         let tx = await lockTosContract.isAdmin(_lockTosAdmin.address);
@@ -419,7 +445,6 @@ describe("TOSv2 Phase1", function () {
 
   })
 
-  /*
   describe("#0. Deploy the contract", () => {
     it("#0-0. Deploy TOSValueCalculator", async function () {
       tosCalculator = await ethers.getContractFactory("TOSValueCalculator");
@@ -502,6 +527,59 @@ describe("TOSv2 Phase1", function () {
 
       })
     })
+
+
+    describe("#0-5-1. burn TOS of Contracts", () => {
+      it("#0-5-1-1. grantRole: give the burnRole to tosAdmin ", async () => {
+        await tosContract.connect(_tosAdmin).grantRole(burner_role, tosAdmin);
+
+        let tx = await tosContract.hasRole(burner_role,tosAdmin);
+        expect(tx).to.be.equal(true);
+      })
+
+      it("#0-5-1-2. burn TOS of Contracts  ", async () => {
+
+        let totalSupplyPrev = await tosContract.totalSupply();
+        console.log('TOS totalSupply before burnning',totalSupplyPrev);
+
+        let burnTosAmount = ethers.constants.Zero;
+        for (let i = 0; i < burnTosContractList.length; i++){
+          let balance = await tosContract.balanceOf(burnTosContractList[i]);
+          let tx = await tosContract.connect(_tosAdmin).burn(burnTosContractList[i], balance);
+          await tx.wait();
+          burnTosAmount = burnTosAmount.add(balance);
+        }
+
+        let totalSuppley = await tosContract.totalSupply();
+        console.log('TOS totalSupply after burnning',totalSuppley);
+
+        expect(totalSuppley).to.be.equal(totalSupplyPrev.sub(burnTosAmount));
+      })
+
+
+      it("#0-5-1-3. burn TOS of EOA ", async () => {
+
+        let totalSupplyPrev = await tosContract.totalSupply();
+        console.log('TOS totalSupply before burnning',totalSupplyPrev);
+
+        let burnTosAmount = ethers.constants.Zero;
+        for (let i = 0; i < burnTosAddressList.length; i++){
+          let balance = await tosContract.balanceOf(burnTosAddressList[i]);
+          let tx = await tosContract.connect(_tosAdmin).burn(burnTosAddressList[i], balance);
+          await tx.wait();
+          burnTosAmount = burnTosAmount.add(balance);
+        }
+
+        let totalSuppley = await tosContract.totalSupply();
+        console.log('TOS totalSupply after burnning',totalSuppley);
+
+        expect(totalSuppley).to.be.equal(totalSupplyPrev.sub(burnTosAmount));
+      })
+
+
+
+    });
+
 
     describe("#0-3. Deploy Staking", () => {
 
@@ -603,8 +681,21 @@ describe("TOSv2 Phase1", function () {
 
 
   describe("#1. setting the contract", () => {
+
     it("grantRole: give the mintRole to treasury", async () => {
-      await tosContract.connect(_lockTosAdmin).grantRole(minter_role,treasuryProxy.address);
+      await tosContract.connect(_tosAdmin).grantRole(minter_role, tosAdmin);
+
+      let tx = await tosContract.hasRole(minter_role,tosAdmin);
+      expect(tx).to.be.equal(true);
+    })
+
+    it("for test : tos admin mint tos ", async () => {
+      await tosContract.connect(_tosAdmin).mint(tosAdmin, ethers.utils.parseEther("100000","Ether"));
+
+    })
+
+    it("grantRole: give the mintRole to treasury", async () => {
+      await tosContract.connect(_tosAdmin).grantRole(minter_role,treasuryProxy.address);
 
       let tx = await tosContract.hasRole(minter_role,treasuryProxy.address);
       expect(tx).to.be.equal(true);
@@ -1727,7 +1818,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
         let amount = ethers.utils.parseEther("100");
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -1744,7 +1835,7 @@ describe("TOSv2 Phase1", function () {
 
         let amount = ethers.utils.parseEther("100");
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -1851,7 +1942,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -2040,7 +2131,7 @@ describe("TOSv2 Phase1", function () {
         let periodWeeks = ethers.constants.One;
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -2067,7 +2158,7 @@ describe("TOSv2 Phase1", function () {
         let block = await ethers.provider.getBlock();
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -2241,7 +2332,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -2399,7 +2490,7 @@ describe("TOSv2 Phase1", function () {
 
         // (2)기존의 락업된 양(락토스의 원금부분)은 기간 종료후 이자부분이 추가된다.
         let amountCompound_2 = lockIdPrincipal;
-        // console.log("amountCompound stakedOf.sub(claimAmount)", amountCompound)
+        // console.log("lockIdPrincipal ", lockIdPrincipal)
 
         // console.log("currentTime2", currentTime2)
         if ( lockIdPrincipal.gt(ethers.constants.Zero) &&
@@ -2430,7 +2521,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -2451,6 +2542,8 @@ describe("TOSv2 Phase1", function () {
               amount,
               periodWeeks
         );
+        // console.log('tx',tx);
+
         const receipt = await tx.wait();
         let stosPrincipal = ethers.constants.Zero;
         let stosId = ethers.constants.Zero;
@@ -2623,7 +2716,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -2680,7 +2773,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -2726,7 +2819,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -2805,7 +2898,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -3036,7 +3129,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -3107,7 +3200,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -3219,7 +3312,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -3333,7 +3426,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -3511,7 +3604,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -3544,7 +3637,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -3595,7 +3688,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -3668,7 +3761,7 @@ describe("TOSv2 Phase1", function () {
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -3810,13 +3903,13 @@ describe("TOSv2 Phase1", function () {
         depositor = user2;
         depositorUser = "user2";
         let amountMint="200000"
-        let mintedBool = await tosContract.connect(_lockTosAdmin).mint(user2.address, ethers.utils.parseEther(amountMint));
+        let mintedBool = await tosContract.connect(_tosAdmin).mint(user2.address, ethers.utils.parseEther(amountMint));
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
 
         let amount = ethers.utils.parseEther(amountMint);
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -3887,12 +3980,12 @@ describe("TOSv2 Phase1", function () {
         depositor = user2;
         depositorUser = "user2";
         let amountMint="20000000000"
-        let mintedBool = await tosContract.connect(_lockTosAdmin).mint(user2.address, ethers.utils.parseEther(amountMint));
+        let mintedBool = await tosContract.connect(_tosAdmin).mint(user2.address, ethers.utils.parseEther(amountMint));
         let balanceOfPrev = await tosContract.balanceOf(depositor.address);
         let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
         let amount = ethers.utils.parseEther(amountMint);
         if (balanceOfPrev.lt(amount)) {
-          await tosContract.connect(_lockTosAdmin).transfer(depositor.address, amount);
+          await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
         }
         balanceOfPrev = await tosContract.balanceOf(depositor.address);
         expect(balanceOfPrev).to.be.gte(amount);
@@ -3989,7 +4082,5 @@ describe("TOSv2 Phase1", function () {
     });
 
   });
-
-  */
 
 });
