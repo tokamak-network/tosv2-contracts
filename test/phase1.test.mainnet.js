@@ -236,11 +236,11 @@ describe("TOSv2 Phase1", function () {
     poolAddress: uniswapInfo.tosethPool,
     fee: 0,
     market: {
-      capAmountOfTos: ethers.utils.parseEther("10000000"),
-      closeTime: 0,
-      priceTokenPerTos: ethers.BigNumber.from("4121790000000"),
-      priceTosPerToken: ethers.BigNumber.from("242613000000000000000000"),
-      purchasableTOSAmountAtOneTime: ethers.utils.parseEther("100")
+      capAmountOfTos: ethers.BigNumber.from("30400000000000000000000"),
+      closeTime: 1669852800,
+      // priceTokenPerTos: ethers.BigNumber.from("4121790000000"),
+      priceTosPerToken: ethers.BigNumber.from("3015716000000000000000"),
+      purchasableTOSAmountAtOneTime: ethers.BigNumber.from("822468000000000000000")
     },
     tosValuationSimple: 0,
     tosValuationLock: 0
@@ -1090,7 +1090,7 @@ describe("TOSv2 Phase1", function () {
       it("#1-3-3. create : create market : If you do not register the bond with the treasury, fail ", async () => {
         const block = await ethers.provider.getBlock('latest')
         let finishTime = block.timestamp + sellingTime  //2주
-        bondInfoEther.market.closeTime = finishTime;
+        // bondInfoEther.market.closeTime = finishTime;
 
         await expect(
           bondDepositoryProxylogic.connect(admin1).create(
@@ -1127,7 +1127,7 @@ describe("TOSv2 Phase1", function () {
           let finishTime = block.timestamp + sellingTime  //2주
           firstMarketlength = await stakingProxylogic.marketIdCounter();
 
-          bondInfoEther.market.closeTime = finishTime;
+          // bondInfoEther.market.closeTime = finishTime;
 
           await bondDepositoryProxylogic.connect(admin1).create(
               bondInfoEther.token,
