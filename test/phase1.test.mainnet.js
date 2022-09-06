@@ -133,21 +133,14 @@ describe("TOSv2 Phase1", function () {
   let _lockTosAdmin;
   let _tosAdmin;
 
-  // rinkeby
-  // let firstEpochNumber = 0;
-  // let firstEndEpochTime
-  // let epochLength = 600; // 10분
-  // // let epochUnit = 60;   //test epochUnit
-  // let epochUnit = 604800;   //rinkeby epochUnit
-
-
   // mainnet
   let firstEpochNumber = 0;
   let firstEndEpochTime
-  let epochLength = 600; // 10분
-  // let epochUnit = 60;   //test epochUnit
-  let epochUnit = 604800;   //mainnet epochUnit
-
+  let epochLength = 28800; //  8시간
+  let mintRate = ethers.BigNumber.from("11261000000000000000000");
+  let constRebasePerEpoch = ethers.BigNumber.from("87045050000000")
+  let basicBondPeriod = 60*60*24*5 ;  // 본드를 사고, 락업없을때, 기본 락업기간 5일
+  let sendAmountEthToTreasury = ethers.utils.parseEther("2000"); //초기에 트래저리에 넣는 이더 량
 
   let lockTOSProxy2;
   let lockTOSLogic2;
@@ -166,28 +159,10 @@ describe("TOSv2 Phase1", function () {
   let beforetosAmount;
   let aftertosAmount;
 
-  //let mintRate = 10;
-  //let mintRate = 1000000; // 0.0001
-  let mintRate = ethers.BigNumber.from("242427000000000000000000000");
-  //4124960000000
-  let priceLimitTOSETH = {
-    minimumTOSPricePerETH: ethers.utils.parseEther("0.00001"),
-    minimumETHPricePerTOS: ethers.utils.parseEther("1000"),
-    maximumTOSPricePerETH: ethers.utils.parseEther("1"),
-    maximumETHPricePerTOS: ethers.utils.parseEther("1000000")
-  }
-
   let unstakingAmount = ethers.utils.parseUnits("500", 18);
-
-  let ETHPrice = 1000000
-  let TOSPrice = 1000
 
   let minter_role = "0xf0887ba65ee2024ea881d91b74c2450ef19e1557f03bed3ea9f16b037cbe2dc9";
   let burner_role = "0x9667e80708b6eeeb0053fa0cca44e028ff548e2a9f029edfeac87c118b08b7c8";
-
-  ///
-  let basicBondPeriod = 1800 ;
-  //let basicBondPeriod = 60*60*24*5 ;  // 본드를 사고, 락업없을때, 기본 락업기간 5일
 
   /*
   // rinkeby
@@ -210,34 +185,13 @@ describe("TOSv2 Phase1", function () {
   let lockTOSLogic2Address = ""
   let etherUint = ethers.utils.parseUnits("1", 18);
   // let wtonUint = ethers.utils.parseUnits("1", 27);
-  let constRebasePerEpoch = ethers.BigNumber.from("87045050000000") // 0.00001
+
 
 
   let firstExcute = false;
 
   let firstMarketlength;
   let checkMarketLength;
-
-  /*
-  // rinkeby
-  let uniswapInfo={
-      poolfactory: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
-      npm: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
-      swapRouter: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
-      wethUsdcPool: "0xfbDc20aEFB98a2dD3842023f21D17004eAefbe68",
-      tosethPool: "0x7715dF692fb4031DC51C53b35eFC2b65d9e752c0",
-      wtonWethPool: "0xE032a3aEc591fF1Ca88122928161eA1053a098AC",
-      wtonTosPool: "0x516e1af7303a94f81e91e4ac29e20f4319d4ecaf",
-      tosDOCPool: "0x831a1f01ce17b6123a7d1ea65c26783539747d6d",
-      wton: "0x709bef48982Bbfd6F2D4Be24660832665F53406C",
-      tos: "0x73a54e5C054aA64C1AE7373C2B5474d8AFEa08bd",
-      weth: "0xc778417e063141139fce010982780140aa0cd5ab",
-      usdc: "0x4dbcdf9b62e891a7cec5a2568c3f4faf9e8abe2b",
-      doc: "",
-      _fee: ethers.BigNumber.from("3000"),
-      NonfungibleTokenPositionDescriptor: "0x91ae842A5Ffd8d12023116943e72A606179294f3"
-  }
-  */
 
   // main-net
   let uniswapInfo={
@@ -282,10 +236,10 @@ describe("TOSv2 Phase1", function () {
     poolAddress: uniswapInfo.tosethPool,
     fee: 0,
     market: {
-      capAmountOfTos: ethers.utils.parseEther("10000"),
+      capAmountOfTos: ethers.utils.parseEther("10000000"),
       closeTime: 0,
-      priceTokenPerTos: ethers.BigNumber.from("4124960000000"),
-      priceTosPerToken: ethers.BigNumber.from("242427000000000000000000"),
+      priceTokenPerTos: ethers.BigNumber.from("4121790000000"),
+      priceTosPerToken: ethers.BigNumber.from("242613000000000000000000"),
       purchasableTOSAmountAtOneTime: ethers.utils.parseEther("100")
     },
     tosValuationSimple: 0,
@@ -690,7 +644,7 @@ describe("TOSv2 Phase1", function () {
     })
 
     it("for test : tos admin mint tos ", async () => {
-      await tosContract.connect(_tosAdmin).mint(tosAdmin, ethers.utils.parseEther("100000","Ether"));
+      await tosContract.connect(_tosAdmin).mint(tosAdmin, ethers.utils.parseEther("10000","Ether"));
 
     })
 
@@ -879,7 +833,7 @@ describe("TOSv2 Phase1", function () {
       it(" send ETH to treasury", async () => {
         let balanceEthPrev =  await ethers.provider.getBalance(treasuryProxylogic.address);
 
-        let amount = ethers.utils.parseEther("5");
+        let amount = sendAmountEthToTreasury;
 
         let transaction = {
           to: treasuryProxylogic.address,
@@ -1244,7 +1198,7 @@ describe("TOSv2 Phase1", function () {
 
     it("#3-1-2. create : create the ETH market", async () => {
         const block = await ethers.provider.getBlock('latest');
-        let finishTime = block.timestamp + (epochUnit * 3); //10주
+        let finishTime = block.timestamp + (epochLength * 3); //10주
 
         bondInfoEther.market.closeTime = finishTime;
 
