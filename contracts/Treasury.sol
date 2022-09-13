@@ -45,6 +45,24 @@ contract Treasury is
 
     /* ========== onlyPolicyOwner ========== */
 
+    function setCalculator(
+        address _calculator
+    )
+        external nonZeroAddress(_calculator) onlyPolicyOwner
+    {
+        require(calculator != _calculator, "same address");
+        calculator = _calculator;
+    }
+
+    function setWeth(
+        address _wethAddress
+    )
+        external nonZeroAddress(_wethAddress) onlyPolicyOwner
+    {
+        require(wethAddress != _wethAddress, "same address");
+        wethAddress = _wethAddress;
+    }
+
     function tosBurn(
         uint256 amount
     )
