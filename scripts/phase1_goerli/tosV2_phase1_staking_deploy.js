@@ -1,23 +1,19 @@
 const { ethers, run } = require("hardhat");
 const save = require("../save_deployed");
+const loadDeployed = require("../load_deployed");
 const { printGasUsedOfUnits } = require("../log_tx");
+const {getUniswapInfo} = require("../goerli_info");
 
 async function main() {
     const accounts = await ethers.getSigners();
     const deployer = accounts[0];
     console.log("deployer: ", deployer.address);
-
-    const { chainId } = await ethers.provider.getNetwork();
-    let networkName = "local";
-    if(chainId == 1) networkName = "mainnet";
-    if(chainId == 4) networkName = "rinkeby";
-    if(chainId == 5) networkName = "goerli";
+    let {chainId, networkName, uniswapInfo, config } = await getUniswapInfo();
 
     let deployInfo = {
         name: "",
         address: ""
     }
-
 
     //libStaking Deploy
     const LibStaking = await ethers.getContractFactory("LibStaking");
@@ -35,13 +31,13 @@ async function main() {
 
     printGasUsedOfUnits('LibStaking Deploy',tx);
 
-
-    //StakingLogic Deploy
+    StakingLogic Deploy
     const stakingLogic = await (await ethers.getContractFactory("StakingV2", {
       libraries: {
         LibStaking: libStaking.address
       }
     })).connect(deployer).deploy();
+
 
     tx = await stakingLogic.deployed();
 
@@ -75,7 +71,7 @@ async function main() {
 
     printGasUsedOfUnits('stakingProxy Deploy',tx);
 
-    if(chainId == 1 || chainId == 4) {
+    if(chainId == 1 || chainId == 4 || chainId == 5) {
       await run("verify", {
         address: libStaking.address,
         constructorArgsParams: [],
@@ -85,7 +81,7 @@ async function main() {
     console.log("libStaking verified");
 
 
-    if(chainId == 1 || chainId == 4) {
+    if(chainId == 1 || chainId == 4 || chainId == 5) {
       await run("verify", {
         address: stakingLogic.address,
         constructorArgsParams: [],
@@ -95,7 +91,7 @@ async function main() {
     console.log("stakingLogic verified");
 
 
-    if(chainId == 1 || chainId == 4) {
+    if(chainId == 1 || chainId == 4 || chainId == 5) {
       await run("verify", {
         address: stakingProxy.address,
         constructorArgsParams: [],
