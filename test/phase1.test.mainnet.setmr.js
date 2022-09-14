@@ -54,7 +54,7 @@ let bondDepositoryLogicAbi = require('../artifacts/contracts/BondDepository.sol/
 let stakingV2LogicAbi = require('../artifacts/contracts/StakingV2.sol/StakingV2.json');
 
 let UniswapV3LiquidityChangerAddress = "0xa839a0e64b27a34ed293d3d81e1f2f8b463c3514";
-let totalTosSupplyTarget = ethers.utils.parseEther("1000000");
+let totalTosSupplyTarget = ethers.utils.parseEther("25000000");
 
 let tosAdmin = "0x12a936026f072d4e97047696a9d11f97eae47d21";
 let lockTosAdmin = "0x15280a52E79FD4aB35F4B9Acbb376DCD72b44Fd1";
@@ -64,7 +64,7 @@ let burnTosContractList = [
   "0x14de03d4629c9c4d3bfc38f222b03ada675f64b1",
   "0xb9845e926256dcd54de112e06daa49f53b4f4830",
   "0xe8960d506fec3ec3e2736bf72b495f1ec5a63cc6",
- // "0x0620492babe0a2ce13688025f8b783b8d6c28955" // airdrop 용, 아직 결정 안됨.
+  "0x0620492babe0a2ce13688025f8b783b8d6c28955" // airdrop 용, 아직 결정 안됨.
 ]
 
 let burnTosAddressList = [
@@ -917,21 +917,24 @@ describe("TOSv2 Phase1", function () {
 
       it("#1-1-6. setMR : onlyPolicyAdmin can call setMR(mintRate, 0, false)", async () => {
 
-        let tosBalancePrev = await tosContract.balanceOf(treasuryProxylogic.address);
+        let tosBalanceTotalSupply = await tosContract.totalSupply();
+        let tosBalancePrev =  await tosContract.balanceOf(treasuryProxylogic.address);
+
+        let amount = ethers.utils.parseEther("0");
+        if (tosBalanceTotalSupply.lt(totalTosSupplyTarget)) {
+          amount = totalTosSupplyTarget.sub(tosBalanceTotalSupply);
+        }
 
         await treasuryProxylogic.connect(admin1).setMR(
           ethers.utils.parseEther(MintingRateSchedule[indexMintRate]),
-          ethers.utils.parseEther(initialTosMintAmount),
+          amount,
           false
         );
 
-        expect(await tosContract.balanceOf(treasuryProxylogic.address))
-          .to.be.equal(tosBalancePrev.add(ethers.utils.parseEther(initialTosMintAmount)));
+        expect(await tosContract.balanceOf(treasuryProxylogic.address)).to.be.equal(tosBalancePrev.add(amount));
+        expect(await tosContract.totalSupply()).to.be.equal(totalTosSupplyTarget);
 
-        let newMr = await treasuryProxylogic.mintRate();
-        expect(newMr).to.be.equal(ethers.utils.parseEther(MintingRateSchedule[indexMintRate]));
-        console.log("setMR", newMr);
-        console.log("done setMR", MintingRateSchedule[indexMintRate]);
+        expect(await treasuryProxylogic.mintRate()).to.be.equal(ethers.utils.parseEther(MintingRateSchedule[indexMintRate]));
 
         indexMintRate++;
         await setTimeNextSetMr();
@@ -1837,21 +1840,16 @@ describe("TOSv2 Phase1", function () {
 
     it("#4-1. setMR : onlyPolicyAdmin can call setMR(mintRate, 0, false) after send ETH to treasury (depositSchedule)", async () => {
 
-      while (indexMintRate < 24){
-        console.log("------------ indexMintRate", indexMintRate);
+      while (indexMintRate < 23) {
 
         await nextSetMrPass();
 
         let balanceEthPrev =  await ethers.provider.getBalance(treasuryProxylogic.address);
-        console.log("balanceEthPrev", balanceEthPrev);
 
         let amount = ethers.utils.parseEther(depositSchedule[indexMintRate]+"");
         await sendEthToTreasury(admin1, treasuryProxylogic, amount);
         let balanceEthAfter =  await ethers.provider.getBalance(treasuryProxylogic.address);
         expect(balanceEthAfter).to.be.equal(balanceEthPrev.add(amount));
-        console.log("balanceEthAfter", balanceEthAfter);
-
-        console.log("done sendEthToTreasury", depositSchedule[indexMintRate]+"");
 
         await treasuryProxylogic.connect(admin1).setMR(
           ethers.utils.parseEther(MintingRateSchedule[indexMintRate]),
@@ -1861,8 +1859,7 @@ describe("TOSv2 Phase1", function () {
 
         let newMr = await treasuryProxylogic.mintRate();
         expect(newMr).to.be.equal(ethers.utils.parseEther(MintingRateSchedule[indexMintRate]));
-        console.log("setMR", newMr);
-        console.log("done setMR", MintingRateSchedule[indexMintRate]);
+        console.log("setMR", indexMintRate, newMr);
 
         indexMintRate++;
         await setTimeNextSetMr();
