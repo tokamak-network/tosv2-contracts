@@ -35,7 +35,7 @@ async function main() {
     printGasUsedOfUnits('LibStaking Deploy',tx);
 
 
-    //StakingLogic Deploy
+    StakingLogic Deploy
     const stakingLogic = await (await ethers.getContractFactory("StakingV2", {
       libraries: {
         LibStaking: libStaking.address
@@ -54,6 +54,7 @@ async function main() {
     save(networkName, deployInfo);
 
     printGasUsedOfUnits('stakingLogic Deploy',tx);
+
 
     //StakingProxy Deploy
     const stakingProxy = await (await ethers.getContractFactory("StakingV2Proxy"))
@@ -92,7 +93,6 @@ async function main() {
     }
 
     console.log("stakingLogic verified");
-
 
     if(chainId == 1 || chainId == 4) {
       await run("verify", {
