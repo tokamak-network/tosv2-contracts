@@ -74,6 +74,29 @@ let stosMigrationSet = {
   afterStakeId: ethers.BigNumber.from("0"),
   profitZeroLockIds : []
 }
+/**
+   * admin : EOA  (test EOA)
+    TOS DAO : EOA (test EOA)
+    TON DAO **0x2520CD65BAa2cEEe9E6Ad6EBD3F45490C42dd303**
+    _percents = [25%,5%,1%] 0.25  0.05 0.01 ,  2500, 500, 100
+   */
+let foundations = {
+  address: [
+    "0x5b6e72248b19F2c5b88A4511A6994AD101d0c287",
+    "0x3b9878Ef988B086F13E5788ecaB9A35E74082ED9",
+    "0x2520CD65BAa2cEEe9E6Ad6EBD3F45490C42dd303"
+  ],
+  percentages: [
+    ethers.BigNumber.from("2500"),
+    ethers.BigNumber.from("500"),
+    ethers.BigNumber.from("100"),
+  ],
+  balances : [
+    ethers.BigNumber.from("0"),
+    ethers.BigNumber.from("0"),
+    ethers.BigNumber.from("0")
+  ]
+}
 
 let totalTosSupplyTarget = ethers.utils.parseEther("25000000");
 let tosAdmin = "0x12a936026f072d4e97047696a9d11f97eae47d21";
@@ -338,21 +361,6 @@ describe("TOSv2 Phase1", function () {
   let deposits = {user1 : [], user2: []};
   let depositor, depositorUser, index, depositData;
 
-  let foundations = {
-    address: [
-      "0x5b6e72248b19F2c5b88A4511A6994AD101d0c287",
-      "0x3b9878Ef988B086F13E5788ecaB9A35E74082ED9"
-    ],
-    percentages: [
-      ethers.BigNumber.from("100"),
-      ethers.BigNumber.from("50"),
-    ],
-    balances : [
-      ethers.BigNumber.from("0"),
-      ethers.BigNumber.from("0")
-    ]
-  }
-
   async function indexEpochPass(_stakingProxylogic, passNextEpochCount) {
       let block = await ethers.provider.getBlock();
       let epochInfo = await _stakingProxylogic.epoch();
@@ -383,6 +391,24 @@ describe("TOSv2 Phase1", function () {
       value: amount
     }
     await admin1.sendTransaction( transaction );
+  }
+
+
+  async function logStatus(stakingProxylogic, tosContract) {
+    let getIndex = await stakingProxylogic.getIndex();
+    console.log('getIndex', getIndex);
+
+    let balanceOf = await tosContract.balanceOf(treasuryProxylogic.address);
+    console.log('treasuryProxylogic balanceOf', ethers.utils.formatEther(balanceOf));
+
+    let enableStaking = await treasuryProxylogic.enableStaking();
+    console.log('treasuryProxylogic enableStaking', ethers.utils.formatEther(enableStaking));
+
+    let runwayTos = await stakingProxylogic.runwayTos();
+    console.log('runwayTos', ethers.utils.formatEther(runwayTos));
+
+    let totalSupply = await tosContract.totalSupply();
+    console.log('Total TOS Supply',  ethers.utils.formatEther(totalSupply) , "TOS");
   }
 
   function getUserLastData(depositorUser) {
@@ -927,7 +953,6 @@ describe("TOSv2 Phase1", function () {
         for (let i=0; i< foundations.percentages.length; i++) {
           totalPercantage = totalPercantage.add(foundations.percentages[i]);
         }
-
 
         expect(await treasuryProxylogic.foundationTotalPercentage()).to.be.equal(totalPercantage)
 
@@ -1599,9 +1624,6 @@ describe("TOSv2 Phase1", function () {
 
     it("#3-1-2. create : create the ETH market", async () => {
         const block = await ethers.provider.getBlock('latest');
-        let finishTime = block.timestamp + (epochLength * 3); //10주
-
-        bondInfoEther.market.closeTime = finishTime;
 
         let marketbefore = await stakingProxylogic.marketIdCounter();
 
@@ -1625,7 +1647,7 @@ describe("TOSv2 Phase1", function () {
                 let topics = receipt.events[i].topics;
                 let log = interface.parseLog(
                 {  data,  topics } );
-
+                console.log('log', log);
                 bondInfoEther.marketId = log.args.marketId;
             }
         }
@@ -1640,6 +1662,7 @@ describe("TOSv2 Phase1", function () {
         expect(market.capacity).to.be.eq(bondInfoEther.market.capAmountOfTos);
         expect(market.endSaleTime).to.be.eq(bondInfoEther.market.closeTime);
         expect(market.maxPayout).to.be.eq(bondInfoEther.market.purchasableTOSAmountAtOneTime);
+
 
     })
     /*
@@ -1663,6 +1686,43 @@ describe("TOSv2 Phase1", function () {
 
     })
 
+=======
+        console.log('bondInfoEther.marketId', bondInfoEther.marketId);
+    })
+
+    it("#3-1-5. ETHDeposit run 10 times  ", async () => {
+      for (let i = 0; i < 10; i++){
+        let depositor = user1;
+        let depositorUser = "user1";
+
+        let purchasableAssetAmountAtOneTime_ = await bondDepositoryProxylogic.purchasableAssetAmountAtOneTime(
+            bondInfoEther.market.priceTosPerToken,
+            bondInfoEther.market.purchasableTOSAmountAtOneTime
+            );
+
+        let amount = purchasableAssetAmountAtOneTime_ ;
+        console.log(i, 'amount', ethers.utils.formatEther(amount), "ETH");
+        console.log('bondInfoEther.marketId', bondInfoEther.marketId);
+        let tx = await bondDepositoryProxylogic.connect(depositor).ETHDeposit(
+            bondInfoEther.marketId,
+            amount,
+            {value: amount}
+        );
+        await tx.wait()
+        //const receipt = await tx.wait();
+      }
+      await logStatus(stakingProxylogic, tosContract);
+    });
+
+    it("      pass blocks", async function () {
+      await indexEpochPass(stakingProxylogic, 0);
+    });
+
+    it("      logStatus", async function () {
+      await logStatus(stakingProxylogic, 0);
+    });
+
+    /*
     it("#3-1-5. ETHDeposit  ", async () => {
 
       let depositor = user1;
