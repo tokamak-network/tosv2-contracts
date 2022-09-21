@@ -115,7 +115,7 @@ contract StakingV2 is
 
     /// @inheritdoc IStaking
     function generateMarketId() public override onlyBonder returns (uint256) {
-        return marketIdCounter++;
+        return ++marketIdCounter;
     }
 
     /// @inheritdoc IStaking
