@@ -11,7 +11,6 @@ require("dotenv").config();
 require("./tasks/tosV2_deploy");
 require("./tasks/tosV2_phase1_market");
 
-
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 
@@ -57,7 +56,7 @@ module.exports = {
     },
   },
   localhost: {
-    timeout: 100000000,
+    timeout: 1000000000,
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
@@ -82,6 +81,6 @@ module.exports = {
     artifacts: "./artifacts",
   },
   mocha: {
-    timeout: 100000000,
+    timeout: 1000000000,
   },
 };

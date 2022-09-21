@@ -1550,6 +1550,15 @@ describe("TOSv2 Phase1", function () {
     })
 
     it("#7-3. RunwayTOS Treasury Reserve ", async () => {
+      let getIndex = await stakingProxylogic.getIndex();
+      console.log('getIndex', getIndex);
+
+      let balanceOf = await tosContract.balanceOf(treasuryProxylogic.address);
+      console.log('treasuryProxylogic balanceOf', ethers.utils.formatEther(balanceOf));
+
+      let enableStaking = await treasuryProxylogic.enableStaking();
+      console.log('treasuryProxylogic enableStaking', ethers.utils.formatEther(enableStaking));
+
       let runwayTos = await stakingProxylogic.runwayTos();
       console.log('runwayTos', ethers.utils.formatEther(runwayTos));
     })
