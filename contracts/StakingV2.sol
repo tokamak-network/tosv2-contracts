@@ -300,7 +300,7 @@ contract StakingV2 is
 
         uint256 lockId = connectId[_stakeId];
         if (lockId > 0) _closeEndTimeOfLockTos(msg.sender, _stakeId, lockId, _stakeInfo.endTime);
-        else  require(_stakeInfo.endTime < block.timestamp, "lock end time has not passed");
+        else require(_stakeInfo.endTime < block.timestamp, "lock end time has not passed");
 
         if (_addAmount > 0)  tos.safeTransferFrom(msg.sender, treasury, _addAmount);
 
@@ -364,7 +364,7 @@ contract StakingV2 is
         uint256 depositPlusAmount = getLtosToTos(_stakeInfo.ltos);
         require(_claimAmount <= depositPlusAmount, "remainedTos is insufficient");
 
-        if(lockId > 0)  _closeEndTimeOfLockTos(msg.sender, _stakeId, lockId, _stakeInfo.endTime);
+        if (lockId > 0)  _closeEndTimeOfLockTos(msg.sender, _stakeId, lockId, _stakeInfo.endTime);
         else require(_stakeInfo.endTime < block.timestamp, "lock end time has not passed");
 
         if (_addAmount > 0)  tos.safeTransferFrom(msg.sender, treasury, _addAmount);
@@ -419,7 +419,7 @@ contract StakingV2 is
 
         uint256 lockId = connectId[_stakeId];
         uint256 amountCompound = 0;
-        if(userStakingIndex[msg.sender][_stakeId] > 1 && lockId > 0) {
+        if (userStakingIndex[msg.sender][_stakeId] > 1 && lockId > 0) {
             (, uint256 end, uint256 principal) = ILockTosV2(lockTOS).locksInfo(lockId);
             require(end > block.timestamp && _stakeInfo.endTime > block.timestamp, "lock end time has passed");
 
@@ -457,11 +457,11 @@ contract StakingV2 is
         uint256 stosEpochUnit = ILockTosV2(lockTOS).epochUnit();
         uint256 lockId = connectId[_stakeId];
         uint256 stosPrincipal = 0;
-        if(userStakingIndex[msg.sender][_stakeId] > 1 && lockId == 0 && _unlockWeeks > 0) {
+        if (userStakingIndex[msg.sender][_stakeId] > 1 && lockId == 0 && _unlockWeeks > 0) {
 
             (connectId[_stakeId], stosPrincipal) = _createStos(msg.sender, _amount + getLtosToTos(remainedLtos(_stakeId)), _unlockWeeks, stosEpochUnit);
 
-        } else if(userStakingIndex[msg.sender][_stakeId] > 1 && lockId > 0) {
+        } else if (userStakingIndex[msg.sender][_stakeId] > 1 && lockId > 0) {
             (, uint256 end, uint256 principalAmount) = ILockTosV2(lockTOS).locksInfo(lockId);
             require(end > block.timestamp && _stakeInfo.endTime > block.timestamp, "lock end time has passed");
 
@@ -472,7 +472,7 @@ contract StakingV2 is
                 stosPrincipal = principalAmount + amountCompound;
                 ILockTosV2(lockTOS).increaseAmountByStaker(msg.sender, lockId, amountCompound);
 
-            } else if(_unlockWeeks > 0) { // 기간만 들어날때는 물량도 같이 늘어난다고 본다. 이자때문에 .
+            } else if (_unlockWeeks > 0) { // 기간만 들어날때는 물량도 같이 늘어난다고 본다. 이자때문에 .
                 uint256 amountCompound1 = 0; // 기간종료후 이자부분
                 uint256 amountCompound2 = 0; // 추가금액이 있을경우, 늘어나는 부분
 
@@ -679,7 +679,7 @@ contract StakingV2 is
         uint256 treasuryAmount = IITreasury(treasury).enableStaking() ;
         uint256 debtTos =  getLtosToTosPossibleIndex(totalLtos);
 
-        if( treasuryAmount < debtTos ) return 0;
+        if (treasuryAmount < debtTos) return 0;
         else return (treasuryAmount - debtTos);
     }
 
@@ -735,7 +735,7 @@ contract StakingV2 is
         uint256 treasuryAmount = IITreasury(treasury).enableStaking() ;
         uint256 debtTos =  getLtosToTos(totalLtos);
 
-        if( treasuryAmount < debtTos ) return 0;
+        if (treasuryAmount < debtTos) return 0;
         else return (treasuryAmount - debtTos);
     }
 
@@ -814,7 +814,7 @@ contract StakingV2 is
     }
 
     function _deleteStakeId(uint256 _stakeId, uint256 _userStakeIdIndex) internal {
-        if(_userStakeIdIndex > 1)  delete allStakings[_stakeId];
+        if (_userStakeIdIndex > 1)  delete allStakings[_stakeId];
         else if (_userStakeIdIndex == 1) {
             // 초기화
             LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
@@ -835,7 +835,7 @@ contract StakingV2 is
 
         LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
 
-        if(_amount > 0) {
+        if (_amount > 0) {
             uint256 ltos = getTosToLtos(_amount);
             _stakeInfo.deposit += _amount;
             _stakeInfo.ltos += ltos;
@@ -843,7 +843,7 @@ contract StakingV2 is
             totalLtos += ltos;
         }
 
-        if(_increaseSeconds > 0) {
+        if (_increaseSeconds > 0) {
             _stakeInfo.endTime += _increaseSeconds;
         }
     }
@@ -869,9 +869,9 @@ contract StakingV2 is
         _stakeInfo.endTime = _unlockTime;
 
         uint256 profit = 0;
-        if(stakedAmount > _stakeInfo.deposit) profit = stakedAmount - _stakeInfo.deposit;
+        if (stakedAmount > _stakeInfo.deposit) profit = stakedAmount - _stakeInfo.deposit;
 
-        if (addLtos > 0){
+        if (addLtos > 0) {
             _stakeInfo.ltos += addLtos;
             totalLtos += addLtos;
         }
@@ -908,7 +908,7 @@ contract StakingV2 is
     }
 
     function _checkStakeId(address to) internal {
-         if(userStakings[to].length == 0) {
+         if (userStakings[to].length == 0) {
             userStakings[to].push(0); // 0번때는 더미
             stakingIdCounter++;
             userStakingIndex[to][stakingIdCounter] = 1; // 첫번째가 기간없는 순수 스테이킹용 .

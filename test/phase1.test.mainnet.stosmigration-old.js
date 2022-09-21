@@ -54,7 +54,32 @@ let bondDepositoryLogicAbi = require('../artifacts/contracts/BondDepository.sol/
 let stakingV2LogicAbi = require('../artifacts/contracts/StakingV2.sol/StakingV2.json');
 
 let UniswapV3LiquidityChangerAddress = "0xa839a0e64b27a34ed293d3d81e1f2f8b463c3514";
+
+/////////////////////////////////////
+// Test 절차
+// 1. 컨트랙 디플로이. LockTOS 업그레이드
+// 5. sTOS 데이타 스테이커를 통해 마이그레이션,
+
+
+// 2. 트래저리에 이더 전송 ( 100 이더 전송 )
+// 3. 초기 설정값 설정 (민팅 레이트 및 이자율 , 파운데이션 주소 정보 등)
+// 4. 마켓 설정
+// 5. sTOS 데이타 스테이커를 통해 마이그레이션,
+//    초기 스테이킹 금액이 맞는지 확인
+// 6. 한달이 지날때마다 트래저리에 100이더 전송 후, 민팅레이트 재설정
+//    APY 맞는지 확인
+// 7.
+/////////////////////////////////////
+
+
 let totalTosSupplyTarget = ethers.utils.parseEther("25000000");
+
+// 메인넷에서 집계한 데이타
+let stosMigrationData = require('./data/stos-ids-15574627.json');
+let stosMigrationSet = {
+  adminAddress : "0x15280a52E79FD4aB35F4B9Acbb376DCD72b44Fd1",
+  round: 0
+}
 
 let tosAdmin = "0x12a936026f072d4e97047696a9d11f97eae47d21";
 let lockTosAdmin = "0x15280a52E79FD4aB35F4B9Acbb376DCD72b44Fd1";
@@ -415,6 +440,10 @@ describe("TOSv2 Phase1", function () {
     _tosAdmin = await ethers.getSigner(tosAdmin);
 
   });
+
+/////////////////////////////////////
+// 1. 컨트랙 디플로이. LockTOS 업그레이드
+/////////////////////////////////////
 
   describe("#0. lockTOSContract update", () => {
 
@@ -867,7 +896,217 @@ describe("TOSv2 Phase1", function () {
 
           await treasuryProxylogic.connect(admin1).enable(STATUS.STAKER, stakingProxy.address);
       })
+    });
 
+/////////////////////////////////////
+// 1. LockTOS 에 스테이크 컨트랙 권한 이양
+/////////////////////////////////////
+
+    describe("#2. lockTOS setting", async () => {
+      it("#2-1-1. user can't set the stakingContarct", async () => {
+        await expect(
+          lockTosContract.connect(user1).setStaker(stakingProxylogic.address)
+        ).to.be.revertedWith("Accessible: Caller is not an admin")
+      })
+
+      it("#2-1-1. onlyLockTOSContract admin set the stakingContarct", async () => {
+        await lockTosContract.connect(_lockTosAdmin).setStaker(stakingProxylogic.address);
+
+        let staker = await lockTosContract.staker();
+        expect(staker).to.be.equal(stakingProxylogic.address);
+      })
+    })
+
+
+/////////////////////////////////////
+// 5. sTOS 데이타 스테이커를 통해 마이그레이션,
+//    : LockTOSv2Logic0 의 어드민 계정으로 남은 기간에 부여될 이자만큼 원금을 추가합니다.
+//    초기 스테이킹 금액 확인
+//    https://docs.google.com/spreadsheets/d/1yh8FGcey6iRMGiiAH7R9QIuSn85cugPTZgg_L0QiCvI/edit#gid=0
+/////////////////////////////////////
+
+    describe("#5. sTOS Migration using Staker", async () => {
+
+      before(function() {
+        if(stosMigrationData.ids == null) return;
+
+      });
+
+      it("#5-1. increaseAmountOfIds : user can't call increaseAmountOfIds", async () => {
+        let addLockTosInfos = stosMigrationData;
+        let len = addLockTosInfos.ids.length;
+        let currentTime = addLockTosInfos.timestamp;
+        let ids = addLockTosInfos.ids;
+        let accounts = addLockTosInfos.accounts;
+        let amounts = addLockTosInfos.amounts;
+        let ends = addLockTosInfos.ends;
+        let profits = addLockTosInfos.profits;
+        // console.log('len',len)
+        // console.log('currentTime',currentTime)
+
+        let batchSize = 100; //360
+        let loopCount = Math.floor(len/batchSize)+1;
+
+        let maxRound = loopCount -1;
+        // console.log('loopCount',loopCount, 'maxRound',maxRound);
+        let c = 0;
+          let start = c * batchSize;
+          let end = start + batchSize;
+          if(end > addLockTosInfos.ids.length)  end = addLockTosInfos.ids.length;
+
+          // console.log('start',start)
+          // console.log('end',end)
+
+          let idList = [];
+          let accountList = [];
+          let amountList = [];
+          let profitList = [];
+
+          try{
+              if(!ids) return;
+              if(!accounts) return;
+              if(!amounts) return;
+              if(!ends) return;
+              if(!profits) return;
+
+              for(let i = start; i < end; i++){
+                  idList.push(ethers.BigNumber.from(ids[i]));
+                  accountList.push(accounts[i]);
+                  amountList.push(ethers.BigNumber.from(amounts[i]));
+                  profitList.push(ethers.BigNumber.from(profits[i]));
+              }
+              // console.log(c, 'idList',idList)
+              // console.log(c, 'accountList',accountList)
+              // console.log(c, 'amountList',amountList)
+              // console.log(c, 'profitList',profitList)
+
+              await expect(lockTosContract.connect(user1).increaseAmountOfIds(
+                  accountList,
+                  idList,
+                  profitList,
+                  currentTime
+                  )).to.be.revertedWith("Accessible: Caller is not an admin")
+
+              // let tx = await lockTosContract.connect(admin).increaseAmountOfIds(
+              //             accountList,
+              //             idList,
+              //             profitList,
+              //             currentTime
+              //         );
+
+              // console.log(c, 'increaseLockTOSAmounts end ',start, end, tx.hash)
+
+              // await tx.wait();
+              // //await timeout(5);
+
+          }catch(error){
+            console.log('increaseLockTOSAmounts error',c, start, end, error);
+            //break;
+          }
+
+      })
+
+      it("#5-2. increaseAmountOfIds : admin can call increaseAmountOfIds ", async () => {
+        let addLockTosInfos = stosMigrationData;
+        let len = addLockTosInfos.ids.length;
+        let currentTime = addLockTosInfos.timestamp;
+        let ids = addLockTosInfos.ids;
+        let accounts = addLockTosInfos.accounts;
+        let amounts = addLockTosInfos.amounts;
+        let ends = addLockTosInfos.ends;
+        let profits = addLockTosInfos.profits;
+        // console.log('len',len)
+        // console.log('currentTime',currentTime)
+
+        let batchSize = 100; //360
+        let loopCount = Math.floor(len/batchSize)+1;
+
+        let maxRound = loopCount -1;
+        // console.log('loopCount',loopCount, 'maxRound',maxRound);
+        let c = 0;
+        for (c = 0; c < loopCount; c++){
+          let start = c * batchSize;
+          let end = start + batchSize;
+          if(end > addLockTosInfos.ids.length)  end = addLockTosInfos.ids.length;
+
+          // console.log('start',start)
+          // console.log('end',end)
+
+          let idList = [];
+          let accountList = [];
+          let amountList = [];
+          let profitList = [];
+
+          try{
+              if(!ids) return;
+              if(!accounts) return;
+              if(!amounts) return;
+              if(!ends) return;
+              if(!profits) return;
+
+              for(let i = start; i < end; i++){
+                  idList.push(ethers.BigNumber.from(ids[i]));
+                  accountList.push(accounts[i]);
+                  amountList.push(ethers.BigNumber.from(amounts[i]));
+                  profitList.push(ethers.BigNumber.from(profits[i]));
+              }
+              // console.log(c, 'idList',idList)
+              // console.log(c, 'accountList',accountList)
+              // console.log(c, 'amountList',amountList)
+              // console.log(c, 'profitList',profitList)
+
+              let tx = await lockTosContract.connect(_lockTosAdmin).increaseAmountOfIds(
+                  accountList,
+                  idList,
+                  profitList,
+                  currentTime
+                  );
+
+              console.log(c, 'increaseLockTOSAmounts end ',start, end, tx.hash)
+
+              await tx.wait();
+              await timeout(5);
+
+              // 등록한 아이디에 대해서 검증한다.
+              for(let i = start; i < end; i++){
+                let id = ethers.BigNumber.from(ids[i]);
+                let amount = ethers.BigNumber.from(amounts[i]);
+                let profit = profits[i];
+                let info = await lockTosContract.locksInfo(id);
+
+                if(profit != "0"){
+
+                  expect(info.amount).to.be.gt(amount);
+
+
+                    if(info.amount.gt(amount)) {
+                        //console.log('ok ', id.toString(), 'original ', amount.toString(), ',profit',profit, 'increase',info.amount.toString() );
+                    } else {
+                        console.log('wrong ', id.toString(), 'original ', amount.toString(), ',profit',profit, 'increase',info.amount.toString());
+                    }
+                } else {
+                  expect(info.amount).to.be.eq(amount);
+
+                    if(info.amount.eq(amount)) {
+                        //console.log('ok ', id.toString(), 'original ', amount.toString(), ',profit',profit, 'increase',info.amount.toString() );
+                    } else {
+                        console.log('wrong ', id.toString(), 'original ', amount.toString(), ',profit',profit, 'increase',info.amount.toString());
+                    }
+                }
+              }
+
+          }catch(error){
+            console.log('increaseLockTOSAmounts error',c, start, end, error);
+            //break;
+          }
+        }
+
+      })
+
+    });
+
+
+    describe("#1-1. treasury minting rate setting", () => {
       it("#1-1-6. setMR : user can't call setMR(mintRate)", async () => {
         await expect(
           treasuryProxylogic.connect(user1).setMR(mintRate,
@@ -896,6 +1135,10 @@ describe("TOSv2 Phase1", function () {
       //     console.log('tosTotalSupply', tosTotalSupply.toString());
       // })
 
+/////////////////////////////////////
+// 2. 트래저리에 이더 전송 ( 100 이더 전송 )
+/////////////////////////////////////
+
       it(" send ETH to treasury ", async () => {
         let balanceEthPrev =  await ethers.provider.getBalance(treasuryProxylogic.address);
 
@@ -914,6 +1157,11 @@ describe("TOSv2 Phase1", function () {
         expect(balanceEthAfter).to.be.equal(balanceEthPrev.add(amount));
 
       })
+
+
+/////////////////////////////////////
+// 3. 초기 설정값 설정 (민팅 레이트 및 이자율 , 파운데이션 주소 정보 등)
+/////////////////////////////////////
 
       it("#1-1-6. setMR : onlyPolicyAdmin can call setMR(mintRate, 0, false)", async () => {
 
@@ -1238,21 +1486,10 @@ describe("TOSv2 Phase1", function () {
 
   })
 
-  describe("#2. lockTOS setting", async () => {
-    it("#2-1-1. user can't set the stakingContarct", async () => {
-      await expect(
-        lockTosContract.connect(user1).setStaker(stakingProxylogic.address)
-      ).to.be.revertedWith("Accessible: Caller is not an admin")
-    })
 
-    it("#2-1-1. onlyLockTOSContract admin set the stakingContarct", async () => {
-      await lockTosContract.connect(_lockTosAdmin).setStaker(stakingProxylogic.address);
-
-      let staker = await lockTosContract.staker();
-      expect(staker).to.be.equal(stakingProxylogic.address);
-    })
-  })
-
+/////////////////////////////////////
+// 4. 마켓 설정
+/////////////////////////////////////
 
   describe("#3-1. bondDepository function test", async () => {
 
@@ -1836,9 +2073,16 @@ describe("TOSv2 Phase1", function () {
 
   });
 
-  describe("#4. Tresury setMR", async () => {
 
-    it("#4-1. setMR : onlyPolicyAdmin can call setMR(mintRate, 0, false) after send ETH to treasury (depositSchedule)", async () => {
+
+/////////////////////////////////////
+// 6. 한달이 지날때마다 트래저리에 100이더 전송 후, 민팅레이트 재설정
+//    APY 맞는지 확인
+/////////////////////////////////////
+  /*
+  describe("#6. Tresury setMR", async () => {
+
+    it("#6-1. setMR : onlyPolicyAdmin can call setMR(mintRate, 0, false) after send ETH to treasury (depositSchedule)", async () => {
 
       while (indexMintRate < 23) {
 
@@ -1867,6 +2111,9 @@ describe("TOSv2 Phase1", function () {
     });
 
   });
+  */
+
+
 
   /*
   describe("#3-2. StakingV2 function test", async () => {
