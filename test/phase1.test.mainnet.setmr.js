@@ -158,6 +158,27 @@ let MintingRateSchedule = [
   '12000.0000000000000',
 ]
 
+/**
+ * setFoundationDistributeInfo
+ *  1. address = [admin, TOS DAO, TON DAO]
+    2. _percents = [25%,5%,1%] ⇒ [25,5,1]
+ */
+let foundations = {
+  address: [
+    "0x5b6e72248b19F2c5b88A4511A6994AD101d0c287",
+    "0x3b9878Ef988B086F13E5788ecaB9A35E74082ED9"
+  ],
+  percentages: [
+    ethers.BigNumber.from("100"),
+    ethers.BigNumber.from("50"),
+  ],
+  balances : [
+    ethers.BigNumber.from("0"),
+    ethers.BigNumber.from("0")
+  ]
+}
+
+
 describe("TOSv2 Phase1", function () {
   //시나리오 : https://www.notion.so/onther/BondDepository-StakingV2-scenario-Suah-497853d6e65f48a390255f3bca29fa36
 
@@ -318,21 +339,6 @@ describe("TOSv2 Phase1", function () {
 
   let deposits = {user1 : [], user2: []};
   let depositor, depositorUser, index, depositData;
-
-  let foundations = {
-    address: [
-      "0x5b6e72248b19F2c5b88A4511A6994AD101d0c287",
-      "0x3b9878Ef988B086F13E5788ecaB9A35E74082ED9"
-    ],
-    percentages: [
-      ethers.BigNumber.from("100"),
-      ethers.BigNumber.from("50"),
-    ],
-    balances : [
-      ethers.BigNumber.from("0"),
-      ethers.BigNumber.from("0")
-    ]
-  }
 
   async function indexEpochPass(_stakingProxylogic, passNextEpochCount) {
       let block = await ethers.provider.getBlock();
