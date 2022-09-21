@@ -6,6 +6,14 @@ interface IStaking {
 
     /* ========== onlyPolicyOwner ========== */
 
+    /// @dev              modify epoch data
+    /// @param _length    epoch's length (sec)
+    /// @param _end       epoch's end time (sec)
+    function setEpochInfo(
+        uint256 _length,
+        uint256 _end
+    ) external;
+
     /// @dev              set tosAddress, lockTOS, treasuryAddress
     /// @param _tos       tosAddress
     /// @param _lockTOS   lockTOSAddress

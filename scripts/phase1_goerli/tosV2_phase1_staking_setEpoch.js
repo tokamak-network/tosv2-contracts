@@ -20,46 +20,23 @@ async function main() {
     }
 
     let stakingV2ProxyAbi = require('../../artifacts/contracts/StakingV2Proxy.sol/StakingV2Proxy.json');
+    let stakingV2Abi = require('../../artifacts/contracts/StakingV2.sol/StakingV2.json');
 
-    const LibStakingAddress = loadDeployed(networkName, "LibStaking");
     const stakingProxyAddress = loadDeployed(networkName, "StakingV2Proxy");
 
-    //StakingLogic Deploy
-    const stakingLogic = await (await ethers.getContractFactory("StakingV2", {
-      libraries: {
-        LibStaking: LibStakingAddress
-      }
-    })).connect(deployer).deploy();
+    let block = await ethers.provider.getBlock();
+    console.log('block', block.timestamp);
 
-    tx = await stakingLogic.deployed();
-
-    console.log("stakingLogic: ", stakingLogic.address);
-
-    deployInfo = {
-        name: "StakingV2",
-        address: stakingLogic.address
-    }
-
-    save(networkName, deployInfo);
-
-    printGasUsedOfUnits('stakingLogic Deploy',tx);
-
+    let epochLength = 28800;
+    let endTime = block.timestamp + 28800 ;
 
     //StakingProxy
-    const stakingProxyContract = new ethers.Contract(stakingProxyAddress, stakingV2ProxyAbi.abi, ethers.provider);
-    await stakingProxyContract.connect(deployer).upgradeTo(stakingLogic.address);
+    const stakingProxyContract = new ethers.Contract(stakingProxyAddress, stakingV2Abi.abi, ethers.provider);
+    let tx = await stakingProxyContract.connect(deployer).setEpochInfo(
+      epochLength, endTime
+    );
 
-    console.log("stakingProxy: upgradeTo ", stakingLogic.address);
-
-
-    if(chainId == 1 || chainId == 4 || chainId == 5) {
-      await run("verify", {
-        address: stakingLogic.address,
-        constructorArgsParams: [],
-      });
-    }
-
-    console.log("stakingLogic verified");
+    console.log('epochLength', epochLength , 'endTime',endTime, 'tx.hash',tx.hash);
 
 }
 

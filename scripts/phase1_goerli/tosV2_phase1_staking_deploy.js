@@ -15,6 +15,7 @@ async function main() {
         address: ""
     }
 
+
     //libStaking Deploy
     const LibStaking = await ethers.getContractFactory("LibStaking");
     let libStaking = await LibStaking.connect(deployer).deploy();
@@ -31,7 +32,7 @@ async function main() {
 
     printGasUsedOfUnits('LibStaking Deploy',tx);
 
-    StakingLogic Deploy
+    // StakingLogic Deploy
     const stakingLogic = await (await ethers.getContractFactory("StakingV2", {
       libraries: {
         LibStaking: libStaking.address
