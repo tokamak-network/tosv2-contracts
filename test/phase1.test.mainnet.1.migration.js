@@ -46,9 +46,11 @@ let NonfungiblePositionManager = require('../abis/NonfungiblePositionManager.jso
 let UniswapV3Pool = require('../abis/UniswapV3Pool.json');
 let UniswapV3LiquidityChanger = require('../abis/UniswapV3LiquidityChanger.json');
 let tosabi = require('../abis/TOS.json');
-let lockTOSProxyabi = require('../abis/LockTOSProxy_ABI.json');
+
 let lockTOSProxy2abi = require('../abis/LockTOSv2Proxy.json');
 let lockTOSLogic2abi = require('../abis/LockTOSv2Logic0.json');
+let lockTOSProxyabi = require('../abis/LockTOSProxy.json').abi;
+
 const { id } = require("@ethersproject/hash");
 
 let treasuryLogicAbi = require('../artifacts/contracts/Treasury.sol/Treasury.json');
@@ -564,10 +566,14 @@ describe("TOSv2 Phase1", function () {
       })
 
       it("bring the newlogic", async () => {
-        lockTosContract = new ethers.Contract( lockTOSProxyAddress, lockTOSLogic2abi.abi, ethers.provider);
+        lockTosContract = new ethers.Contract(lockTOSProxyAddress, lockTOSLogic2abi.abi, ethers.provider);
+
+        // console.log("lockTosContract", lockTOSLogic2abi.abi);
+
       })
 
   })
+
 
   describe("#0. Deploy the contract", () => {
     it("#0-0. Deploy TOSValueCalculator", async function () {
@@ -1545,6 +1551,25 @@ describe("TOSv2 Phase1", function () {
       }
     })
 
+    it("#5-5. Transfer LockTOS's TOS from LockTOS to Treasury ", async () => {
+      let tosBalance = await tosContract.balanceOf(lockTosContract.address);
+      console.log('LockTOS tosBalance',  ethers.utils.formatEther(tosBalance) , "TOS");
+      console.log('락토스의 토스를 트래저리로 옮깁니다.',treasuryProxylogic.address);
+
+      let tx = await lockTosContract.connect(_lockTosAdmin)["transferTosToTreasury(address)"](treasuryProxylogic.address);
+
+      console.log('LockTOS.transferTosToTreasury end ',tx)
+
+      await tx.wait();
+
+      let tosBalanceAfter = await tosContract.balanceOf(lockTosContract.addres);
+      console.log('lockTosContract tosBalanceAfter',  ethers.utils.formatEther(tosBalanceAfter) , "TOS");
+
+      let tosBalanceTreasury =  await tosContract.balanceOf(treasuryProxylogic.addres);
+      console.log('treasuryProxylogic tosBalance',  ethers.utils.formatEther(tosBalanceTreasury) , "TOS");
+
+    })
+
   })
 
   describe("#6. check data after migrating ", () => {
@@ -1563,6 +1588,7 @@ describe("TOSv2 Phase1", function () {
         amount = totalTosSupplyTarget.sub(tosBalanceTotalSupply);
       }
       console.log('Amoun to mint TOS', ethers.utils.formatEther(amount) , "TOS");
+
     })
 
   })
@@ -1609,6 +1635,9 @@ describe("TOSv2 Phase1", function () {
       expect(await tosContract.totalSupply()).to.be.equal(totalTosSupplyTarget);
 
       expect(await treasuryProxylogic.mintRate()).to.be.equal(ethers.utils.parseEther(MintingRateSchedule[indexMintRate]));
+
+      // let tosBalanceAfter =  await tosContract.balanceOf(treasuryProxylogic.address);
+      // console.log('treasury tosBalance', ethers.utils.formatEther(tosBalanceAfter) , "TOS");
 
       indexMintRate++;
       await setTimeNextSetMr();
@@ -1707,6 +1736,11 @@ describe("TOSv2 Phase1", function () {
 
     it("#3-1-5. ETHDeposit run 10 times  ", async () => {
 
+      let tosBalanceTreasuryPrev =  await tosContract.balanceOf(treasuryProxylogic.address);
+      console.log('tosBalanceTreasuryPrev', tosBalanceTreasuryPrev);
+      let tosBalanceLockTosPrev =  await tosContract.balanceOf(lockTosContract.address);
+      console.log('tosBalanceLockTosPrev', tosBalanceLockTosPrev);
+
       let maxCumulativeDepositAmount = ethers.utils.parseEther("3");
       let accumulatedDepositAmount = ethers.utils.parseEther("0");
 
@@ -1733,6 +1767,10 @@ describe("TOSv2 Phase1", function () {
         );
         await tx.wait()
         //const receipt = await tx.wait();
+
+        let tosBalanceTreasuryAfter =  await tosContract.balanceOf(treasuryProxylogic.address);
+        console.log('tosBalanceTreasuryAfter', tosBalanceTreasuryAfter);
+
       }
 
       console.log('accumulatedDepositAmount', ethers.utils.formatEther(accumulatedDepositAmount), "ETH");
@@ -1740,18 +1778,56 @@ describe("TOSv2 Phase1", function () {
 
     it(" foundationDistribute ", async function () {
 
-      for (let i = 0; i< foundations.length; i++){
+      let tosBalanceTreasuryPrev =  await tosContract.balanceOf(treasuryProxylogic.address);
+      console.log('tosBalanceTreasuryPrev', tosBalanceTreasuryPrev);
+
+      let foundationTotalPercentage = await treasuryProxylogic.foundationTotalPercentage();
+      // console.log('foundationTotalPercentage', foundationTotalPercentage);
+      // let allMinting = await treasuryProxylogic.allMinting();
+      // console.log('allMinting', allMinting);
+      let foundationAmount = await treasuryProxylogic.foundationAmount();
+      // console.log('foundationAmount', foundationAmount);
+
+      let i = 0;
+      for (i = 0; i < foundations.address.length; i++){
         foundations.balances[i] = await tosContract.balanceOf(foundations.address[i]);
-        console.log('foundation TOS Balance Prev', i, foundations.address[i], ethers.utils.formatEther(foundations.balances[i]));
+        // console.log('foundation TOS Balance Prev', i, foundations.address[i], ethers.utils.formatEther(foundations.balances[i]));
       }
 
       let tx = await treasuryProxylogic.connect(admin1).foundationDistribute();
-      await tx.wait();
-
-      for (let i = 0; i < foundations.length; i++){
-        foundations.balancesAfter[i] = await tosContract.balanceOf(foundations.address[i]);
-        expect(foundations.balancesAfter[i]).to.be.gt(foundations.balances[i]);
+      let receipt = await tx.wait();
+      let eventDistributedFoundation = "DistributedFoundation(address,uint256)";
+      for (let i = 0; i < receipt.events.length; i++){
+        if(receipt.events[i].topics[0] == treasuryProxylogic.interface.getEventTopic(eventDistributedFoundation)){
+            let data = receipt.events[i].data;
+            let topics = receipt.events[i].topics;
+            let log = treasuryProxylogic.interface.parseLog({data, topics});
+            // console.log('DistributedFoundation log.args',log.args)
+        }
       }
+
+      timeout(2);
+
+      i = 0;
+      // console.log('foundations.address.length', foundations.address.length);
+
+      for (i = 0; i < foundations.address.length; i++){
+        let balanceTos = await tosContract.balanceOf(foundations.address[i]);
+        foundations.balancesAfter[i] = balanceTos;
+        // console.log('balanceTos', i, balanceTos);
+        expect(foundations.balancesAfter[i]).to.be.gt(foundations.balances[i]);
+        expect(foundations.balancesAfter[i]).to.be.eq(foundationAmount.mul(foundations.percentages[i]).div(foundationTotalPercentage));
+      }
+      console.log('foundations', foundations);
+
+      let tosBalanceTreasuryAfter =  await tosContract.balanceOf(treasuryProxylogic.address);
+      console.log('tosBalanceTreasuryAfter', tosBalanceTreasuryAfter);
+
+      let foundationAmountAfter = await treasuryProxylogic.foundationAmount();
+      console.log('foundationAmountAfter', foundationAmountAfter);
+
+      expect(tosBalanceTreasuryAfter).to.be.eq(tosBalanceTreasuryPrev.sub(foundationAmount));
+      expect(foundationAmountAfter).to.be.eq(ethers.BigNumber.from("0"));
 
     });
 
