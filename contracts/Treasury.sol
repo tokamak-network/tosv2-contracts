@@ -162,19 +162,12 @@ contract Treasury is
 
     function _addBackingList(address _address) internal
     {
-        bool existAsset = false;
-        uint256 len = backings.length;
+        require(backingIndexPlusOne[_address] != 0, "already added.");
 
-        for (uint256 i = 0; i < len; i++)
-            if (_address == backings[i]) {
-                existAsset = true;
-                break;
-            }
+        backings.push(_address);
+        backingIndexPlusOne[_address] = backings.length;
 
-        if(!existAsset) {
-            backings.push(_address);
-            emit AddedBackingList(_address);
-        }
+        emit AddedBackingList(_address);
     }
 
     /// @inheritdoc ITreasury
@@ -184,16 +177,15 @@ contract Treasury is
         external override onlyPolicyOwner
         nonZeroAddress(_address)
     {
-        uint256 len = backings.length;
+        require(backingIndexPlusOne[_address] != 0, "no backing address");
 
-        for (uint256 i = 0; i < len; i++){
-            if (_address == backings[i]) {
-                if (i < len-1) backings[i] = backings[len-1];
-                backings.pop();
-                emit DeletedBackingList(_address);
-                break;
-            }
-        }
+        uint256 len = backings.length;
+        uint256 index = backingIndexPlusOne[_address] - 1;
+
+        if (index < len-1) backings[index] = backings[len-1];
+        backings.pop();
+
+        emit DeletedBackingList(_address);
     }
 
     /// @inheritdoc ITreasury
