@@ -3,6 +3,14 @@ pragma solidity ^0.8.4;
 
 interface ITreasuryEvent{
 
+    /// @dev                        this event occurs when set the calculator address
+    /// @param calculatorAddress    calculator address
+    event SetCalculator(address calculatorAddress);
+
+    /// @dev                        this event occurs when set the weth address
+    /// @param _wethAddress         weth address
+    event SetWethAddress(address _wethAddress);
+
     /// @dev          this event occurs when Treasury's TOS is burned
     /// @param amount burned TOS amount
     event BurnedTos(uint256 amount);

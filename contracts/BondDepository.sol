@@ -81,6 +81,19 @@ contract BondDepository is
     /// onlyPolicyOwner
     //////////////////////////////////////
 
+
+    function setCalculator(
+        address _calculator
+    )
+        external nonZeroAddress(_calculator) onlyPolicyOwner
+    {
+        require(calculator != _calculator, "same address");
+        calculator = _calculator;
+
+        emit SetCalculator(_calculator);
+    }
+
+
     /// @inheritdoc IBondDepository
     function create(
         address _token,

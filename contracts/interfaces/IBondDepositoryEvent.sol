@@ -3,6 +3,10 @@ pragma solidity ^0.8.4;
 
 interface IBondDepositoryEvent{
 
+    /// @dev                        this event occurs when set the calculator address
+    /// @param calculatorAddress    calculator address
+    event SetCalculator(address calculatorAddress);
+
     /// @dev               this event occurs when a specific market product is purchased
     /// @param user        user address
     /// @param marketId    market id
@@ -14,7 +18,7 @@ interface IBondDepositoryEvent{
 
     /// @dev            this event occurs when a specific market product is created
     /// @param marketId market id
-    /// @param token    token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3 
+    /// @param token    token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3
     /// @param market   [capacity of the market, market closing time, return on the deposit in TOS, maximum purchasable bond in TOS]
     event CreatedMarket(uint256 marketId, address token, uint256[4] market);
 
@@ -54,12 +58,12 @@ interface IBondDepositoryEvent{
     /// @param closeTime new close time
     event ChangedCloseTime(uint256 _marketId, uint256 closeTime);
 
-    /// @dev             this event occurs when the maxPayout is updated 
+    /// @dev             this event occurs when the maxPayout is updated
     /// @param _marketId market id
     /// @param _amount   maxPayout
     event ChangedMaxPayout(uint256 _marketId, uint256 _amount);
 
-    /// @dev             this event occurs when the maxPayout is updated 
+    /// @dev             this event occurs when the maxPayout is updated
     /// @param _marketId market id
     /// @param _tosPrice amount of TOS per 1 ETH
     event ChangedPrice(uint256 _marketId, uint256 _tosPrice);
