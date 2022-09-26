@@ -238,6 +238,7 @@ contract Treasury is
 
     /* ========== permissions : LibTreasury.STATUS.RESERVEDEPOSITOR ========== */
 
+    /// @inheritdoc ITreasury
     function requestMint(
         uint256 _mintAmount,
         bool _distribute
