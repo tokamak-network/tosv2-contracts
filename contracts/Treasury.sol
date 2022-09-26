@@ -185,6 +185,7 @@ contract Treasury is
         if (index < len-1) backings[index] = backings[len-1];
         backings.pop();
 
+
         emit DeletedBackingList(_address);
     }
 
