@@ -219,12 +219,11 @@ contract BondDepository is
 
         (payout_, _tosPrice) = _deposit(msg.sender, _amount, _id);
 
-        uint256 id = _id;
-        uint256 stakeId = staking.stakeByBond(msg.sender, payout_, id, _tosPrice);
+        uint256 stakeId = staking.stakeByBond(msg.sender, payout_, _id, _tosPrice);
 
         payable(treasury).transfer(msg.value);
 
-        emit ETHDeposited(msg.sender, id, stakeId, _amount, payout_);
+        emit ETHDeposited(msg.sender, _id, stakeId, _amount, payout_);
     }
 
 
