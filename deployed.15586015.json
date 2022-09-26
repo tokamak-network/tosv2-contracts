@@ -11,8 +11,6 @@
   "StakingV2Proxy": "0x262e2b50219620226C5fB5956432A88fffd94Ba7",
   "BondDepository": "0xd753c12650c280383Ce873Cc3a898F6f53973d16",
   "BondDepositoryProxy": "0xd710a67624Ad831683C86a48291c597adE30F787",
-  "prevStakeId": "0",
-  "afterStakeId": "497",
   "profitZeroLockIds": [
     1,
     19,
@@ -24,6 +22,11 @@
     239,
     186,
     279,
-    280
-  ]
+    280,
+    283,
+    298
+  ],
+  "prevStakeId": "0",
+  "afterStakeId": "552",
+  "marketId": "1"
 }
