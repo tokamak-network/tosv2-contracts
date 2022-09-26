@@ -66,6 +66,13 @@ contract BondDepository is
         _;
     }
 
+    modifier nonZeroPayout(uint256 id_) {
+        require(
+            markets[id_].maxPayout > 0,
+            "BondDepository: non-exist market"
+        );
+        _;
+    }
     constructor() {
 
     }
@@ -112,9 +119,8 @@ contract BondDepository is
         uint256 _amount
     )   external override onlyPolicyOwner
         nonZero(_amount)
+        nonZeroPayout(_marketId)
     {
-        require(markets[_marketId].maxPayout > 0, "non-exist market");
-
         LibBondDepository.Market storage _info = markets[_marketId];
         _info.capacity += _amount;
 
@@ -127,9 +133,9 @@ contract BondDepository is
         uint256 _amount
     ) external override onlyPolicyOwner
         nonZero(_amount)
+        nonZeroPayout(_marketId)
     {
         require(markets[_marketId].capacity > _amount, "not enough capacity");
-        require(markets[_marketId].maxPayout > 0, "non-exist market");
 
         LibBondDepository.Market storage _info = markets[_marketId];
         _info.capacity -= _amount;
@@ -144,9 +150,9 @@ contract BondDepository is
     )   external override onlyPolicyOwner
         //nonEndMarket(_marketId)
         //nonZero(closeTime)
+        nonZeroPayout(_marketId)
     {
         require(closeTime > block.timestamp, "past closeTime");
-        require(markets[_marketId].maxPayout > 0, "non-exist market");
 
         LibBondDepository.Market storage _info = markets[_marketId];
         _info.endSaleTime = closeTime;
