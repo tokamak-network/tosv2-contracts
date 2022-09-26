@@ -368,11 +368,7 @@ contract BondDepository is
     /// @inheritdoc IBondDepository
     function isOpened(uint256 _marketId) external override view returns (bool closedBool)
     {
-        if (block.timestamp < markets[_marketId].endSaleTime && markets[_marketId].capacity > 0) {
-            return true;
-        } else {
-            return false;
-        }
+        return block.timestamp < markets[_marketId].endSaleTime && markets[_marketId].capacity > 0;
     }
 
 }
