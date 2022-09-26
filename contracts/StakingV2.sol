@@ -63,6 +63,21 @@ contract StakingV2 is
     /* ========== onlyPolicyOwner ========== */
 
     /// @inheritdoc IStaking
+    function setEpochInfo(
+        uint256 _length,
+        uint256 _end
+    )
+        external override onlyPolicyOwner
+        nonZero(_length)
+        nonZero(_end)
+    {
+        epoch.length_ = _length;
+        epoch.end = _end;
+
+         emit SetEpochInfo(_length, _end);
+    }
+
+    /// @inheritdoc IStaking
     function setAddressInfos(
         address _tos,
         address _lockTOS,

@@ -3,6 +3,15 @@ pragma solidity ^0.8.4;
 
 interface IStakingEvent{
 
+    /// @dev                this event occurs when set epoch info
+    /// @param length       epoch's length(seconds)
+    /// @param end          epoch's end time(seconds)
+    event SetEpochInfo(
+        uint256 length,
+        uint256 end
+    );
+
+
     /// @dev                    this event occurs when set addresses
     /// @param tosAddress       tos address
     /// @param lockTOSAddress   lockTOS address
