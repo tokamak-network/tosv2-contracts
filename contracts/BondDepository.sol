@@ -66,6 +66,13 @@ contract BondDepository is
         _;
     }
 
+    modifier nonZeroPayout(uint256 id_) {
+        require(
+            markets[id_].maxPayout > 0,
+            "BondDepository: non-exist market"
+        );
+        _;
+    }
     constructor() {
 
     }
@@ -81,6 +88,8 @@ contract BondDepository is
     {
         require(calculator != _calculator, "same address");
         calculator = _calculator;
+
+        emit SetCalculator(_calculator);
     }
 
     /// @inheritdoc IBondDepository
@@ -121,9 +130,8 @@ contract BondDepository is
         uint256 _amount
     )   external override onlyPolicyOwner
         nonZero(_amount)
+        nonZeroPayout(_marketId)
     {
-        require(markets[_marketId].maxPayout > 0, "non-exist market");
-
         LibBondDepository.Market storage _info = markets[_marketId];
         _info.capacity += _amount;
 
@@ -136,9 +144,9 @@ contract BondDepository is
         uint256 _amount
     ) external override onlyPolicyOwner
         nonZero(_amount)
+        nonZeroPayout(_marketId)
     {
         require(markets[_marketId].capacity > _amount, "not enough capacity");
-        require(markets[_marketId].maxPayout > 0, "non-exist market");
 
         LibBondDepository.Market storage _info = markets[_marketId];
         _info.capacity -= _amount;
@@ -153,9 +161,9 @@ contract BondDepository is
     )   external override onlyPolicyOwner
         //nonEndMarket(_marketId)
         //nonZero(closeTime)
+        nonZeroPayout(_marketId)
     {
         require(closeTime > block.timestamp, "past closeTime");
-        require(markets[_marketId].maxPayout > 0, "non-exist market");
 
         LibBondDepository.Market storage _info = markets[_marketId];
         _info.endSaleTime = closeTime;
@@ -222,12 +230,11 @@ contract BondDepository is
 
         (payout_, _tosPrice) = _deposit(msg.sender, _amount, _id);
 
-        uint256 id = _id;
-        uint256 stakeId = staking.stakeByBond(msg.sender, payout_, id, _tosPrice);
+        uint256 stakeId = staking.stakeByBond(msg.sender, payout_, _id, _tosPrice);
 
         payable(treasury).transfer(msg.value);
 
-        emit ETHDeposited(msg.sender, id, stakeId, _amount, payout_);
+        emit ETHDeposited(msg.sender, _id, stakeId, _amount, payout_);
     }
 
 
@@ -372,11 +379,7 @@ contract BondDepository is
     /// @inheritdoc IBondDepository
     function isOpened(uint256 _marketId) external override view returns (bool closedBool)
     {
-        if (block.timestamp < markets[_marketId].endSaleTime && markets[_marketId].capacity > 0) {
-            return true;
-        } else {
-            return false;
-        }
+        return block.timestamp < markets[_marketId].endSaleTime && markets[_marketId].capacity > 0;
     }
 
 }

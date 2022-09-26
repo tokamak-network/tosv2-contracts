@@ -73,6 +73,8 @@ contract StakingV2 is
     {
         epoch.length_ = _length;
         epoch.end = _end;
+
+         emit SetEpochInfo(_length, _end);
     }
 
     /// @inheritdoc IStaking
@@ -90,16 +92,22 @@ contract StakingV2 is
         tos = IERC20(_tos);
         lockTOS = _lockTOS;
         treasury = _treasury;
+
+        emit SetAddressInfos(_tos, _lockTOS, _treasury);
     }
 
     /// @inheritdoc IStaking
     function setRebasePerEpoch(uint256 _rebasePerEpoch) external override onlyPolicyOwner {
         rebasePerEpoch = _rebasePerEpoch;
+
+        emit SetRebasePerEpoch(_rebasePerEpoch);
     }
 
     /// @inheritdoc IStaking
     function setIndex(uint256 _index) external override onlyPolicyOwner {
         index_ = _index;
+
+        emit SetIndex(_index);
     }
 
     /// @inheritdoc IStaking
@@ -109,6 +117,8 @@ contract StakingV2 is
     {
         require(basicBondPeriod != _period,"same period");
         basicBondPeriod = _period;
+
+        emit SetBasicBondPeriod(_period);
     }
 
     /* ========== onlyBonder ========== */

@@ -55,8 +55,8 @@ interface ITreasury {
     /* ========== onlyOwner ========== */
 
     /// @dev                    mints TOS and send TOS to recipient. Decides whether to distribute to the foundation or not
-    /// @param _mintAmount      mintAmount
-    /// @param _distribute      foundation distribution check
+    /// @param _mintAmount      Additional issuance amount of TOS
+    /// @param _distribute      If _distribute is true, The amount of foundationTotalPercentage among the issued amounts is allocated to the foundation distribution.
     function requestMint(uint256 _mintAmount, bool _distribute) external ;
 
     /// @dev            addbackingList can be called by bonder

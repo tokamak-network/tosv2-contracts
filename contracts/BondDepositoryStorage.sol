@@ -15,9 +15,7 @@ contract BondDepositoryStorage {
     address public uniswapV3Factory;
     address public dtos;
 
-    uint256 private constant _NOT_ENTERED = 1;
-    uint256 private constant _ENTERED = 2;
-    uint256 private _status;
+    bool private _entered;
 
     uint256[] public marketList;
     mapping(uint256 => LibBondDepository.Market) public markets;
@@ -37,17 +35,13 @@ contract BondDepositoryStorage {
     }
 
     modifier nonReentrant() {
-        // On the first call to nonReentrant, _notEntered will be true
-        require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
+        require(_entered != true, "ReentrancyGuard: reentrant call");
 
-        // Any calls to nonReentrant after this point will fail
-        _status = _ENTERED;
+        _entered = true;
 
         _;
 
-        // By storing the original value once again, a refund is triggered (see
-        // https://eips.ethereum.org/EIPS/eip-2200)
-        _status = _NOT_ENTERED;
+        _entered = false;
     }
 
 }

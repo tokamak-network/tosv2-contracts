@@ -106,15 +106,11 @@ contract TOSValueCalculator is ITOSValueCalculator {
     /// @inheritdoc ITOSValueCalculator
     function getWETHPoolTOSPrice() public override view returns (uint256 price) {
         uint tosOrder = getTOStoken0(weth, 3000);
-        if(tosOrder == 2 && tosOrder == 3) {
-            return price = 0;
-        }
+
         if(tosOrder == 0) {
-            return price = getPriceToken0(ethTosPool);
+            price = getPriceToken0(ethTosPool);
         } else if (tosOrder == 1) {
-            return price = getPriceToken1(ethTosPool);
-        } else {
-            return price = 0;
+            price = getPriceToken1(ethTosPool);
         }
     }
 

@@ -25,6 +25,7 @@ contract TreasuryStorage {
 
     mapping(LibTreasury.STATUS => address[]) public registry;
     mapping(LibTreasury.STATUS => mapping(address => bool)) public permissions;
+    mapping(address => uint256) public backingIndexPlusOne;
 
     address[] public backings;
     LibTreasury.Minting[] public mintings;

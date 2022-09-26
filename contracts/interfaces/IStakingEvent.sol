@@ -3,6 +3,44 @@ pragma solidity ^0.8.4;
 
 interface IStakingEvent{
 
+    /// @dev                this event occurs when set epoch info
+    /// @param length       epoch's length(seconds)
+    /// @param end          epoch's end time(seconds)
+    event SetEpochInfo(
+        uint256 length,
+        uint256 end
+    );
+
+
+    /// @dev                    this event occurs when set addresses
+    /// @param tosAddress       tos address
+    /// @param lockTOSAddress   lockTOS address
+    /// @param treasuryAddress  treasury address
+    event SetAddressInfos(
+        address tosAddress,
+        address lockTOSAddress,
+        address treasuryAddress
+    );
+
+    /// @dev                     this event occurs when set rebasePerEpoch data
+    /// @param rebasePerEpoch    rebase rate Per Epoch
+    event SetRebasePerEpoch(
+        uint256 rebasePerEpoch
+    );
+
+    /// @dev            this event occurs when set index
+    /// @param index    index
+    event SetIndex(
+        uint256 index
+    );
+
+    /// @dev            this event occurs when set the default lockup period(second)
+    /// @param period   the default lockup period(second) when bonding.
+    event SetBasicBondPeriod(
+        uint256 period
+    );
+
+
     /// @dev            this event occurs when bonding without sTOS
     /// @param to       user address
     /// @param amount   TOS amount used for staking
