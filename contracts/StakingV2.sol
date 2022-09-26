@@ -186,7 +186,25 @@ contract StakingV2 is
 
         rebaseIndex();
 
-        _createStakeInfo(msg.sender, stakeId, _amount, block.timestamp + 1, 0);
+        uint256 ltos = getTosToLtos(_amount);
+
+        if (allStakings[stakeId].staker == msg.sender) {
+            LibStaking.UserBalance storage _stakeInfo = allStakings[stakeId];
+            _stakeInfo.deposit += _amount;
+            _stakeInfo.ltos += ltos;
+
+        } else {
+            allStakings[stakeId] = LibStaking.UserBalance({
+                staker: msg.sender,
+                deposit: _amount,
+                ltos: ltos,
+                endTime: block.timestamp + 1,
+                marketId: 0
+            });
+        }
+
+        stakingPrincipal += _amount;
+        totalLtos += ltos;
 
         emit Staked(msg.sender, _amount, stakeId);
     }
