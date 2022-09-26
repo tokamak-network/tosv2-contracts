@@ -67,7 +67,7 @@ contract StakingV2 is
         uint256 _length,
         uint256 _end
     )
-        external override onlyPolicyOwner
+        external override onlyProxyOwner
         nonZero(_length)
         nonZero(_end)
     {
@@ -83,7 +83,7 @@ contract StakingV2 is
         address _lockTOS,
         address _treasury
     )
-        external override onlyPolicyOwner
+        external override onlyProxyOwner
         nonZeroAddress(_tos)
         nonZeroAddress(_lockTOS)
         nonZeroAddress(_treasury)
@@ -97,14 +97,14 @@ contract StakingV2 is
     }
 
     /// @inheritdoc IStaking
-    function setRebasePerEpoch(uint256 _rebasePerEpoch) external override onlyPolicyOwner {
+    function setRebasePerEpoch(uint256 _rebasePerEpoch) external override onlyProxyOwner {
         rebasePerEpoch = _rebasePerEpoch;
 
         emit SetRebasePerEpoch(_rebasePerEpoch);
     }
 
     /// @inheritdoc IStaking
-    function setIndex(uint256 _index) external override onlyPolicyOwner {
+    function setIndex(uint256 _index) external override onlyProxyOwner {
         index_ = _index;
 
         emit SetIndex(_index);
@@ -112,7 +112,7 @@ contract StakingV2 is
 
     /// @inheritdoc IStaking
     function setBasicBondPeriod(uint256 _period)
-        external override onlyPolicyOwner
+        external override onlyProxyOwner
         nonZero(_period)
     {
         require(basicBondPeriod != _period,"same period");

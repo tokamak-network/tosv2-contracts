@@ -48,7 +48,7 @@ contract Treasury is
     function tosBurn(
         uint256 amount
     )
-        external onlyPolicyOwner
+        external onlyProxyOwner
     {
         require(tos.balanceOf(address(this)) >= amount, "balance is insufficient.");
         tos.burn(address(this), amount);
@@ -63,7 +63,7 @@ contract Treasury is
         address _address
     )
         external override
-        onlyPolicyOwner
+        onlyProxyOwner
     {
         LibTreasury.STATUS role = LibTreasury.getStatus(_status);
 
@@ -83,7 +83,7 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     function disable(uint _status, address _toDisable)
-        external override onlyPolicyOwner
+        external override onlyProxyOwner
     {
         LibTreasury.STATUS role = LibTreasury.getStatus(_status);
         require(role != LibTreasury.STATUS.NONE, "NONE permission");
@@ -129,7 +129,7 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
-    function setPoolAddressTOSETH(address _poolAddressTOSETH) external override onlyPolicyOwner {
+    function setPoolAddressTOSETH(address _poolAddressTOSETH) external override onlyProxyOwner {
         require(poolAddressTOSETH != _poolAddressTOSETH, "same address");
         poolAddressTOSETH = _poolAddressTOSETH;
 
@@ -137,7 +137,7 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
-    function setUniswapV3Factory(address _uniswapFactory) external override onlyPolicyOwner {
+    function setUniswapV3Factory(address _uniswapFactory) external override onlyProxyOwner {
         require(uniswapV3Factory != _uniswapFactory, "same address");
         uniswapV3Factory = _uniswapFactory;
 
@@ -145,7 +145,7 @@ contract Treasury is
     }
 
     /// @inheritdoc ITreasury
-    function setMintRateDenominator(uint256 _mintRateDenominator) external override onlyPolicyOwner {
+    function setMintRateDenominator(uint256 _mintRateDenominator) external override onlyProxyOwner {
         require(mintRateDenominator != _mintRateDenominator && _mintRateDenominator > 0, "check input value");
         mintRateDenominator = _mintRateDenominator;
 
@@ -222,7 +222,7 @@ contract Treasury is
         emit SetFoundationDistributeInfo(_address, _percents);
     }
 
-    function foundationDistribute() external onlyPolicyOwner {
+    function foundationDistribute() external {
         require(foundationAmount > 0 && foundationTotalPercentage > 0 && mintings.length > 0, "No funds or no distribution");
         uint256 _amount = foundationAmount;
 
@@ -241,7 +241,7 @@ contract Treasury is
     function setCalculator(
         address _calculator
     )
-        external nonZeroAddress(_calculator) onlyPolicyOwner
+        external nonZeroAddress(_calculator) onlyProxyOwner
     {
         require(calculator != _calculator, "same address");
         calculator = _calculator;
@@ -252,7 +252,7 @@ contract Treasury is
     function setWeth(
         address _wethAddress
     )
-        external nonZeroAddress(_wethAddress) onlyPolicyOwner
+        external nonZeroAddress(_wethAddress) onlyProxyOwner
     {
         require(wethAddress != _wethAddress, "same address");
         wethAddress = _wethAddress;
