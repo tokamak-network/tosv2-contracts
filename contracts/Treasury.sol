@@ -264,16 +264,18 @@ contract Treasury is
     /// @inheritdoc ITreasury
     function requestMint(
         uint256 _mintAmount,
+        uint256 _payout,
         bool _distribute
     ) external override nonZero(_mintAmount)
     {
         require(isBonder(msg.sender), notApproved);
+
         tos.mint(address(this), _mintAmount);
 
         if (_distribute && foundationTotalPercentage > 0 )
-          foundationAmount += (_mintAmount * foundationTotalPercentage / 10000);
+          foundationAmount += ((_mintAmount - _payout) * foundationTotalPercentage / 10000);
 
-        emit RquestedMint(_mintAmount, _distribute);
+        emit RequestedMint(_mintAmount, _payout, _distribute);
 
     }
 

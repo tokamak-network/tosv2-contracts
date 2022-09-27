@@ -33,7 +33,7 @@ interface IITreasury {
     function getMintRate() external view returns (uint256);
     function mintRateDenominator() external view returns (uint256);
 
-    function requestMint(uint256 _mintAmount, bool _distribute) external ;
+    function requestMint(uint256 _mintAmount, uint256 _payout, bool _distribute) external ;
     function addBondAsset(address _address) external;
 }
 
@@ -289,7 +289,7 @@ contract BondDepository is
            emit ClosedMarket(_marketId);
         }
 
-        IITreasury(treasury).requestMint(mrAmount, true);
+        IITreasury(treasury).requestMint(mrAmount, _payout, true);
 
         emit Deposited(user, _marketId, _amount, _payout, true, mrAmount);
     }

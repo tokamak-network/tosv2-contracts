@@ -68,9 +68,11 @@ interface ITreasuryEvent{
 
     /// @dev               this event occurs when request mint and transfer TOS
     /// @param _mintAmount minted TOS amount
+    /// @param _payout     Amount of TOS to be earned by the user
     /// @param _distribute if true, distribute a percentage of the remaining amount to the foundation after mint and transfer
-    event RquestedMint(
+    event RequestedMint(
         uint256 _mintAmount,
+        uint256 _payout,
         bool _distribute
     );
 

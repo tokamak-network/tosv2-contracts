@@ -74,15 +74,8 @@ contract ProxyAccessCommon is AccessRoleCommon, AccessControl {
         renounceRole(POLICY_ROLE, msg.sender);
     }
 
-    function transferPolicyAdmin(address newAdmin)
-        external virtual
-        onlyPolicyOwner
-    {
-        require(newAdmin != address(0), "Accessible: zero address");
-        require(msg.sender != newAdmin, "Accessible: same admin");
-
-        grantRole(POLICY_ROLE, newAdmin);
-        renounceRole(POLICY_ROLE, msg.sender);
+    function deletePolicy(address _account) public virtual onlyProxyOwner {
+        revokeRole(POLICY_ROLE, _account);
     }
 
     /// @dev whether admin
