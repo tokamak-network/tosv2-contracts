@@ -478,9 +478,9 @@ describe("TOSv2 Phase1", function () {
       let tosTotalSupplyPrev =  await tosContract.totalSupply();
       console.log('tosTotalSupplyPrev', tosTotalSupplyPrev);
 
-      console.log('tosBalanceLockTosPrev', tosBalanceLockTosPrev);
       let tosBalanceTreasuryPrev =  await tosContract.balanceOf(treasuryProxylogic.address);
       console.log('tosBalanceTreasuryPrev', tosBalanceTreasuryPrev);
+
       let tosBalanceLockTosPrev =  await tosContract.balanceOf(lockTosContract.address);
       console.log('tosBalanceLockTosPrev', tosBalanceLockTosPrev);
 
@@ -526,7 +526,14 @@ describe("TOSv2 Phase1", function () {
       console.log('minted TOS ', tosTotalSupply.sub(tosTotalSupplyPrev));
 
       let stakingPrincipalAfter = await stakingProxylogic.stakingPrincipal();
-      console.log('Add Staked Amount in StakeV2', ethers.utils.formatEther(stakingPrincipalAfter.sub(stakingPrincipalPrev)) , "TOS");
+      let StakedTosByBonder = stakingPrincipalAfter.sub(stakingPrincipalPrev);
+
+      save(stosMigrationBlockNumber,{
+        name: "StakedTosByBonder",
+        address: [ StakedTosByBonder.toString() ]
+      });
+
+      console.log('Add Staked Amount in StakeV2', ethers.utils.formatEther(StakedTosByBonder) , "TOS");
 
       await logStatus(" *** rignt after bond 10 times (without rebase)", treasuryProxylogic, stakingProxylogic, tosContract, foundations);
 

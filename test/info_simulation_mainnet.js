@@ -45,6 +45,8 @@ let burnTosAddressList = [
   "0xcb585d90c047f5f39b52a96154e02948db0a3178"
 ]
 
+let bondTosPrice = "3000000000000000000000";
+let bondPurchasableTOSAmount = "822468000000000000000";
 // 24 회 deposit
 let depositSchedule = [
     100,
@@ -156,4 +158,6 @@ module.exports = {
     eventIncreasedAmountForSimpleStake,
     eventResetStakedGetStosAfterLock,
     eventIncreasedBeforeEndOrNonEnd,
+    bondTosPrice,
+    bondPurchasableTOSAmount,
 }

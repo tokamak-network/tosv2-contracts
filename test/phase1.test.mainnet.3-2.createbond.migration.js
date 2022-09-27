@@ -44,6 +44,8 @@ const {
   eventIncreasedAmountForSimpleStake,
   eventResetStakedGetStosAfterLock,
   eventIncreasedBeforeEndOrNonEnd,
+  bondTosPrice,
+  bondPurchasableTOSAmount,
 } = require("./info_simulation_mainnet");
 
 
@@ -257,8 +259,8 @@ describe("TOSv2 Phase1", function () {
     market: {
       capAmountOfTos: ethers.BigNumber.from("30400000000000000000000"),
       closeTime: 1669852800,
-      priceTosPerToken: ethers.BigNumber.from("3015716000000000000000"),
-      purchasableTOSAmountAtOneTime: ethers.BigNumber.from("822468000000000000000")
+      priceTosPerToken: ethers.BigNumber.from(bondTosPrice),
+      purchasableTOSAmountAtOneTime: ethers.BigNumber.from(bondPurchasableTOSAmount)
     },
     tosValuationSimple: 0,
     tosValuationLock: 0
