@@ -633,7 +633,7 @@ describe("TOSv2 Phase1", function () {
             STATUS.REWARDMANAGER,
             bondDepositoryProxy.address
           )
-        ).to.be.revertedWith("Accessible: Caller is not an policy admin")
+        ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
 
       it("#1-1-3. setMintRateDenominator  ", async () => {
@@ -710,7 +710,7 @@ describe("TOSv2 Phase1", function () {
           treasuryProxylogic.connect(user1).disable(
             STATUS.REWARDMANAGER,
             stakingProxy.address        )
-        ).to.be.revertedWith("Accessible: Caller is not an policy admin")
+        ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
 
       it("#1-1-5. disable : policy can call disable", async () => {
@@ -856,7 +856,7 @@ describe("TOSv2 Phase1", function () {
             treasuryContract.address,
             treasuryContract.address
           )
-        ).to.be.revertedWith("Accessible: Caller is not an policy admin")
+        ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
 
 
@@ -893,7 +893,7 @@ describe("TOSv2 Phase1", function () {
         let rebasePerEpoch = constRebasePerEpoch;
         await expect(
           stakingProxylogic.connect(user1).setRebasePerEpoch(rebasePerEpoch)
-        ).to.be.revertedWith("Accessible: Caller is not an policy admin")
+        ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
 
       it("#1-2-3. setRebasePerEpoch : onlyPolicyAdmin can call setRebasePerEpoch", async () => {
@@ -906,7 +906,7 @@ describe("TOSv2 Phase1", function () {
         let index = ethers.utils.parseUnits("10", 18)
         await expect(
           stakingProxylogic.connect(user1).setIndex(index)
-        ).to.be.revertedWith("Accessible: Caller is not an policy admin")
+        ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
 
       it("#1-2-4. setIndex : onlyPolicyAdmin can call setIndex", async () => {
@@ -922,7 +922,7 @@ describe("TOSv2 Phase1", function () {
       it("#1-2-5. setBasicBondPeriod : user can't call setBasicBondPeriod", async () => {
         await expect(
           stakingProxylogic.connect(user1).setBasicBondPeriod(basicBondPeriod)
-        ).to.be.revertedWith("Accessible: Caller is not an policy admin")
+        ).to.be.revertedWith("Accessible: Caller is not an proxy admin")
       })
 
       it("#1-2-5. setBasicBondPeriod : onlyPolicyAdmin can call setBasicBondPeriod", async () => {
@@ -1646,12 +1646,12 @@ describe("TOSv2 Phase1", function () {
       );
     })
 
-    it("#3-1-12. foundationDistribute :  user can't call foundationDistribute ", async () => {
+    // it("#3-1-12. foundationDistribute :  user can't call foundationDistribute ", async () => {
 
-      await expect(
-        treasuryProxylogic.connect(user1).foundationDistribute()
-      ).to.be.revertedWith("Accessible: Caller is not an policy admin");
-    })
+    //   await expect(
+    //     treasuryProxylogic.connect(user1).foundationDistribute()
+    //   ).to.be.revertedWith("Accessible: Caller is not an policy admin");
+    // })
 
     it("#3-1-13. foundationDistribute :  policy admin can call foundationDistribute ", async () => {
 

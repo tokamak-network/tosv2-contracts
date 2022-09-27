@@ -62,7 +62,7 @@ contract RewardLPTokenManager is
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(ADMIN_ROLE, _msgSender());
-        _setupRole(MINTER_ROLE, _msgSender());
+        // _setupRole(MINTER_ROLE, _msgSender());
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
@@ -102,7 +102,8 @@ contract RewardLPTokenManager is
         uint256 factoredAmount
     ) external override whenNotPaused zeroAddress(dtos) returns (uint256) {
 
-        require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
+        // require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
+        require(hasRole(ADMIN_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
 
         _tokenIdTracker++;
 
@@ -149,7 +150,8 @@ contract RewardLPTokenManager is
         uint256 tokenId
     ) external override whenNotPaused zeroAddress(dtos) {
 
-        require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have role to burn");
+        // require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have role to burn");
+        require(hasRole(ADMIN_ROLE, _msgSender()), "RewardLPTokenManager: must have role to burn");
 
         LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
 

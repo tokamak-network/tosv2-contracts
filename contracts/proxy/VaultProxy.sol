@@ -24,7 +24,7 @@ contract VaultProxy is ProxyAccessCommon, VaultStorage, IProxyEvent, IProxyActio
     }
 
     /// @inheritdoc IProxyAction
-    function setProxyPause(bool _pause) external override onlyOwner {
+    function setProxyPause(bool _pause) external override onlyProxyOwner {
         pauseProxy = _pause;
     }
 

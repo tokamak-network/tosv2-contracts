@@ -84,7 +84,7 @@ contract BondDepository is
     function setCalculator(
         address _calculator
     )
-        external nonZeroAddress(_calculator) onlyPolicyOwner
+        external nonZeroAddress(_calculator) onlyProxyOwner
     {
         require(calculator != _calculator, "same address");
         calculator = _calculator;
