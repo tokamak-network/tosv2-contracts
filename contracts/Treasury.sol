@@ -45,6 +45,7 @@ contract Treasury is
 
     /* ========== onlyPolicyOwner ========== */
 
+
     function setCalculator(
         address _calculator
     )
@@ -52,6 +53,8 @@ contract Treasury is
     {
         require(calculator != _calculator, "same address");
         calculator = _calculator;
+
+        emit SetCalculator(_calculator);
     }
 
     function setWeth(
@@ -61,6 +64,8 @@ contract Treasury is
     {
         require(wethAddress != _wethAddress, "same address");
         wethAddress = _wethAddress;
+
+        emit SetWethAddress(_wethAddress);
     }
 
     function tosBurn(
@@ -256,28 +261,6 @@ contract Treasury is
 
     /* ========== permissions : LibTreasury.STATUS.RESERVEDEPOSITOR ========== */
 
-    function setCalculator(
-        address _calculator
-    )
-        external nonZeroAddress(_calculator) onlyPolicyOwner
-    {
-        require(calculator != _calculator, "same address");
-        calculator = _calculator;
-
-        emit SetCalculator(_calculator);
-    }
-
-    function setWeth(
-        address _wethAddress
-    )
-        external nonZeroAddress(_wethAddress) onlyPolicyOwner
-    {
-        require(wethAddress != _wethAddress, "same address");
-        wethAddress = _wethAddress;
-
-        emit SetWethAddress(_wethAddress);
-    }
-
     /// @inheritdoc ITreasury
     function requestMint(
         uint256 _mintAmount,
@@ -358,11 +341,11 @@ contract Treasury is
         uint256 totalValue = 0;
 
         bool applyWTON = false;
-        uint256 tosETHPricePerTOS = IITOSValueCalculator(calculator).getETHPricePerTOS();
+        uint256 tosETHPricePerTOS = 0;
 
         uint256 len = backings.length;
         for(uint256 i = 0; i < len; i++) {
-
+            if (i == 0) tosETHPricePerTOS = IITOSValueCalculator(calculator).getETHPricePerTOS();
             if (backings[i] == wethAddress)  {
                 totalValue += IERC20(wethAddress).balanceOf(address(this));
                 applyWTON = true;
