@@ -162,7 +162,7 @@ contract Treasury is
 
     function _addBackingList(address _address) internal
     {
-        require(backingIndexPlusOne[_address] != 0, "already added.");
+        require(backingIndexPlusOne[_address] == 0, "already added.");
 
         backings.push(_address);
         backingIndexPlusOne[_address] = backings.length;
