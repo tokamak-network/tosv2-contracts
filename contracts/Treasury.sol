@@ -340,11 +340,11 @@ contract Treasury is
         uint256 totalValue = 0;
 
         bool applyWTON = false;
-        uint256 tosETHPricePerTOS = IITOSValueCalculator(calculator).getETHPricePerTOS();
+        uint256 tosETHPricePerTOS = 0;
 
         uint256 len = backings.length;
         for(uint256 i = 0; i < len; i++) {
-
+            if (i == 0) tosETHPricePerTOS = IITOSValueCalculator(calculator).getETHPricePerTOS();
             if (backings[i] == wethAddress)  {
                 totalValue += IERC20(wethAddress).balanceOf(address(this));
                 applyWTON = true;
