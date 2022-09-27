@@ -131,7 +131,7 @@ describe("TOSv2 Phase1", function () {
 
   //let mintRate = 10;
   //let mintRate = 1000000; // 0.0001
-  let mintRate = ethers.BigNumber.from("242427000000000000000000000");
+  let mintRate = ethers.BigNumber.from("442427000000000000000000000");
   //4124960000000
   let priceLimitTOSETH = {
     minimumTOSPricePerETH: ethers.utils.parseEther("0.00001"),
@@ -1064,7 +1064,8 @@ describe("TOSv2 Phase1", function () {
                 bondInfoEther.market.purchasableTOSAmountAtOneTime
               ]
           )
-          expect(await stakingProxylogic.marketIdCounter()).to.be.equal(firstMarketlength.add(ethers.constants.One));
+          firstMarketlength = firstMarketlength.add(ethers.constants.One)
+          expect(await stakingProxylogic.marketIdCounter()).to.be.equal(firstMarketlength);
       })
 
       it("#1-3-4. close : user can't call close", async () => {
@@ -1074,7 +1075,7 @@ describe("TOSv2 Phase1", function () {
       })
 
       it("#1-3-4. close : onlyPolicy can call close", async () => {
-        await bondDepositoryProxylogic.connect(admin1).close(firstMarketlength+1);
+        await bondDepositoryProxylogic.connect(admin1).close(firstMarketlength);
 
         let marketcapacity = await bondDepositoryProxylogic.markets(firstMarketlength);
         expect(marketcapacity.capacity).to.be.equal(0);
@@ -1157,7 +1158,7 @@ describe("TOSv2 Phase1", function () {
 
         let marketIdCounter = await stakingProxylogic.marketIdCounter();
         expect(marketIdCounter).to.be.eq(marketbefore.add(ethers.constants.One));
-        expect(bondInfoEther.marketId).to.be.lt(marketIdCounter);
+        expect(bondInfoEther.marketId).to.be.eq(marketIdCounter);
 
         let market = await bondDepositoryProxylogic.viewMarket(bondInfoEther.marketId);
 
