@@ -23,14 +23,6 @@ library LibStaking
         uint256 marketId;   //bondMarketId
     }
 
-    function getUnlockTime(address lockTos, uint256 start, uint256 _periodWeeks)
-        public view returns (uint256 stosEpochUnit, uint256 unlockTime)
-    {
-        stosEpochUnit = IILockTosV2(lockTos).epochUnit();
-        unlockTime = start + (_periodWeeks * stosEpochUnit);
-        // unlockTime = unlockTime / stosEpochUnit * stosEpochUnit;
-    }
-
 
    /**
    * Calculate the maximum possible # of epochs that can be rebased while keeping LTOS solvency
