@@ -8,8 +8,13 @@ const fs = require('fs');
 
 chai.use(solidity);
 require("chai").should();
-const univ3prices = require('@thanpolas/univ3prices');
+
 const utils = require("./utils");
+
+// const {
+//   time,
+//   loadFixture,
+// } = require("@nomicfoundation/hardhat-network-helpers");
 
 const {
   calculateBalanceOfLock,
@@ -22,6 +27,7 @@ const {
 
 
 const {
+  STATUS,
   stosMigrationBlockNumber,
   uniswapInfo,
   UniswapV3LiquidityChangerAddress,
@@ -46,7 +52,18 @@ const {
   eventIncreasedBeforeEndOrNonEnd,
   bondTosPrice,
   bondPurchasableTOSAmount,
+  bondCapAmountOfTos,
+  bondCloseTime,
+  lockTOSProxyAddress,
 } = require("./info_simulation_mainnet");
+
+
+const {
+  indexEpochPassMonth,
+  indexEpochPass,
+  sendEthToTreasury,
+  logStatus,
+} = require("./phase1.test.mainnet.function");
 
 
 // const { expect } = require("chai");
@@ -132,10 +149,8 @@ let foundations = {
 // main-net
 uniswapInfo._fee =  ethers.BigNumber.from("3000");
 
-
 let indexMintRate = 0;
 let timeSetMintRate ;
-
 
 
 describe("TOSv2 Phase1", function () {
@@ -198,15 +213,6 @@ describe("TOSv2 Phase1", function () {
   let beforetosAmount;
   let aftertosAmount;
 
-  let unstakingAmount = ethers.utils.parseUnits("500", 18);
-
-  let minter_role = "0xf0887ba65ee2024ea881d91b74c2450ef19e1557f03bed3ea9f16b037cbe2dc9";
-  let burner_role = "0x9667e80708b6eeeb0053fa0cca44e028ff548e2a9f029edfeac87c118b08b7c8";
-
-  // mainnet
-  let wethAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-  let testAddress = ""
-  let lockTOSProxyAddress = "0x69b4A202Fa4039B42ab23ADB725aA7b1e9EEBD79"
   let lockTOSProxy2Address = ""
   let lockTOSLogic2Address = ""
   let etherUint = ethers.utils.parseUnits("1", 18);
@@ -214,42 +220,6 @@ describe("TOSv2 Phase1", function () {
   let firstMarketlength;
   let checkMarketLength;
 
-  // main-net
-  let uniswapInfo={
-    poolfactory: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
-    npm: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
-    swapRouter: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
-    wethUsdcPool: "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8",
-    tosethPool: "0x2ad99c938471770da0cd60e08eaf29ebff67a92a",
-    wtonWethPool: "0xc29271e3a68a7647fd1399298ef18feca3879f59",
-    wtonTosPool: "0x1c0ce9aaa0c12f53df3b4d8d77b82d6ad343b4e4",
-    tosDOCPool: "0x369bca127b8858108536b71528ab3befa1deb6fc",
-    wton: "0xc4A11aaf6ea915Ed7Ac194161d2fC9384F15bff2",
-    tos: "0x409c4D8cd5d2924b9bc5509230d16a61289c8153",
-    weth: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-    usdc: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-    doc: "0x0e498afce58de8651b983f136256fa3b8d9703bc",
-    _fee: ethers.BigNumber.from("3000"),
-    NonfungibleTokenPositionDescriptor: "0x91ae842A5Ffd8d12023116943e72A606179294f3"
-  }
-
-
-  let STATUS = {
-      NONE: 0,
-      RESERVEDEPOSITOR: 1,
-      RESERVESPENDER: 2,
-      RESERVETOKEN: 3,
-      RESERVEMANAGER: 4,
-      LIQUIDITYDEPOSITOR: 5,
-      LIQUIDITYTOKEN: 6,
-      LIQUIDITYMANAGER: 7,
-      REWARDMANAGER: 8,
-      BONDER: 9,
-      STAKER: 10
-  }
-
-  //[팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격, 한번에 구매 가능한 TOS물량]
-  // 이더상품.
   let bondInfoEther = {
     marketId : null,
     check: true,
@@ -257,8 +227,8 @@ describe("TOSv2 Phase1", function () {
     poolAddress: uniswapInfo.tosethPool,
     fee: 0,
     market: {
-      capAmountOfTos: ethers.BigNumber.from("30400000000000000000000"),
-      closeTime: 1669852800,
+      capAmountOfTos: ethers.BigNumber.from(bondCapAmountOfTos),
+      closeTime: bondCloseTime,
       priceTosPerToken: ethers.BigNumber.from(bondTosPrice),
       purchasableTOSAmountAtOneTime: ethers.BigNumber.from(bondPurchasableTOSAmount)
     },
@@ -266,50 +236,8 @@ describe("TOSv2 Phase1", function () {
     tosValuationLock: 0
   }
 
-  let bondInfoWTON = {
-    marketId : null,
-    check: true,
-    token: ethers.constants.AddressZero,
-    poolAddress: uniswapInfo.tosethPool,
-    fee: 0,
-    market: {
-      capAmountOfTos: ethers.utils.parseEther("1000"),
-      closeTime: 0,
-      priceTokenPerTos: ethers.BigNumber.from("4124960000000"),
-      priceTosPerToken: ethers.BigNumber.from("242427000000000000000000"),
-      purchasableTOSAmountAtOneTime: ethers.utils.parseEther("100")
-    }
-  }
-
-  let bondInfoLP = {
-    marketId : null,
-    check: true,
-    token: ethers.constants.AddressZero,
-    poolAddress: uniswapInfo.tosethPool,
-    fee: 0,
-    market: {
-      capAmountOfTos: ethers.utils.parseEther("1000"),
-      closeTime: 0,
-      priceTosPerToken: ethers.BigNumber.from("242427000000000000000000"),
-      purchasableTOSAmountAtOneTime: ethers.utils.parseEther("100")
-    }
-  }
-
   let deposits = {user1 : [], user2: []};
   let depositor, depositorUser, index, depositData;
-
-  async function indexEpochPassMonth() {
-    let passTime =   60 * 60 * 24 * 30;
-    ethers.provider.send("evm_increaseTime", [passTime])
-    ethers.provider.send("evm_mine")
-  }
-  async function indexEpochPass(_stakingProxylogic, passNextEpochCount) {
-      let block = await ethers.provider.getBlock();
-      let epochInfo = await _stakingProxylogic.epoch();
-      let passTime =  epochInfo.end - block.timestamp + (epochInfo.length_ * passNextEpochCount) + 60;
-      ethers.provider.send("evm_increaseTime", [passTime])
-      ethers.provider.send("evm_mine")
-  }
 
   async function setTimeNextSetMr() {
     let block = await ethers.provider.getBlock();
@@ -323,64 +251,6 @@ describe("TOSv2 Phase1", function () {
       ethers.provider.send("evm_increaseTime", [passTime])
       ethers.provider.send("evm_mine")
     }
-  }
-
-  async function sendEthToTreasury(admin1, treasuryProxylogic, amount) {
-    let transaction = {
-      to: treasuryProxylogic.address,
-      from: admin1.address,
-      data: "0x",
-      value: amount
-    }
-    await admin1.sendTransaction( transaction );
-  }
-
-
-  async function logStatus(str, treasuryProxylogic, stakingProxylogic, tosContract, foundations) {
-    console.log('----- '+str+' ------- ');
-
-    let getIndex = await stakingProxylogic.getIndex();
-    console.log('getIndex', getIndex);
-
-    let balanceOf = await tosContract.balanceOf(treasuryProxylogic.address);
-    console.log('TOS.balanceOf(treasury)', ethers.utils.formatEther(balanceOf));
-
-    let enableStaking = await treasuryProxylogic.enableStaking();
-    console.log('treasuryProxylogic enableStaking', ethers.utils.formatEther(enableStaking));
-
-    let runwayTos = await stakingProxylogic.runwayTos();
-    console.log('runwayTos', ethers.utils.formatEther(runwayTos));
-
-    let totalSupply = await tosContract.totalSupply();
-    console.log('Total TOS Supply',  ethers.utils.formatEther(totalSupply) , "TOS");
-
-    let stakingPrincipal = await stakingProxylogic.stakingPrincipal();
-    console.log('stakingPrincipal', ethers.utils.formatEther(stakingPrincipal));
-
-    let totalLtos = await stakingProxylogic.totalLtos();
-    console.log('totalLtos', ethers.utils.formatEther(totalLtos));
-
-    let getLtosToTos = await stakingProxylogic.getLtosToTos(totalLtos);
-    console.log('getLtosToTos', ethers.utils.formatEther(getLtosToTos));
-
-    for (let k = 0; k < foundations.length; k++){
-      let foundationBalance = await tosContract.balanceOf(foundations.address[k]);
-      console.log('foundation TOS Balance', k, foundations.address[k], ethers.utils.formatEther(foundationBalance));
-    }
-
-    console.log('-----  possibleIndex ------- ');
-    let possibleIndex = await stakingProxylogic.possibleIndex();
-    console.log('possibleIndex', possibleIndex);
-
-    let runwayTosPossibleIndex = await stakingProxylogic.runwayTosPossibleIndex();
-    console.log('runwayTosPossibleIndex', ethers.utils.formatEther(runwayTosPossibleIndex));
-
-    let getLtosToTosPossibleIndex = await stakingProxylogic.getLtosToTosPossibleIndex(totalLtos);
-    console.log('getLtosToTosPossibleIndex', ethers.utils.formatEther(getLtosToTosPossibleIndex));
-
-    let reward = getLtosToTosPossibleIndex.sub(stakingPrincipal);
-    console.log('reward', ethers.utils.formatEther(reward));
-
   }
 
   function getUserLastData(depositorUser) {
@@ -399,16 +269,9 @@ describe("TOSv2 Phase1", function () {
   before(async () => {
     accounts = await ethers.getSigners();
     [admin1, admin2, user1, user2, user3, user4, user5, user6 ] = accounts;
-    //console.log('admin1',admin1.address);
+
     console.log('admin1',admin1.address);
     provider = ethers.provider;
-    // poolInfo.admin = admin1;
-    // tokenInfo.admin = admin1;
-
-    // await hre.ethers.provider.send("hardhat_setBalance", [
-    //   admin1.address,
-    //   "0x56BC75E2D63100000",
-    // ]);
 
     await hre.ethers.provider.send("hardhat_setBalance", [
       admin1.address,
@@ -435,11 +298,6 @@ describe("TOSv2 Phase1", function () {
     deployed.bond = loadDeployed(stosMigrationBlockNumber, "BondDepositoryProxy");
 
   });
-
-/////////////////////////////////////
-//  마이그레이션, StakeV2.syncStos
-/////////////////////////////////////
-
 
   describe("#0. Get the contract", () => {
 

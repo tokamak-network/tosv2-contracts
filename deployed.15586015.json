@@ -29,8 +29,8 @@
   "prevStakeId": "0",
   "afterStakeId": "552",
   "LockTosBalanceTOS": "2042499559867009925443189",
+  "marketId": "1",
   "StakedTosByBonder": [
-    "9047147999999999990947"
-  ],
-  "marketId": "1"
+    "8999999999999999991000"
+  ]
 }
