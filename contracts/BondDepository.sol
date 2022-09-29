@@ -257,12 +257,11 @@ contract BondDepository is
         uint256 _tosPrice = 0;
         (payout_, _tosPrice) = _deposit(msg.sender, _amount, _id);
 
-        uint256 id = _id;
-        uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, id, _lockWeeks, _tosPrice);
+        uint256 stakeId = staking.stakeGetStosByBond(msg.sender, payout_, _id, _lockWeeks, _tosPrice);
 
         payable(treasury).transfer(msg.value);
 
-        emit ETHDepositedWithSTOS(msg.sender, id, stakeId, _amount, _lockWeeks, payout_);
+        emit ETHDepositedWithSTOS(msg.sender, _id, stakeId, _amount, _lockWeeks, payout_);
     }
 
 
