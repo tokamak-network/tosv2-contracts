@@ -54,7 +54,7 @@ interface ITreasury {
 
     /* ========== onlyOwner ========== */
 
-    /// @dev                    mints TOS and send TOS to recipient. Decides whether to distribute to the foundation or not
+    /// @dev                    mints TOS. Decides whether to distribute to the foundation or not.
     /// @param _mintAmount      Additional issuance amount of TOS
     /// @param _payout          Amount of TOS to be earned by the user
     /// @param _distribute      If _distribute is true, The amount of foundationTotalPercentage among the issued amounts is allocated to the foundation distribution.
