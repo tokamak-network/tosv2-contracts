@@ -581,7 +581,7 @@ describe("TOSv2 Phase1", function () {
       it("#0-5-1-2. burn TOS of Contracts  ", async () => {
 
         let totalSupplyPrev = await tosContract.totalSupply();
-        console.log('TOS totalSupply before burnning',totalSupplyPrev);
+        console.log('TOS totalSupply before burnning',totalSupplyPrev.toString());
 
         let burnTosAmount = ethers.constants.Zero;
         for (let i = 0; i < burnTosContractList.length; i++){
@@ -591,17 +591,17 @@ describe("TOSv2 Phase1", function () {
           burnTosAmount = burnTosAmount.add(balance);
         }
 
-        let totalSuppley = await tosContract.totalSupply();
-        console.log('TOS totalSupply after burnning',totalSuppley);
+        let totalSupply = await tosContract.totalSupply();
+        console.log('TOS totalSupply after burnning',totalSupply.toString());
 
-        expect(totalSuppley).to.be.equal(totalSupplyPrev.sub(burnTosAmount));
+        expect(totalSupply).to.be.equal(totalSupplyPrev.sub(burnTosAmount));
       })
 
 
       it("#0-5-1-3. burn TOS of EOA ", async () => {
 
         let totalSupplyPrev = await tosContract.totalSupply();
-        console.log('TOS totalSupply before burnning',totalSupplyPrev);
+        console.log('TOS totalSupply before burnning',totalSupplyPrev.toString());
 
         let burnTosAmount = ethers.constants.Zero;
         for (let i = 0; i < burnTosAddressList.length; i++){
@@ -611,10 +611,10 @@ describe("TOSv2 Phase1", function () {
           burnTosAmount = burnTosAmount.add(balance);
         }
 
-        let totalSuppley = await tosContract.totalSupply();
-        console.log('TOS totalSupply after burnning',totalSuppley);
+        let totalSupply = await tosContract.totalSupply();
+        console.log('TOS totalSupply after burnning',totalSupply.toString());
 
-        expect(totalSuppley).to.be.equal(totalSupplyPrev.sub(burnTosAmount));
+        expect(totalSupply).to.be.equal(totalSupplyPrev.sub(burnTosAmount));
       })
 
 

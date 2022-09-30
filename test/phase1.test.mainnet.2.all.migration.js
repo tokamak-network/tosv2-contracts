@@ -49,6 +49,7 @@ const {
   bondCloseTime,
   STATUS,
   lockTOSProxyAddress,
+  InitialMintingRateSchedule
 } = require("./info_simulation_mainnet");
 
 
@@ -400,9 +401,9 @@ describe("TOSv2 Phase1", function () {
       const addLockTosInfos = JSON.parse(await fs.readFileSync("./test/data/stos-ids-"+stosMigrationBlockNumber+".json"));
 
       let index = await stakingProxylogic.getIndex();
-      console.log('index', index)
+      console.log('index', index.toString())
       stosMigrationSet.prevStakeId = await stakingProxylogic.stakingIdCounter();
-      console.log('stosMigrationSet.prevStakeId', stosMigrationSet.prevStakeId)
+      console.log('stosMigrationSet.prevStakeId', stosMigrationSet.prevStakeId.toString())
 
       save(stosMigrationBlockNumber,{
         name: "prevStakeId",
@@ -503,7 +504,7 @@ describe("TOSv2 Phase1", function () {
 
       let tx = await lockTosContract.connect(_lockTosAdmin)["transferTosToTreasury(address)"](deployed.treasury);
 
-      console.log('LockTOS.transferTosToTreasury end ',tx)
+      console.log('LockTOS.transferTosToTreasury end ',tx.hash)
 
       await tx.wait();
 
@@ -557,7 +558,7 @@ describe("TOSv2 Phase1", function () {
       console.log('tos mint', amount);
 
       await treasuryProxylogic.connect(admin1).setMR(
-        ethers.utils.parseEther(MintingRateSchedule[indexMintRate]),
+        ethers.utils.parseEther(InitialMintingRateSchedule),
         amount,
         false
       );
@@ -565,7 +566,7 @@ describe("TOSv2 Phase1", function () {
       expect(await tosContract.balanceOf(treasuryProxylogic.address)).to.be.equal(tosBalancePrev.add(amount));
       expect(await tosContract.totalSupply()).to.be.equal(totalTosSupplyTarget);
 
-      expect(await treasuryProxylogic.mintRate()).to.be.equal(ethers.utils.parseEther(MintingRateSchedule[indexMintRate]));
+      expect(await treasuryProxylogic.mintRate()).to.be.equal(ethers.utils.parseEther(InitialMintingRateSchedule));
 
       // let tosBalanceAfter =  await tosContract.balanceOf(treasuryProxylogic.address);
       // console.log('treasury tosBalance', ethers.utils.formatEther(tosBalanceAfter) , "TOS");

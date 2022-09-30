@@ -61,7 +61,14 @@ const {
   scheduleLtosIndex,
   scheduleLtos,
   STATUS,
+  bondTosPrice,
+  bondPurchasableTOSAmount,
+  bondCapAmountOfTos,
+  bondCloseTime,
   lockTOSProxyAddress,
+  LOG_FLAG,
+  maxDepositAmountMonth,
+  CHECK_FLAG
 } = require("./info_simulation_mainnet");
 
 const {
@@ -231,8 +238,6 @@ describe("TOSv2 Phase1", function () {
   let checkMarketLength;
 
 
-  //[팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격, 한번에 구매 가능한 TOS물량]
-  // 이더상품.
   let bondInfoEther = {
     marketId : null,
     check: true,
@@ -240,14 +245,15 @@ describe("TOSv2 Phase1", function () {
     poolAddress: uniswapInfo.tosethPool,
     fee: 0,
     market: {
-      capAmountOfTos: ethers.BigNumber.from("30400000000000000000000"),
-      closeTime: 1669852800,
-      priceTosPerToken: ethers.BigNumber.from("3015716000000000000000"),
-      purchasableTOSAmountAtOneTime: ethers.BigNumber.from("822468000000000000000")
+      capAmountOfTos: ethers.BigNumber.from(bondCapAmountOfTos),
+      closeTime: bondCloseTime,
+      priceTosPerToken: ethers.BigNumber.from(bondTosPrice),
+      purchasableTOSAmountAtOneTime: ethers.BigNumber.from(bondPurchasableTOSAmount)
     },
     tosValuationSimple: 0,
     tosValuationLock: 0
   }
+
 
 
   let deposits = {user1 : [], user2: []};
@@ -285,30 +291,43 @@ describe("TOSv2 Phase1", function () {
   }
 
   async function bond(depositor, maxCumulativeDepositAmount, purchasableAssetAmountAtOneTime_, tosContract, stakingProxylogic, bondDepositoryProxylogic) {
-      console.log('bond ');
-      let m = 0;
+      console.log('bond  ' );
+
       let accumulatedDepositAmount = ethers.utils.parseEther("0");
       let tosTotalSupplyPrev =  await tosContract.totalSupply();
       let stakingPrincipalPrev = await stakingProxylogic.stakingPrincipal();
+      console.log('bond purchasableAssetAmountAtOneTime_', ethers.utils.formatEther(purchasableAssetAmountAtOneTime_) , "ETH" );
+      console.log('bond maxCumulativeDepositAmount', ethers.utils.formatEther(maxCumulativeDepositAmount), "ETH" );
 
-      for (let i = 0; i < 11; i++){
+      for (let i = 0; i < 10; i++){
         let amount = purchasableAssetAmountAtOneTime_ ;
         if (accumulatedDepositAmount.add(purchasableAssetAmountAtOneTime_).gt(maxCumulativeDepositAmount)){
           amount = maxCumulativeDepositAmount.sub(accumulatedDepositAmount) ;
         }
+
+        if (accumulatedDepositAmount.add(amount).gt(maxCumulativeDepositAmount)) break;
+
         accumulatedDepositAmount = accumulatedDepositAmount.add(amount);
         let tx = await bondDepositoryProxylogic.connect(depositor).ETHDeposit(
             bondInfoEther.marketId,
             amount,
             {value: amount}
         );
-        // console.log('ETHDeposit', i, tx.hash);
+
         await tx.wait()
+        // console.log('ETHDeposit', i, tx.hash);
+
+        // let totalLtos = await stakingProxylogic.totalLtos()
+        // let stakingPrincipal = await stakingProxylogic.stakingPrincipal()
+        // console.log('totalLtos', totalLtos.toString() );
+        // console.log('stakingPrincipal', stakingPrincipal.toString() );
+
       }
-      // console.log('accumulatedDepositAmount', ethers.utils.formatEther(accumulatedDepositAmount), "ETH");
+
+      console.log('bond accumulatedDepositAmount', ethers.utils.formatEther(accumulatedDepositAmount), "ETH");
       let tosTotalSupply =  await tosContract.totalSupply();
       let mintedTos =  tosTotalSupply.sub(tosTotalSupplyPrev);
-      // console.log('minted TOS ', mintedTos);
+      console.log('bond minted TOS ', mintedTos.toString());
       let stakingPrincipalAfter = await stakingProxylogic.stakingPrincipal();
       let StakedTosByBonder = stakingPrincipalAfter.sub(stakingPrincipalPrev);
 
@@ -400,17 +419,18 @@ describe("TOSv2 Phase1", function () {
 
 
       let tosBalanceTreasuryPrev =  await tosContract.balanceOf(treasuryProxylogic.address);
-      console.log('tosBalanceTreasuryPrev', tosBalanceTreasuryPrev);
+      // console.log('tosBalanceTreasuryPrev', tosBalanceTreasuryPrev.toString());
 
       let tosBalanceLockTosPrev =  await tosContract.balanceOf(lockTosContract.address);
-      console.log('tosBalanceLockTosPrev', tosBalanceLockTosPrev);
+      // console.log('tosBalanceLockTosPrev', tosBalanceLockTosPrev.toString());
 
-      let expectedAccumulatedDepositAmount = ethers.utils.parseEther("2.999999999999999997");
-      let maxCumulativeDepositAmount = ethers.utils.parseEther("3");
+      let maxCumulativeDepositAmount = maxDepositAmountMonth;
       let accumulatedDepositAmount = ethers.utils.parseEther("0");
 
       let depositor = user1;
       let depositorUser = "user1";
+      // console.log('bondInfoEther.market.priceTosPerToken: ', bondInfoEther.market.priceTosPerToken.toString() )
+      // console.log('bondInfoEther.market.purchasableTOSAmountAtOneTime : ', bondInfoEther.market.purchasableTOSAmountAtOneTime.toString() )
 
       let purchasableAssetAmountAtOneTime_ = await bondDepositoryProxylogic.purchasableAssetAmountAtOneTime(
         bondInfoEther.market.priceTosPerToken,
@@ -424,114 +444,304 @@ describe("TOSv2 Phase1", function () {
       tosTotalSupplyArray.push(tosBalanceLockTosPrev.toString());
 
       let m = 0;
-      for (m = 1; m < 2; m++) {
 
-        /// 두번째 라운드 부터 이더를 보내고 민팅레이트를 수정한다.
-        if (m != 0) {
+      ////////////////////////////////////
+      /// 첫번째 본드 구매 전
+      let tosStaked ;
+      let stakingReward = ethers.constants.Zero;
+      {
+        tosStaked = await stakingProxylogic.stakingPrincipal()
+        // if (convertFormat(stakingPrincipal, 12) !== (convertFormat(ethers.utils.parseEther(scheduleTosStaked[m]), 12)))
+        //   console.log("** diff scheduleTosStaked before bond " ,m, ethers.utils.parseEther(scheduleTosStaked[m+1]));
+      }
+      ////////////////
+
+      for (m = 0; m < 2; m++) {
+        console.log('============= month : ', m )
+
+        // set MR
+        if (m != 0 ) {
+
+          /// 한달지나기
+          {
+            await indexEpochPassMonth();
+          }
+          {
+            /// update stakingReward
+            let ltos = await stakingProxylogic.totalLtos();
+            let possibleIndex = await stakingProxylogic.possibleIndex();
+            let totalStakedTos  = await stakingProxylogic.getLtosToTosPossibleIndex(ltos);
+            let stakingPrincipal  = await stakingProxylogic.stakingPrincipal();
+
+            stakingReward = totalStakedTos.sub(stakingPrincipal);
+
+            // if (LOG_FLAG)
+            {
+              console.log('ltos', ethers.utils.formatEther(ltos), "LTOS" );
+              console.log('possibleIndex', possibleIndex.toString());
+              console.log('totalStakedTos LTOS->TOS ', ethers.utils.formatEther(totalStakedTos), "TOS"  );
+              console.log('stakingPrincipal', ethers.utils.formatEther(stakingPrincipal), "TOS" );
+              console.log('stakingReward', ethers.utils.formatEther(stakingReward), "TOS"  );
+            }
+          }
           /// send ETH
-          let balanceEthPrev =  await ethers.provider.getBalance(treasuryProxylogic.address);
-          let sendEthAmount = ethers.utils.parseEther(depositSchedule[m]+"");
-          sendEthToTreasury(admin1, treasuryProxylogic, sendEthAmount)
-          expect(await ethers.provider.getBalance(treasuryProxylogic.address)).to.be.equal(balanceEthPrev.add(sendEthAmount));
+          {
+            let balanceEthPrev =  await ethers.provider.getBalance(treasuryProxylogic.address);
+            let sendEthAmount = ethers.utils.parseEther(depositSchedule[m]+"");
+
+            let transaction = {
+              to: treasuryProxylogic.address,
+              from: admin1.address,
+              data: "0x",
+              value: sendEthAmount
+            }
+
+            let tx1 = await admin1.sendTransaction(transaction);
+            await tx1.wait();
+
+            expect(await ethers.provider.getBalance(treasuryProxylogic.address)).to.be.equal(balanceEthPrev.add(sendEthAmount));
+          }
 
           /// setMR
-          let tosBalanceTotalSupply = await tosContract.totalSupply();
-          let tosBalancePrev =  await tosContract.balanceOf(treasuryProxylogic.address);
+          /// 추가로 넣는 이더는 없다.
+          {
+            /// MintingRateSchedule
+            console.log("setMR : MintingRateSchedule[m]", m, ethers.utils.parseEther(MintingRateSchedule[m]).toString());
+            let amount = ethers.utils.parseEther("0");
+            await treasuryProxylogic.connect(admin1).setMR(
+              ethers.utils.parseEther(MintingRateSchedule[m])
+              .add(ethers.BigNumber.from("100000000")),
+              amount,
+              false
+            );
 
-          let amount = ethers.utils.parseEther("0");
-          await treasuryProxylogic.connect(admin1).setMR(
-            ethers.utils.parseEther(MintingRateSchedule[m]),
-            amount,
-            false
-          );
-          expect(await treasuryProxylogic.mintRate()).to.be.equal(ethers.utils.parseEther(MintingRateSchedule[m]));
+            expect(await treasuryProxylogic.mintRate()).to.be.equal(
+              ethers.utils.parseEther(MintingRateSchedule[m]).add(ethers.BigNumber.from("100000000"))
+              );
+            /// scheduleBackingRate
+          }
 
         }
 
-        /// 본드 구매
+
+        ////////////////////////////////////
+        /// 본드 구매 전
+        {
+
+          // scheduleTosStaked = 이전 스테이킹 금액, 리워드 본드.. 이건.. 생략 ..
+          // console.log("tosStaked", tosStaked.toString());
+          // if (convertFormat(tosStaked, 12) !== (convertFormat(ethers.utils.parseEther(scheduleTosStaked[m]), 12)))
+          //   console.log("** diff scheduleTosStaked before bond " , ethers.utils.parseEther(scheduleTosStaked[m]).toString());
+
+          //scheduleStakingReward
+          if (CHECK_FLAG.scheduleStakingReward[0]) {
+            if (LOG_FLAG) console.log("stakingReward", stakingReward.toString());
+            if (convertFormat(stakingReward, 12) !== (convertFormat(ethers.utils.parseEther(scheduleStakingReward[m]), 12)))
+              console.log("** diff scheduleStakingReward before bond " , ethers.utils.parseEther(scheduleStakingReward[m]).toString());
+          }
+
+          //scheduleRunwayTos
+          if (CHECK_FLAG.scheduleRunwayTos[0]) {
+            let runwayTos = await stakingProxylogic.runwayTos();
+            if (LOG_FLAG) console.log('runwayTos', runwayTos.toString(), convertFormat(runwayTos, 12), convertFormat(runwayTos, 9));
+            if (convertFormat(runwayTos, 12) !== (convertFormat(ethers.utils.parseEther(scheduleRunwayTos[m]), 12)))
+            console.log("** diff scheduleRunwayTos before bond " , ethers.utils.parseEther(scheduleRunwayTos[m]).toString());
+          }
+
+          //scheduleTotalTosSupply
+          if (CHECK_FLAG.scheduleTotalTosSupply[0]) {
+            let totalSupply = await tosContract.totalSupply();
+            if (LOG_FLAG) console.log('totalSupply', totalSupply.toString());
+            if (convertFormat(totalSupply, 12) !== (convertFormat(ethers.utils.parseEther(scheduleTotalTosSupply[m]), 12)))
+              console.log("** diff scheduleTotalTosSupply before bond " , ethers.utils.parseEther(scheduleTotalTosSupply[m]).toString());
+          }
+
+          //scheduleLtosIndex
+          if (CHECK_FLAG.scheduleLtosIndex[0]) {
+            let possibleIndex = await stakingProxylogic.possibleIndex();
+            if (LOG_FLAG) console.log('possibleIndex', possibleIndex.toString());
+            if (convertFormat(possibleIndex, 12) !== (convertFormat(ethers.utils.parseEther(scheduleLtosIndex[m]), 12)))
+              console.log("** diff scheduleLtosIndex before bond " , ethers.utils.parseEther(scheduleLtosIndex[m]).toString());
+
+          }
+
+          //scheduleLtos
+          if (CHECK_FLAG.scheduleLtos[0]) {
+            let totalLtos = await stakingProxylogic.totalLtos();
+            if (LOG_FLAG) console.log('totalLtos', totalLtos.toString());
+            if (convertFormat(totalLtos, 12) !== (convertFormat(ethers.utils.parseEther(scheduleLtos[m]), 12)))
+              console.log("** diff scheduleLtos before bond " , ethers.utils.parseEther(scheduleLtos[m]).toString());
+
+          }
+
+        }
+
         let bondResponse = await bond(depositor, maxCumulativeDepositAmount, purchasableAssetAmountAtOneTime_, tosContract, stakingProxylogic, bondDepositoryProxylogic);
-        console.log(m, bondResponse);
-
-        StakedTosByBonderArray.push(bondResponse.StakedTosByBonder.toString());
-        accumulatedDepositAmountArray.push(bondResponse.accumulatedDepositAmount.toString());
-        mintedTosArray.push(bondResponse.mintedTos.toString());
-        tosTotalSupplyArray.push(bondResponse.tosTotalSupply.toString());
-
-        // console.log('expectedAccumulatedDepositAmount', convertFormat(expectedAccumulatedDepositAmount, 12));
-        // console.log('bondResponse.accumulatedDepositAmount', convertFormat(bondResponse.accumulatedDepositAmount, 12));
-        // console.log('bondResponse.mintedTos', convertFormat(bondResponse.mintedTos, 12));
-        // console.log('bondResponse.StakedTosByBonder', convertFormat(bondResponse.StakedTosByBonder, 12));
-        // console.log('bondResponse.tosTotalSupply', convertFormat(bondResponse.tosTotalSupply, 12));
-
-        if (convertFormat(bondResponse.accumulatedDepositAmount, 12) !== (convertFormat(expectedAccumulatedDepositAmount, 12)))
-          console.log("diff expectedAccumulatedDepositAmount" , expectedAccumulatedDepositAmount);
-
-        if (convertFormat(bondResponse.mintedTos, 12) !== (convertFormat(ethers.utils.parseEther(scheduleMintedTos[m+1]), 12)))
-          console.log("diff mintedTos" ,ethers.utils.parseEther(scheduleMintedTos[m+1]) );
-
-        if (convertFormat(bondResponse.StakedTosByBonder, 12) !== (convertFormat(ethers.utils.parseEther(scheduleTosAllocatedToBonder[m+1]), 12)))
-          console.log("diff StakedTosByBonder", ethers.utils.parseEther(scheduleTosAllocatedToBonder[m+1]) );
-
-        if (convertFormat(bondResponse.tosTotalSupply, 12) !== (convertFormat(ethers.utils.parseEther(scheduleTotalTosSupply[m+1]), 12)))
-          console.log("diff tosTotalSupply" , ethers.utils.parseEther(scheduleTotalTosSupply[m+1]));
-
-        // expect(convertFormat(bondResponse.accumulatedDepositAmount, 12)).to.be.eq(
-        //   convertFormat(expectedAccumulatedDepositAmount, 12));
-
-        // expect(convertFormat(bondResponse.mintedTos, 12)).to.be.eq(
-        //   convertFormat(ethers.utils.parseEther(scheduleMintedTos[m+1]), 12));
-
-        // expect(convertFormat(bondResponse.StakedTosByBonder, 12)).to.be.eq(
-        //   convertFormat(ethers.utils.parseEther(scheduleTosAllocatedToBonder[m+1]), 12));
-
-        // expect(convertFormat(bondResponse.tosTotalSupply, 12)).to.be.eq(
-        //   convertFormat(ethers.utils.parseEther(scheduleTotalTosSupply[m+1]), 12));
-
-        /// Foundation Distribute
-        {
-          let tosBalanceTreasuryPrev =  await tosContract.balanceOf(treasuryProxylogic.address);
-          let foundationTotalPercentage = await treasuryProxylogic.foundationTotalPercentage();
-          let foundationAmount = await treasuryProxylogic.foundationAmount();
-
-          let i = 0;
-          for (i = 0; i < foundations.address.length; i++){
-            foundations.balances[i] = await tosContract.balanceOf(foundations.address[i]);
-          }
-
-          let tx = await treasuryProxylogic.connect(admin1).foundationDistribute();
-
-          for (i = 0; i < foundations.address.length; i++){
-            let balanceTos = await tosContract.balanceOf(foundations.address[i]);
-            foundations.balancesAfter[i] = balanceTos;
-            if (!(foundations.balancesAfter[i].gt(foundations.balances[i]))) {
-              console.log('foundationDistribute diff 1', foundations.balancesAfter[i], foundations.balances[i]);
-            }
-            if (!(foundations.balancesAfter[i].eq(foundationAmount.mul(foundations.percentages[i]).div(foundationTotalPercentage)))) {
-              console.log('foundationDistribute diff 2', foundations.balancesAfter[i], foundationAmount.mul(foundations.percentages[i]).div(foundationTotalPercentage));
-            }
-            // expect(foundations.balancesAfter[i]).to.be.gt(foundations.balances[i]);
-            // expect(foundations.balancesAfter[i]).to.be.eq(foundationAmount.mul(foundations.percentages[i]).div(foundationTotalPercentage));
-          }
-          let tosBalanceTreasuryAfter =  await tosContract.balanceOf(treasuryProxylogic.address);
-          // console.log('tosBalanceTreasuryAfter', tosBalanceTreasuryAfter);
-
-          let foundationAmountAfter = await treasuryProxylogic.foundationAmount();
-          // console.log('foundationAmountAfter', foundationAmountAfter);
-
-          if (!(tosBalanceTreasuryAfter.eq(tosBalanceTreasuryPrev.sub(foundationAmount).add(foundationAmountAfter)))) {
-            console.log('foundationDistribute diff 3', foundations.balancesAfter[i], tosBalanceTreasuryPrev.sub(foundationAmount).add(foundationAmountAfter) );
-          }
-
-          // expect(tosBalanceTreasuryAfter).to.be.eq(tosBalanceTreasuryPrev.sub(foundationAmount).add(foundationAmountAfter));
+        if (LOG_FLAG) {
+          console.log( "after bonding " );
+          console.log('tosTotalSupply', bondResponse.tosTotalSupply.toString());
+          console.log('mintedTos', bondResponse.mintedTos.toString());
+          console.log('StakedTosByBonder', bondResponse.StakedTosByBonder.toString());
+          console.log('accumulatedDepositAmount', bondResponse.accumulatedDepositAmount.toString());
         }
 
-        /// 한달 시간 지남.
+        tosStaked = tosStaked.add(bondResponse.StakedTosByBonder);
+        // 본드 구매 후, 체크
         {
-          await indexEpochPassMonth();
+
+          /// Foundation Distribute
+          {
+            // let tosBalanceTreasuryPrev =  await tosContract.balanceOf(treasuryProxylogic.address);
+            // let foundationTotalPercentage = await treasuryProxylogic.foundationTotalPercentage();
+            // let foundationAmount = await treasuryProxylogic.foundationAmount();
+
+            let i = 0;
+            for (i = 0; i < foundations.address.length; i++){
+              foundations.balances[i] = await tosContract.balanceOf(foundations.address[i]);
+            }
+
+            let tx = await treasuryProxylogic.connect(admin1).foundationDistribute();
+            await tx.wait();
+
+            for (i = 0; i < foundations.address.length; i++){
+              let balanceTos = await tosContract.balanceOf(foundations.address[i]);
+              foundations.balancesAfter[i] = balanceTos;
+              let dritributedAmount = foundations.balancesAfter[i].sub(foundations.balances[i]);
+
+              if (LOG_FLAG) console.log('foundations. distribute TOS ', i, foundations.address[i], dritributedAmount.toString() );
+
+              /// scheduleTotalDistribute
+
+              /// scheduleTosAllocatedToFoundation
+              if (CHECK_FLAG.scheduleTosAllocatedToFoundation[1]) {
+                if (i === 0 && convertFormat(dritributedAmount, 12) !== convertFormat(ethers.utils.parseEther(scheduleTosAllocatedToFoundation[m]), 12)) {
+                  console.log('** diff foundationDistribute ', i, foundations.address[i], convertFormat(dritributedAmount, 12), convertFormat(ethers.utils.parseEther(scheduleTosAllocatedToFoundation[m]), 12) );
+                }
+              }
+
+              /// scheduleTosAllocatedToTosDao
+              if (CHECK_FLAG.scheduleTosAllocatedToTosDao[1]) {
+                if (i === 1 && convertFormat(dritributedAmount, 12) !== convertFormat(ethers.utils.parseEther(scheduleTosAllocatedToTosDao[m]), 12)) {
+                  console.log('** diff foundationDistribute ', i, foundations.address[i], convertFormat(dritributedAmount, 12), convertFormat(ethers.utils.parseEther(scheduleTosAllocatedToTosDao[m]), 12) );
+                }
+              }
+
+
+              ///	scheduleTosAllocatedToTonDao
+              if (CHECK_FLAG.scheduleTosAllocatedToTonDao[1]) {
+                if (i === 2 && convertFormat(dritributedAmount, 12) !== convertFormat(ethers.utils.parseEther(scheduleTosAllocatedToTonDao[m]), 12)) {
+                  console.log('** diff foundationDistribute ', i, foundations.address[i], convertFormat(dritributedAmount, 12), convertFormat(ethers.utils.parseEther(scheduleTosAllocatedToTonDao[m]), 12) );
+                }
+              }
+
+              // if (i === 0)
+              //   expect(convertFormat(dritributedAmount, 12)).to.be.eq(
+              //     convertFormat(ethers.utils.parseEther(scheduleTosAllocatedToFoundation[m+1]), 12));
+              // else if (i === 1)
+              //     expect(convertFormat(dritributedAmount, 12)).to.be.eq(
+              //       convertFormat(ethers.utils.parseEther(scheduleTosAllocatedToTosDao[m+1]), 12));
+              // else if (i === 2)
+              //   expect(convertFormat(dritributedAmount, 12)).to.be.eq(
+              //     convertFormat(ethers.utils.parseEther(scheduleTosAllocatedToTonDao[m+1]), 12));
+
+              // expect(foundations.balancesAfter[i]).to.be.gt(foundations.balances[i]);
+              // expect(foundations.balancesAfter[i]).to.be.eq(foundationAmount.mul(foundations.percentages[i]).div(foundationTotalPercentage));
+            }
+          }
+
+          ///scheduleBackingRate
+          ///scheduleBackingRate
+
+          //scheduleStakingReward
+          if (CHECK_FLAG.scheduleStakingReward[1]) {
+            if (LOG_FLAG) console.log("stakingReward", stakingReward.toString());
+            if (convertFormat(stakingReward, 12) !== (convertFormat(ethers.utils.parseEther(scheduleStakingReward[m]), 12)))
+              console.log("** diff scheduleStakingReward before bond " , ethers.utils.parseEther(scheduleStakingReward[m]).toString());
+          }
+
+          //scheduleRunwayTos
+          if (CHECK_FLAG.scheduleRunwayTos[1]) {
+            let runwayTos = await stakingProxylogic.runwayTos();
+            if (LOG_FLAG) console.log('runwayTos', runwayTos.toString(), convertFormat(runwayTos, 12), convertFormat(runwayTos, 9));
+            if (convertFormat(runwayTos, 12) !== (convertFormat(ethers.utils.parseEther(scheduleRunwayTos[m]), 12)))
+            console.log("** diff scheduleRunwayTos before bond " , ethers.utils.parseEther(scheduleRunwayTos[m]).toString());
+          }
+
+          //scheduleTotalTosSupply
+          if (CHECK_FLAG.scheduleTotalTosSupply[1]) {
+            let totalSupply = await tosContract.totalSupply();
+            if (LOG_FLAG) console.log('totalSupply', totalSupply.toString());
+            if (convertFormat(totalSupply, 12) !== (convertFormat(ethers.utils.parseEther(scheduleTotalTosSupply[m]), 12)))
+              console.log("** diff scheduleTotalTosSupply before bond " , ethers.utils.parseEther(scheduleTotalTosSupply[m]).toString());
+          }
+
+          ///scheduleTreasuryTosBalance
+          if (CHECK_FLAG.scheduleTreasuryTosBalance[1]){
+            let treasuryTosBalance = await tosContract.balanceOf(deployed.treasury)
+            if (LOG_FLAG) console.log('treasuryTosBalance', treasuryTosBalance.toString());
+            if (convertFormat(treasuryTosBalance, 12) !== (convertFormat(ethers.utils.parseEther(scheduleTreasuryTosBalance[m]), 12)))
+            console.log("** diff scheduleTreasuryTosBalance" , ethers.utils.parseEther(scheduleTreasuryTosBalance[m]).toString());
+
+          }
+
+          // scheduleMintedTos
+          if (CHECK_FLAG.scheduleMintedTos[1]){
+            if (convertFormat(bondResponse.mintedTos, 12) !== (convertFormat(ethers.utils.parseEther(scheduleMintedTos[m]), 12)))
+            console.log("** diff scheduleMintedTos" ,m, ethers.utils.parseEther(scheduleMintedTos[m]).toString());
+
+          }
+
+          // scheduleTosAllocatedToBonder
+          if (CHECK_FLAG.scheduleMintedTos[1]){
+            if (convertFormat(bondResponse.StakedTosByBonder, 12) !== (convertFormat(ethers.utils.parseEther(scheduleTosAllocatedToBonder[m]), 12)))
+            console.log("** diff scheduleTosAllocatedToBonder" , m, ethers.utils.parseEther(scheduleTosAllocatedToBonder[m]).toString());
+
+          }
+
+          // StakedTosByBonderArray.push(bondResponse.StakedTosByBonder.toString());
+          // accumulatedDepositAmountArray.push(bondResponse.accumulatedDepositAmount.toString());
+          // mintedTosArray.push(bondResponse.mintedTos.toString());
+          // tosTotalSupplyArray.push(bondResponse.tosTotalSupply.toString());
+
+          // console.log('expectedAccumulatedDepositAmount', convertFormat(expectedAccumulatedDepositAmount, 12));
+          // console.log('bondResponse.accumulatedDepositAmount', convertFormat(bondResponse.accumulatedDepositAmount, 12));
+          // console.log('bondResponse.mintedTos', convertFormat(bondResponse.mintedTos, 12));
+          // console.log('bondResponse.StakedTosByBonder', convertFormat(bondResponse.StakedTosByBonder, 12));
+          // console.log('bondResponse.tosTotalSupply', convertFormat(bondResponse.tosTotalSupply, 12));
+
+          // expect(convertFormat(bondResponse.accumulatedDepositAmount, 12)).to.be.eq(
+          //   convertFormat(expectedAccumulatedDepositAmount, 12));
+
+          // expect(convertFormat(bondResponse.mintedTos, 12)).to.be.eq(
+          //   convertFormat(ethers.utils.parseEther(scheduleMintedTos[m+1]), 12));
+
+          // expect(convertFormat(bondResponse.StakedTosByBonder, 12)).to.be.eq(
+          //   convertFormat(ethers.utils.parseEther(scheduleTosAllocatedToBonder[m+1]), 12));
+
+          // expect(convertFormat(bondResponse.tosTotalSupply, 12)).to.be.eq(
+          //   convertFormat(ethers.utils.parseEther(scheduleTotalTosSupply[m+1]), 12));
+        }
+
+        {
+          /// update stakingReward
+          let ltos = await stakingProxylogic.totalLtos();
+          let possibleIndex = await stakingProxylogic.possibleIndex();
+          let totalStakedTos  = await stakingProxylogic.getLtosToTosPossibleIndex(ltos);
+          let stakingPrincipal  = await stakingProxylogic.stakingPrincipal();
+
+          stakingReward = totalStakedTos.sub(stakingPrincipal);
+
+          // if (LOG_FLAG)
+          {
+            console.log('ltos', ltos.toString());
+            console.log('possibleIndex', possibleIndex.toString());
+            console.log('totalStakedTos', totalStakedTos.toString());
+            console.log('stakingPrincipal', stakingPrincipal.toString());
+            console.log('stakingReward', stakingReward.toString());
+          }
         }
 
       }
-
       // save(stosMigrationBlockNumber,{
       //   name: "tosTotalSupplyArray",
       //   address: tosTotalSupplyArray

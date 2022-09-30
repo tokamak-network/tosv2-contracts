@@ -5,6 +5,7 @@ const { ethers } = require("hardhat");
     let passTime =   60 * 60 * 24 * 30;
     ethers.provider.send("evm_increaseTime", [passTime])
     ethers.provider.send("evm_mine")
+    console.log('----- evm_increaseTime 30 days')
   }
 
   async function indexEpochPass(_stakingProxylogic, passNextEpochCount) {

@@ -481,10 +481,10 @@ describe("TOSv2 Phase1", function () {
         let maxRound = loopCount -1;
         console.log('loopCount',loopCount, 'maxRound',maxRound );
         let c = 0;
-        for(c = 0; c < loopCount; c++){
-        // let round = 0;
-        // if(round <= maxRound){
-        //   c = round;
+        // for(c = 0; c < loopCount; c++){
+        let round = 3;
+        if(round <= maxRound){
+          c = round;
 
           let start = c * batchSize;
           let end = start + batchSize;

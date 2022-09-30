@@ -10,7 +10,7 @@ import "./libraries/LibTreasury.sol";
 import "./interfaces/ITreasury.sol";
 import "./interfaces/ITreasuryEvent.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 interface IITOSValueCalculator {
 
@@ -428,6 +428,11 @@ contract Treasury is
     function checkTosSolvencyAfterTOSMint(uint256 _checkMintRate, uint256 amount)
         public override view returns (bool)
     {
+        // console.log("tos.totalSupply() %s", tos.totalSupply());
+        // console.log("backingReserve() %s", backingReserve());
+        // console.log("_checkMintRate %s", _checkMintRate);
+        // console.log("backingReserve() * _checkMintRate / mintRateDenominator = %s", backingReserve() * _checkMintRate / mintRateDenominator);
+
         if (tos.totalSupply() + amount  <= backingReserve() * _checkMintRate / mintRateDenominator)  return true;
         else return false;
     }
