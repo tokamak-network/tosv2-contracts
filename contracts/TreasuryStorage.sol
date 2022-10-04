@@ -11,35 +11,26 @@ contract TreasuryStorage {
     string internal invalidToken = "Treasury: invalid token";
     string internal insufficientReserves = "Treasury: insufficient reserves";
 
-    IERC20 public TOS;
-
+    IERC20 public tos;
     address public calculator;
-
-    mapping(LibTreasury.STATUS => address[]) public registry;
-    mapping(LibTreasury.STATUS => mapping(address => bool)) public permissions;
-
     address public wethAddress;
     address public uniswapV3Factory;
-    address public stakingv2;
+    address public stakingV2;
     address public poolAddressTOSETH;
-
-    uint256 public ETHbacking;
-    uint256 public tosBacking;
-    uint256 public ETHliquidity;
 
     uint256 public mintRate;
     uint256 public mintRateDenominator;
+    uint256 public foundationAmount;
+    uint256 public foundationTotalPercentage;
 
-    uint256 public minimumTOSPricePerETH; //1e18
+    mapping(LibTreasury.STATUS => address[]) public registry;
+    mapping(LibTreasury.STATUS => mapping(address => bool)) public permissions;
+    mapping(address => uint256) public backingIndexPlusOne;
 
-    uint256 public totalPercents;
-
-    LibTreasury.Backing[] public backings;
-    mapping(address => uint256) public backingsIndex;
-
+    address[] public backings;
     LibTreasury.Minting[] public mintings;
-
     uint256[] public lpTokens;
+
 
     modifier nonZero(uint256 tokenId) {
         require(tokenId != 0, "Treasury: zero uint");

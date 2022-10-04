@@ -43,66 +43,69 @@ async function main() {
     if(chainId == 1) networkName = "mainnet";
     if(chainId == 4) networkName = "rinkeby";
 
+    //  deployer removePolicy
 
     const tosCalculatorAddress = loadDeployed(networkName, "TOSValueCalculator");
     const treasuryProxyAddress = loadDeployed(networkName, "TreasuryProxy");
     const stakingProxyAddress = loadDeployed(networkName, "StakingV2Proxy");
     const bondDepositoryProxyAddress = loadDeployed(networkName, "BondDepositoryProxy");
 
-    const calculatorContract = new ethers.Contract( tosCalculatorAddress, calculatorAbi.abi, ethers.provider);
+    // bondDepository
+    const bondProxyContract = new ethers.Contract(bondDepositoryProxyAddress, bondDepositoryProxyAbi.abi, ethers.provider);
 
-    await calculatorContract.connect(deployer).initialize(
-        rinkeby_address.tos,
-        rinkeby_address.weth,
-        rinkeby_address.npm,
-        rinkeby_address.tosethPool,
-        rinkeby_address.poolfactory
-    )
-    console.log("tosCalculator initialized");
+    let tx = await bondProxyContract.connect(deployer).removePolicy()
+    await tx.wait();
+    isPolicy = await bondProxyContract.isPolicy(deployer.address);
+    console.log("bondProxyContract isPolicy ", isPolicy, deployer.address);
 
+    tx = await bondProxyContract.connect(deployer).removeAdmin()
+    await tx.wait();
+    isAdmin = await bondProxyContract.isAdmin(deployer.address);
+    console.log("bondProxyContract isAdmin ", isAdmin, deployer.address);
+
+    tx = await bondProxyContract.connect(deployer).removeProxyAdmin()
+    await tx.wait();
+    isProxyAdmin = await bondProxyContract.isProxyAdmin(deployer.address);
+    console.log("terasuryProxyContract isProxyAdmin ", isProxyAdmin, deployer.address);
+
+
+    // terasuryProxyContract
     const terasuryProxyContract = new ethers.Contract( treasuryProxyAddress, treasuryProxyAbi.abi, ethers.provider);
 
-    await terasuryProxyContract.connect(deployer).initialize(
-      rinkeby_address.tos,
-      tosCalculatorAddress,
-      rinkeby_address.weth,
-      rinkeby_address.poolfactory,
-      stakingProxyAddress,
-      rinkeby_address.tosethPool
-    )
+    let tx = await terasuryProxyContract.connect(deployer).removePolicy()
+    await tx.wait();
+    isPolicy = await terasuryProxyContract.isPolicy(deployer.address);
+    console.log("terasuryProxyContract isPolicy ", isPolicy, deployer.address);
 
-    console.log("treasury initialized");
+    tx = await terasuryProxyContract.connect(deployer).removeAdmin()
+    await tx.wait();
+    isAdmin = await terasuryProxyContract.isAdmin(deployer.address);
+    console.log("terasuryProxyContract isAdmin ", isAdmin, deployer.address);
 
+
+    tx = await terasuryProxyContract.connect(deployer).removeProxyAdmin()
+    await tx.wait();
+    isProxyAdmin = await terasuryProxyContract.isProxyAdmin(deployer.address);
+    console.log("terasuryProxyContract isProxyAdmin ", isProxyAdmin, deployer.address);
+
+    // terasuryProxyContract
     const stakingProxyContract = new ethers.Contract( stakingProxyAddress, stakingV2ProxyAbi.abi, ethers.provider);
+    tx = await stakingProxyContract.connect(deployer).removePolicy()
+    await tx.wait();
+    isPolicy = await stakingProxyContract.isPolicy(deployer.address);
+    console.log("stakingProxyContract isPolicy ", isPolicy, deployer.address);
 
-    const block = await ethers.provider.getBlock('latest')
 
-    // let epochLength = 3600 * 8;
-    let epochLength = 600;
-    let epochEnd = Number(block.timestamp) + Number(epochLength);
-    // let basicBondPeriod = (86400*5);
-    let basicBondPeriod = 1800;
+    tx = await stakingProxyContract.connect(deployer).removeAdmin()
+    await tx.wait();
+    isAdmin = await stakingProxyContract.isAdmin(deployer.address);
+    console.log("stakingProxyContract isAdmin ", isAdmin, deployer.address);
 
-    await stakingProxyContract.connect(deployer).initialize(
-      rinkeby_address.tos,
-      [epochLength,epochEnd],
-      lockTOSaddr,
-      treasuryProxyAddress,
-      basicBondPeriod
-    )
-    console.log("StakingV2 initialized");
 
-    const bondProxyContract = new ethers.Contract( bondDepositoryProxyAddress, bondDepositoryProxyAbi.abi, ethers.provider);
-
-    await bondProxyContract.connect(deployer).initialize(
-      rinkeby_address.tos,
-      stakingProxyAddress,
-      treasuryProxyAddress,
-      tosCalculatorAddress,
-      rinkeby_address.poolfactory
-    )
-
-    console.log("bondDepository initialized");
+    tx = await stakingProxyContract.connect(deployer).removeProxyAdmin()
+    await tx.wait();
+    isProxyAdmin = await stakingProxyContract.isProxyAdmin(deployer.address);
+    console.log("stakingProxyContract isProxyAdmin ", isProxyAdmin, deployer.address);
 
 }
 

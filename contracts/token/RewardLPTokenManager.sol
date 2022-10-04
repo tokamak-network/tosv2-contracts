@@ -65,7 +65,7 @@ contract RewardLPTokenManager is
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(ADMIN_ROLE, _msgSender());
-        _setupRole(MINTER_ROLE, _msgSender());
+        // _setupRole(MINTER_ROLE, _msgSender());
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
@@ -103,7 +103,8 @@ contract RewardLPTokenManager is
         uint256 tosAmount,
         uint256 factoredAmount
     ) external override whenNotPaused zeroAddress(dtos) returns (uint256) {
-        require(_msgSender() == dtos, "RewardLPTokenManager: sender is not dtosManager");
+        // require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
+        require(hasRole(ADMIN_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
 
         _tokenIdTracker++;
 
@@ -133,9 +134,16 @@ contract RewardLPTokenManager is
         uint256 tokenId
     ) external override whenNotPaused zeroAddress(dtos) {
         // console.log("IIRewardLPTokenManager burn tokenId %s", tokenId) ;
+        // require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have role to burn");
+        require(hasRole(ADMIN_ROLE, _msgSender()), "RewardLPTokenManager: must have role to burn");
 
-        //require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have role to burn");
-        require(_msgSender() == dtos, "RewardLPTokenManager: sender is not dtosManager");
+        LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
+
+        // uint256 amount = mintableAmount(tokenId);
+        // uint256 balance = IDTOS(dtos).balanceOf(info.owner);
+
+        // if(amount <= balance) IDTOS(dtos).burn(info.owner, amount);
+        // else IDTOS(dtos).burn(info.owner, balance);
 
         // LibRewardLPToken.RewardTokenInfo memory info = deposits[tokenId];
         address _tokenOwner = deposits[tokenId].owner;

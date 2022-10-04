@@ -10,7 +10,7 @@ async function main() {
     const { chainId } = await ethers.provider.getNetwork();
     let networkName = "local";
     if(chainId == 1) networkName = "mainnet";
-    if(chainId == 4) networkName = "rinkeby"; 
+    if(chainId == 4) networkName = "rinkeby";
 
     let deployInfo = {
         name: "",
@@ -33,7 +33,6 @@ async function main() {
     save(networkName, deployInfo);
 
     printGasUsedOfUnits('bondDepositoryLogic Deploy',tx);
-
 
     const bondDepositoryProxy = await (await ethers.getContractFactory("BondDepositoryProxy"))
         .connect(deployer)

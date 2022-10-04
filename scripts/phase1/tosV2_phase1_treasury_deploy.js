@@ -10,22 +10,31 @@ async function main() {
     const { chainId } = await ethers.provider.getNetwork();
     let networkName = "local";
     if(chainId == 1) networkName = "mainnet";
-    if(chainId == 4) networkName = "rinkeby"; 
+    if(chainId == 4) networkName = "rinkeby";
 
     let deployInfo = {
         name: "",
         address: ""
     }
 
+
+    //LibTreasury deploy
     const LibTreasury = await ethers.getContractFactory("LibTreasury");
     let libTreasury = await LibTreasury.connect(deployer).deploy();
+    let tx = await libTreasury.deployed();
+
+    console.log("libTreasury: ", libTreasury.address);
 
     deployInfo = {
       name: "LibTreasury",
       address: libTreasury.address
     }
-    
+
     save(networkName, deployInfo);
+
+    printGasUsedOfUnits('LibTreasury Deploy',tx);
+
+    //Treasury Deploy
 
     const treasuryLogic = await (await ethers.getContractFactory("Treasury", {
       libraries: {
@@ -33,7 +42,7 @@ async function main() {
       }
     })).connect(deployer).deploy();
 
-    let tx = await treasuryLogic.deployed();
+    tx = await treasuryLogic.deployed();
     console.log("treasuryLogic: ", treasuryLogic.address);
 
     deployInfo = {
@@ -46,6 +55,7 @@ async function main() {
     printGasUsedOfUnits('treasuryLogic Deploy',tx);
 
 
+    //TreasuryProxy Deploy
     const treasuryProxy = await (await ethers.getContractFactory("TreasuryProxy"))
         .connect(deployer)
         .deploy();
@@ -67,10 +77,22 @@ async function main() {
 
     if(chainId == 1 || chainId == 4) {
       await run("verify", {
+        address: libTreasury.address,
+        constructorArgsParams: [],
+      });
+    }
+
+    console.log("libTreasury verified");
+
+
+    if(chainId == 1 || chainId == 4) {
+      await run("verify", {
         address: treasuryLogic.address,
         constructorArgsParams: [],
       });
     }
+
+    console.log("treasuryLogic verified");
 
     if(chainId == 1 || chainId == 4) {
       await run("verify", {
@@ -78,6 +100,8 @@ async function main() {
         constructorArgsParams: [],
       });
     }
+
+    console.log("treasuryProxy verified");
 }
 
 // We recommend this pattern to be able to use async/await everywhere

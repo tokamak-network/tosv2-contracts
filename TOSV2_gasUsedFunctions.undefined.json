@@ -1,9 +1,0 @@
-{
-  "tosCalculator Deploy": "0xb281300083bf29d4f565bdb5175e88455c0869d5f02f91c995b295e82e7924c0",
-  "treasuryLogic Deploy": "0xb3031029d55c2b40dad50d312aa11fd6726940f0180085723e55a706c108a2e3",
-  "treasuryProxy Deploy": "0x1d080a5061f820803f0560cb417ce87bd27a9523555d27a4a58395f7846f2564",
-  "stakingLogic Deploy": "0x6ac9a0a21126b8afc6e9428cfa44d74df7e8710c48336adec7fd0ee34de5238e",
-  "stakingProxy Deploy": "0x348705700df617fdab7003300ce222eb2e8d86795614f773b0396596e6743b8b",
-  "bondDepositoryLogic Deploy": "0xeeae26bb0bebea9a129529139afc226ce954d943538a77f5b558eb835cc058bc",
-  "bondDepositoryProxy Deploy": "0x36a3555e999151a6232b753372b550ac1321ee82e3fdb6cb3a990222d5cc1304"
-}

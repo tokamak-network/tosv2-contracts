@@ -18,13 +18,13 @@ contract VaultProxy is ProxyAccessCommon, VaultStorage, IProxyEvent, IProxyActio
      * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
      */
     constructor () {
-        _setRoleAdmin(PROJECT_ADMIN_ROLE, PROJECT_ADMIN_ROLE);
-        _setupRole(PROJECT_ADMIN_ROLE, msg.sender);
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
+        _setupRole(ADMIN_ROLE, msg.sender);
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     /// @inheritdoc IProxyAction
-    function setProxyPause(bool _pause) external override onlyOwner {
+    function setProxyPause(bool _pause) external override onlyProxyOwner {
         pauseProxy = _pause;
     }
 
@@ -143,7 +143,11 @@ contract VaultProxy is ProxyAccessCommon, VaultStorage, IProxyEvent, IProxyActio
 
     /// @dev receive ether
     receive() external payable {
-        revert("cannot receive Ether");
+        (bool success, bytes memory returnData) = address(this).call{value: 0}(
+            abi.encodeWithSignature("isTreasury()")
+        );
+        (bool isTreasury) = abi.decode(returnData, (bool));
+        if (!isTreasury) revert("cannot receive Ether");
     }
 
     /// @dev fallback function , execute on undefined function call

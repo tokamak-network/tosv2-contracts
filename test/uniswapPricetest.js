@@ -136,17 +136,17 @@ describe("price test", function () {
     console.log("real TOS/ETH Price :", (Number(tosprice)/1e18))
   })
 
-  // 1TOS = ? WTON
-  it("get TOS-WTONPool WTON/TOS Price", async () => {
-    let price = await TOSValueCalculator.getTOSERC20PoolTOSPrice(uniswapInfo.wton,uniswapInfo.wtonTosPool,3000);
-    let decimal = await TOSValueCalculator.getDecimals(uniswapInfo.wton,uniswapInfo.tos)
-    let priceDecimal = ethers.utils.parseUnits("1", decimal.token0Decimals);     
+  // // 1TOS = ? WTON
+  // it("get TOS-WTONPool WTON/TOS Price", async () => {
+  //   let price = await TOSValueCalculator.getTOSERC20PoolTOSPrice(uniswapInfo.wton,uniswapInfo.wtonTosPool,3000);
+  //   let decimal = await TOSValueCalculator.getDecimals(uniswapInfo.wton,uniswapInfo.tos)
+  //   let priceDecimal = ethers.utils.parseUnits("1", decimal.token0Decimals);     
 
-    console.log("WTON/TOS Price:", Number(price))
-    console.log("real WTON/TOS Price:", Number(price)/1e18)
-    // let uintWTONprice = Number(price)/Number(priceDecimal);
-    // console.log("realWTON/TOS Price:",uintWTONprice);
-  })
+  //   console.log("WTON/TOS Price:", Number(price))
+  //   console.log("real WTON/TOS Price:", Number(price)/1e18)
+  //   // let uintWTONprice = Number(price)/Number(priceDecimal);
+  //   // console.log("realWTON/TOS Price:",uintWTONprice);
+  // })
 
   // 1WTON = ?TOS
   it("get TOS-WTONPool TOS/WTON Price", async () => {
@@ -202,7 +202,6 @@ describe("price test", function () {
   it("tickCheck test", async () => {
     let tick = await TOSValueCalculator.tickCheck(tokenIdtoseth);
     console.log(tick);
-
   })
 
 });
