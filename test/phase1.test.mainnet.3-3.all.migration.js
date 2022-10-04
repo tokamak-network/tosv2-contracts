@@ -456,7 +456,7 @@ describe("TOSv2 Phase1", function () {
       }
       ////////////////
 
-      for (m = 0; m < 2; m++) {
+      for (m = 0; m < 4; m++) {
         console.log('============= month : ', m )
 
         // set MR
@@ -508,15 +508,26 @@ describe("TOSv2 Phase1", function () {
             /// MintingRateSchedule
             console.log("setMR : MintingRateSchedule[m]", m, ethers.utils.parseEther(MintingRateSchedule[m]).toString());
             let amount = ethers.utils.parseEther("0");
+
             await treasuryProxylogic.connect(admin1).setMR(
-              ethers.utils.parseEther(MintingRateSchedule[m])
-              .add(ethers.BigNumber.from("100000000")),
+              ethers.utils.parseEther(MintingRateSchedule[m]),
               amount,
               false
             );
 
+            // await treasuryProxylogic.connect(admin1).setMR(
+            //   ethers.utils.parseEther(MintingRateSchedule[m])
+            //   .add(ethers.BigNumber.from("100000000")),
+            //   amount,
+            //   false
+            // );
+
+            // expect(await treasuryProxylogic.mintRate()).to.be.equal(
+            //   ethers.utils.parseEther(MintingRateSchedule[m]).add(ethers.BigNumber.from("100000000"))
+            //   );
+
             expect(await treasuryProxylogic.mintRate()).to.be.equal(
-              ethers.utils.parseEther(MintingRateSchedule[m]).add(ethers.BigNumber.from("100000000"))
+              ethers.utils.parseEther(MintingRateSchedule[m])
               );
             /// scheduleBackingRate
           }
@@ -542,7 +553,17 @@ describe("TOSv2 Phase1", function () {
 
           //scheduleRunwayTos
           if (CHECK_FLAG.scheduleRunwayTos[0]) {
-            let runwayTos = await stakingProxylogic.runwayTos();
+            // let runwayTos = await stakingProxylogic.runwayTos();
+
+            let tosBalanceOfBreforeBond = await tosContract.balanceOf(treasuryProxylogic.address);
+            let totalLtos = await stakingProxylogic.totalLtos();
+            let getLtosToTos = await stakingProxylogic.getLtosToTosPossibleIndex(totalLtos);
+            if (LOG_FLAG) console.log('totalLtos', totalLtos.toString() );
+            if (LOG_FLAG) console.log('tosBalanceOfBreforeBond', tosBalanceOfBreforeBond.toString() );
+            if (LOG_FLAG) console.log('getLtosToTos', getLtosToTos.toString() );
+
+            let runwayTos = tosBalanceOfBreforeBond.sub(getLtosToTos);
+
             if (LOG_FLAG) console.log('runwayTos', runwayTos.toString(), convertFormat(runwayTos, 12), convertFormat(runwayTos, 9));
             if (convertFormat(runwayTos, 12) !== (convertFormat(ethers.utils.parseEther(scheduleRunwayTos[m]), 12)))
             console.log("** diff scheduleRunwayTos before bond " , ethers.utils.parseEther(scheduleRunwayTos[m]).toString());
@@ -589,6 +610,15 @@ describe("TOSv2 Phase1", function () {
         // 본드 구매 후, 체크
         {
 
+          ///scheduleTreasuryTosBalance
+          if (CHECK_FLAG.scheduleTreasuryTosBalance[1]){
+            let treasuryTosBalance = await tosContract.balanceOf(deployed.treasury)
+            if (LOG_FLAG) console.log('treasuryTosBalance', treasuryTosBalance.toString());
+            if (convertFormat(treasuryTosBalance, 12) !== (convertFormat(ethers.utils.parseEther(scheduleTreasuryTosBalance[m]), 12)))
+            console.log("** diff scheduleTreasuryTosBalance" , ethers.utils.parseEther(scheduleTreasuryTosBalance[m]).toString());
+
+          }
+
           /// Foundation Distribute
           {
             // let tosBalanceTreasuryPrev =  await tosContract.balanceOf(treasuryProxylogic.address);
@@ -603,14 +633,15 @@ describe("TOSv2 Phase1", function () {
             let tx = await treasuryProxylogic.connect(admin1).foundationDistribute();
             await tx.wait();
 
+            let totalDistributeAmount = ethers.BigNumber.from("0");
+
             for (i = 0; i < foundations.address.length; i++){
               let balanceTos = await tosContract.balanceOf(foundations.address[i]);
               foundations.balancesAfter[i] = balanceTos;
               let dritributedAmount = foundations.balancesAfter[i].sub(foundations.balances[i]);
+              totalDistributeAmount.add(dritributedAmount);
 
               if (LOG_FLAG) console.log('foundations. distribute TOS ', i, foundations.address[i], dritributedAmount.toString() );
-
-              /// scheduleTotalDistribute
 
               /// scheduleTosAllocatedToFoundation
               if (CHECK_FLAG.scheduleTosAllocatedToFoundation[1]) {
@@ -647,6 +678,14 @@ describe("TOSv2 Phase1", function () {
               // expect(foundations.balancesAfter[i]).to.be.gt(foundations.balances[i]);
               // expect(foundations.balancesAfter[i]).to.be.eq(foundationAmount.mul(foundations.percentages[i]).div(foundationTotalPercentage));
             }
+            console.log('totalDistributeAmount ',  totalDistributeAmount.toString());
+            /// scheduleTotalDistribute
+            if (CHECK_FLAG.scheduleTotalDistribute[1]) {
+              if (i === 2 && convertFormat(totalDistributeAmount, 12) !== convertFormat(ethers.utils.parseEther(scheduleTotalDistribute[m]), 12)) {
+                console.log('** diff totalDistributeAmount ',  convertFormat(totalDistributeAmount, 12), convertFormat(ethers.utils.parseEther(scheduleTotalDistribute[m]), 12) );
+              }
+            }
+
           }
 
           ///scheduleBackingRate
@@ -658,6 +697,7 @@ describe("TOSv2 Phase1", function () {
             if (convertFormat(stakingReward, 12) !== (convertFormat(ethers.utils.parseEther(scheduleStakingReward[m]), 12)))
               console.log("** diff scheduleStakingReward before bond " , ethers.utils.parseEther(scheduleStakingReward[m]).toString());
           }
+
 
           //scheduleRunwayTos
           if (CHECK_FLAG.scheduleRunwayTos[1]) {
@@ -673,15 +713,6 @@ describe("TOSv2 Phase1", function () {
             if (LOG_FLAG) console.log('totalSupply', totalSupply.toString());
             if (convertFormat(totalSupply, 12) !== (convertFormat(ethers.utils.parseEther(scheduleTotalTosSupply[m]), 12)))
               console.log("** diff scheduleTotalTosSupply before bond " , ethers.utils.parseEther(scheduleTotalTosSupply[m]).toString());
-          }
-
-          ///scheduleTreasuryTosBalance
-          if (CHECK_FLAG.scheduleTreasuryTosBalance[1]){
-            let treasuryTosBalance = await tosContract.balanceOf(deployed.treasury)
-            if (LOG_FLAG) console.log('treasuryTosBalance', treasuryTosBalance.toString());
-            if (convertFormat(treasuryTosBalance, 12) !== (convertFormat(ethers.utils.parseEther(scheduleTreasuryTosBalance[m]), 12)))
-            console.log("** diff scheduleTreasuryTosBalance" , ethers.utils.parseEther(scheduleTreasuryTosBalance[m]).toString());
-
           }
 
           // scheduleMintedTos
