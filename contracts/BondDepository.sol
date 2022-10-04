@@ -202,9 +202,13 @@ contract BondDepository is
     }
 
     /// @inheritdoc IBondDepository
-    function close(uint256 _id) external override onlyPolicyOwner {
-        require(markets[_id].endSaleTime > 0, "empty market");
-        require(markets[_id].endSaleTime > block.timestamp || markets[_id].capacity == 0, "already closed");
+    function close(
+        uint256 _id
+    )   external override onlyPolicyOwner 
+        nonEndMarket(_id)
+    {
+        // require(markets[_id].endSaleTime > 0, "empty market");
+        // require(markets[_id].endSaleTime > block.timestamp || markets[_id].capacity == 0, "already closed");
         LibBondDepository.Market storage _info = markets[_id];
         _info.endSaleTime = block.timestamp;
         _info.capacity = 0;
