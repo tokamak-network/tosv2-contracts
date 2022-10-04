@@ -36,7 +36,7 @@ contract TreasuryProxy is
         poolAddressTOSETH = _poolAddressTOSETH;
     }
 
-    function isTreasury() public view returns (bool) {
+    function isTreasury() public pure returns (bool) {
         return true;
     }
 

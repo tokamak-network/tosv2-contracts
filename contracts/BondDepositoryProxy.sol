@@ -32,7 +32,7 @@ contract BondDepositoryProxy is
         uniswapV3Factory = _uniswapV3Factory;
     }
 
-    function isTreasury() public view returns (bool) {
+    function isTreasury() public pure returns (bool) {
         return false;
     }
 

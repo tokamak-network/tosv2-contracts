@@ -35,7 +35,7 @@ contract StakingV2Proxy is
         basicBondPeriod = _basicBondPeriod;
     }
 
-    function isTreasury() public view returns (bool) {
+    function isTreasury() public pure returns (bool) {
         return false;
     }
 }
