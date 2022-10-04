@@ -152,6 +152,9 @@ contract BondDepository is
 
         LibBondDepository.Market storage _info = markets[_marketId];
         _info.capacity -= _amount;
+        if (_info.capacity <= 100 ether) {
+            emit ClosedMarket(_marketId);
+        }
 
         emit DecreasedCapacity(_marketId, _amount);
     }
@@ -207,8 +210,6 @@ contract BondDepository is
     )   external override onlyPolicyOwner 
         nonEndMarket(_id)
     {
-        // require(markets[_id].endSaleTime > 0, "empty market");
-        // require(markets[_id].endSaleTime > block.timestamp || markets[_id].capacity == 0, "already closed");
         LibBondDepository.Market storage _info = markets[_id];
         _info.endSaleTime = block.timestamp;
         _info.capacity = 0;
