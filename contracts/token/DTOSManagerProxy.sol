@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "./dTOSManagerStorage.sol";
+import "./DTOSManagerStorage.sol";
 import "../proxy/BaseProxy.sol";
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";

@@ -26,7 +26,7 @@ let uniswapInfo_goerli = {
     NonfungibleTokenPositionDescriptor: "0x91ae842A5Ffd8d12023116943e72A606179294f3",
     UniswapV3Staker: "0xe34139463bA50bD61336E0c446Bd8C0867c6fE65",
     ton: "",
-    lockTOSaddr: "0x770e0d682277A4a9167971073f1Aa6d6403bb315"
+    lockTOSaddr: "0x63689448AbEaaDb57342D9e0E9B5535894C35433"
 }
 
 let networkName = "local";

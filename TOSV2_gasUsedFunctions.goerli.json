@@ -1,11 +1,11 @@
 {
-  "tosCalculator Deploy": "0x1133bfbb6bbb0606e002a839fbc9d3576dd189876b7edf7ed249831ceeada4e2",
-  "bondDepositoryLogic Deploy": "0x942014f579fdba786d1fa8cf19a0a7017d5c4f08f100daddf1d4bab6bd82dca8",
-  "bondDepositoryProxy Deploy": "0xe1ce4801d071a83d374ae20041ae1f50ab32727f5c469f442d782b1dfe0b759f",
-  "LibStaking Deploy": "0x8e228f8a3fbd2c0bf081918f9257044ea4a7d4cfec73b132b9c310455f1dd5d7",
-  "stakingLogic Deploy": "0xd292535d4031297651e86a1b1d2c91c4e4dfd2fef5377c763b2d72d2523a681b",
-  "stakingProxy Deploy": "0x9479129babaf184338d26385dee8878a999dce0d88a0cee6bf0e7cd2a446abca",
-  "LibTreasury Deploy": "0x757e7f9ec9ab873a08ef3f6b7b44eac6d7159f5e8703a9ae3ea8cfb20a46b75f",
-  "treasuryLogic Deploy": "0x9eb1b42d5130b7742a09f9a536ff612005ded4eb02c78355f193c1dd6efa7a4b",
-  "treasuryProxy Deploy": "0xbdd4d8e7f53fa0910cbf60e729a39966ecf662ac119a669e810c7746ed2b90b9"
+  "tosCalculator Deploy": "0x49c4587254da2b529fa60b7da7487f6853f6417661d0ef04e6c5ed8c5d4f1de9",
+  "bondDepositoryLogic Deploy": "0x8e08ac450b6badb4a01a1ddaf595392e19ce8d3f0503fe16fbe9244dfaf5b3de",
+  "bondDepositoryProxy Deploy": "0x2700b6e10eb93177f99c15fe45c0ff97bf4346dfd1139d56491f2a5124462bfd",
+  "LibStaking Deploy": "0x86181f8d1964908c38fe54afc3c38533e01aed91a9f35976aa763a0b19fcb876",
+  "stakingLogic Deploy": "0x33a056ae0802008ab82b4743bbd6c7980cc3c91b3906c737334137e8b903e50d",
+  "stakingProxy Deploy": "0xced8af6051a522c10bb92992810d91620887ca55953de0998ab4c60bfce38cb1",
+  "LibTreasury Deploy": "0x3faf890893ca6ac40774160c94b7f9eedb8170876b1edbe20a7066596bce5541",
+  "treasuryLogic Deploy": "0xb72414e0e7794a258a36cdfe69a19e4a6e407a7a171bd11a51235c1ebd5ad417",
+  "treasuryProxy Deploy": "0xcd6144013127c782d839668d3fce79afcf13c1f67a5b0d9189701364d1091fa3"
 }

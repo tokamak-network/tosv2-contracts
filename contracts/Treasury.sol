@@ -312,7 +312,7 @@ contract Treasury is
 
     /// @inheritdoc ITreasury
     function backingRateETHPerTOS() public override view returns (uint256) {
-        return (backingReserve() / tos.totalSupply()) ;
+        return (backingReserve() * 1e18 / tos.totalSupply()) ;
     }
 
     /// @inheritdoc ITreasury

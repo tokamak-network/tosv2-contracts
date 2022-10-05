@@ -84,10 +84,10 @@ async function main() {
     await tx.wait();
 
     const _mintRateDenominator = await terasuryContract.mintRateDenominator();
-    console.log("terasuryProxyContract mintRateDenominator ", _mintRateDenominator);
+    console.log("terasuryProxyContract mintRateDenominator ", _mintRateDenominator.toString());
 
     const _mintRate = await terasuryContract.mintRate();
-    console.log("terasuryProxyContract mintRate ", _mintRate);
+    console.log("terasuryProxyContract mintRate ", _mintRate.toString());
 
 }
 
