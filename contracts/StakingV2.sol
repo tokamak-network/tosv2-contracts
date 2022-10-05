@@ -74,7 +74,7 @@ contract StakingV2 is
         epoch.length_ = _length;
         epoch.end = _end;
 
-         emit SetEpochInfo(_length, _end);
+        emit SetEpochInfo(_length, _end);
     }
 
     /// @inheritdoc IStaking
@@ -167,7 +167,7 @@ contract StakingV2 is
     {
         require(_amount > 0 && _periodWeeks > 0 && _marketId > 0, "zero input");
 
-        (uint256 stosEpochUnit, uint256 unlockTime) = LibStaking.getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
+        (uint256 stosEpochUnit, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
         require (stosEpochUnit > 0, "zero stosEpochUnit");
         require (unlockTime > 0, "zero unlockTime");
 
@@ -235,7 +235,7 @@ contract StakingV2 is
         nonZero(rebasePerEpoch)
         returns (uint256 stakeId)
     {
-        (uint256 stosEpochUnit, uint256 unlockTime) = LibStaking.getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
+        (uint256 stosEpochUnit, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
         // require(stosEpochUnit > 0, "zero stosEpochUnit");
         // require(unlockTime > 0, "zero unlockTime");
 
@@ -348,7 +348,7 @@ contract StakingV2 is
         uint256 stosEpochUnit = 0;
         uint256 unlockTime = 0;
         if (_periodWeeks > 0) {
-            (stosEpochUnit, unlockTime) = LibStaking.getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
+            (stosEpochUnit, unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
         } else {
             stosEpochUnit = ILockTosV2(lockTOS).epochUnit();
             unlockTime = _stakeInfo.endTime;
@@ -413,7 +413,7 @@ contract StakingV2 is
         uint256 stosEpochUnit = 0;
         uint256 unlockTime = 0;
         if (_periodWeeks > 0) {
-            (stosEpochUnit, unlockTime) = LibStaking.getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
+            (stosEpochUnit, unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
         } else {
             stosEpochUnit = ILockTosV2(lockTOS).epochUnit();
             unlockTime = _stakeInfo.endTime;
@@ -814,7 +814,7 @@ contract StakingV2 is
 
         uint256 _periodSeconds = 0;
         uint256 stosEpochUnit = 0;
-        if (_unlockWeeks > 0) ( stosEpochUnit, _periodSeconds ) = LibStaking.getUnlockTime(lockTOS, 0, _unlockWeeks);
+        if (_unlockWeeks > 0) ( stosEpochUnit, _periodSeconds ) = getUnlockTime(lockTOS, 0, _unlockWeeks);
 
         _increaseStakeInfo(_stakeId, _amount, _periodSeconds);
     }
@@ -986,4 +986,11 @@ contract StakingV2 is
         }
     }
 
+    function getUnlockTime(address lockTos, uint256 start, uint256 _periodWeeks)
+        public view returns (uint256 stosEpochUnit, uint256 unlockTime)
+    {
+        stosEpochUnit = IILockTosV2(lockTos).epochUnit();
+        unlockTime = start + (_periodWeeks * stosEpochUnit);
+        // unlockTime = unlockTime / stosEpochUnit * stosEpochUnit;
+    }
 }
