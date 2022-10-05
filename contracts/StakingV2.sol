@@ -583,6 +583,8 @@ contract StakingV2 is
         uint256 amount = getLtosToTos(_stakeInfo.ltos);
         require(amount > 0, "zero claimable amount");
 
+        if (amount < _stakeInfo.deposit) amount = _stakeInfo.deposit;
+
         stakingPrincipal -= _stakeInfo.deposit;
         totalLtos -= _stakeInfo.ltos;
 
