@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./dTOSManagerStorage.sol";
+import "./DTOSManagerStorage.sol";
 import "../common/AccessibleCommon.sol";
 import {DSMath} from "../libraries/DSMath.sol";
 import "../libraries/SArrays.sol";
@@ -45,8 +45,8 @@ interface IIRewardPool {
     function snapshot() external returns (uint256);
 }
 
-contract dTOSManager is
-    dTOSManagerStorage,
+contract DTOSManager is
+    DTOSManagerStorage,
     AccessibleCommon,
     DSMath,
     IDTOSManager

@@ -7,8 +7,8 @@ import "../proxy/BaseProxy.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 
-contract dTOSManagerProxy is
-    dTOSManagerStorage,
+contract DTOSManagerProxy is
+    DTOSManagerStorage,
     BaseProxy
 {
 
