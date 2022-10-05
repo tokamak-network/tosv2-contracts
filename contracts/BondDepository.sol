@@ -81,7 +81,6 @@ contract BondDepository is
     /// onlyPolicyOwner
     //////////////////////////////////////
 
-
     function setCalculator(
         address _calculator
     )
@@ -92,7 +91,6 @@ contract BondDepository is
 
         emit SetCalculator(_calculator);
     }
-
 
     /// @inheritdoc IBondDepository
     function create(
@@ -107,7 +105,7 @@ contract BondDepository is
         nonZero(_market[3])
         returns (uint256 id_)
     {
-        require(_market[0] >= 100 ether, "need the totalSaleAmount > 100");
+        require(_market[0] > 100 ether, "need the totalSaleAmount > 100");
         id_ = staking.generateMarketId();
         require(markets[id_].endSaleTime == 0, "already registered market");
         require(_market[1] > block.timestamp, "endSaleTime has passed");

@@ -94,6 +94,7 @@ contract TOSValueCalculator is ITOSValueCalculator {
         external
         override
     {
+        require(tos == address(0), "already initialized");
         tos = _tos;
         weth = _weth;
         npm_ = _npm;

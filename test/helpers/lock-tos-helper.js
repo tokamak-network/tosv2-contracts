@@ -24,14 +24,12 @@ const findClosestPoint = (history, timestamp) => {
 const calculateBalanceOfLock = async ({ lockId, timestamp, lockTOS }) => {
 
   const userHistory = await lockTOS.pointHistoryOf(lockId);
-  // console.log('userHistory',userHistory);
 
   const foundPoint = await findClosestPoint(userHistory, timestamp);
-  // console.log('foundPoint',foundPoint);
 
   if (foundPoint == null) return 0;
   const currentBias = foundPoint.slope * (timestamp - foundPoint.timestamp);
-  // console.log('currentBias',currentBias);
+
   const MULTIPLIER = Math.pow(10, 18);
   return Math.floor(
     (foundPoint.bias > currentBias ? foundPoint.bias - currentBias : 0) /
@@ -160,9 +158,28 @@ const calculateCompound = async ({ tosValuation, rebasePerEpoch, n}) => {
   return bnAmountCompound;
 };
 
+function timeout(sec) {
+  return new Promise((resolve) => {
+      setTimeout(resolve, sec * 1000);
+  });
+}
+
+function containsNumber(a, obj) {
+  var i = a.length;
+  while (i--) {
+      //console.log(a[i].toNumber(), obj.toNumber());
+     if (a[i].toNumber() === obj.toNumber()) {
+         return true;
+     }
+  }
+  return false;
+}
+
 module.exports = {
   calculateBalanceOfUser,
   calculateBalanceOfLock,
   createLockWithPermit,
   calculateCompound,
+  timeout,
+  containsNumber,
 };

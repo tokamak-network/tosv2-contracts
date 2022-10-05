@@ -44,7 +44,7 @@ let NonfungiblePositionManager = require('../abis/NonfungiblePositionManager.jso
 let UniswapV3Pool = require('../abis/UniswapV3Pool.json');
 let UniswapV3LiquidityChanger = require('../abis/UniswapV3LiquidityChanger.json');
 let tosabi = require('../abis/TOS.json');
-let lockTOSProxyabi = require('../abis/LockTOSProxy_ABI.json');
+let lockTOSProxyabi = require('../abis/LockTOSProxy.json').abi;
 let lockTOSProxy2abi = require('../abis/LockTOSv2Proxy.json').abi;
 let lockTOSLogic2abi = require('../abis/LockTOSv2Logic0.json').abi;
 const { id } = require("@ethersproject/hash");
@@ -730,7 +730,8 @@ describe("TOSv2 Phase1", function () {
 
       it("#1-1-6. setMR : user can't call setMR(mintRate)", async () => {
         await expect(
-          treasuryProxylogic.connect(user1).setMR(mintRate,
+          treasuryProxylogic.connect(user1).setMR(
+            mintRate,
             ethers.utils.parseEther("100"),
             false
             )
@@ -743,7 +744,8 @@ describe("TOSv2 Phase1", function () {
           treasuryProxylogic.connect(admin1).setMR(
             mintRate,
             ethers.utils.parseEther("100"),
-            false)
+            false
+            )
         ).to.be.revertedWith("unavailable mintRate")
 
       })
@@ -1052,6 +1054,7 @@ describe("TOSv2 Phase1", function () {
           const block = await ethers.provider.getBlock('latest')
           let finishTime = block.timestamp + sellingTime  //2주
           firstMarketlength = await stakingProxylogic.marketIdCounter();
+          console.log('marketIdCounter',firstMarketlength);
 
           bondInfoEther.market.closeTime = finishTime;
 
@@ -1064,7 +1067,7 @@ describe("TOSv2 Phase1", function () {
                 bondInfoEther.market.purchasableTOSAmountAtOneTime
               ]
           )
-          firstMarketlength = firstMarketlength.add(ethers.constants.One)
+          firstMarketlength = firstMarketlength.add(ethers.constants.One);
           expect(await stakingProxylogic.marketIdCounter()).to.be.equal(firstMarketlength);
       })
 
@@ -1083,8 +1086,8 @@ describe("TOSv2 Phase1", function () {
 
     })
 
-  })
 
+  })
 
   describe("#2. lockTOS setting", async () => {
     it("#2-1-1. user can't set the stakingContarct", async () => {
@@ -1508,7 +1511,7 @@ describe("TOSv2 Phase1", function () {
         expect(
           await ethers.provider.getBalance(treasuryProxylogic.address)
         ).to.be.eq(balanceEtherPrevTreasury.add(amount));
-        
+
         expect(
           await tosContract.balanceOf(treasuryProxylogic.address)
         ).to.be.gte(balanceTOSPrevStaker.add(tosValuation));
@@ -2880,6 +2883,7 @@ describe("TOSv2 Phase1", function () {
   //       let depositorUser = "user2";
   //       let depositData = getUserLastData(depositorUser);
 
+
   //       let totalLtos = await stakingProxylogic.totalLtos();
   //       let balanceOfPrev = await tosContract.balanceOf(depositor.address);
   //       let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
@@ -3968,7 +3972,5 @@ describe("TOSv2 Phase1", function () {
   //   });
 
   // });
-
-
 
 });

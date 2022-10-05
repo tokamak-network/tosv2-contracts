@@ -45,6 +45,29 @@ contract Treasury is
 
     /* ========== onlyPolicyOwner ========== */
 
+
+    function setCalculator(
+        address _calculator
+    )
+        external nonZeroAddress(_calculator) onlyPolicyOwner
+    {
+        require(calculator != _calculator, "same address");
+        calculator = _calculator;
+
+        emit SetCalculator(_calculator);
+    }
+
+    function setWeth(
+        address _wethAddress
+    )
+        external nonZeroAddress(_wethAddress) onlyPolicyOwner
+    {
+        require(wethAddress != _wethAddress, "same address");
+        wethAddress = _wethAddress;
+
+        emit SetWethAddress(_wethAddress);
+    }
+
     function tosBurn(
         uint256 amount
     )
@@ -237,28 +260,6 @@ contract Treasury is
     }
 
     /* ========== permissions : LibTreasury.STATUS.RESERVEDEPOSITOR ========== */
-
-    function setCalculator(
-        address _calculator
-    )
-        external nonZeroAddress(_calculator) onlyProxyOwner
-    {
-        require(calculator != _calculator, "same address");
-        calculator = _calculator;
-
-        emit SetCalculator(_calculator);
-    }
-
-    function setWeth(
-        address _wethAddress
-    )
-        external nonZeroAddress(_wethAddress) onlyProxyOwner
-    {
-        require(wethAddress != _wethAddress, "same address");
-        wethAddress = _wethAddress;
-
-        emit SetWethAddress(_wethAddress);
-    }
 
     /// @inheritdoc ITreasury
     function requestMint(
