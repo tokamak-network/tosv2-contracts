@@ -1335,14 +1335,11 @@ describe("TOSv2 Phase1", function () {
       // let stakeIdList = await stakingProxylogic.stakingOf(depositor.address);
       // console.log('stakeIdList',stakeIdList);
 
+
       let foundationAmountAfter = await treasuryProxylogic.foundationAmount();
 
-      let addFoundationAmount = mintAmount.sub(tosValuation);
-      // console.log("tosValuation : ",tosValuation);
-
       if (foundationTotalPercentage.gt(ethers.constants.Zero)) {
-        // let addAmountToFoundation = mintAmount.mul(foundationTotalPercentage).div(ethers.BigNumber.from("10000"));
-        let addAmountToFoundation = addFoundationAmount.mul(foundationTotalPercentage).div(ethers.BigNumber.from("10000"));
+        let addAmountToFoundation = mintAmount.mul(foundationTotalPercentage).div(ethers.BigNumber.from("10000"));
         expect(foundationAmountAfter).to.be.eq(foundationAmountPrev.add(addAmountToFoundation));
 
       } else {

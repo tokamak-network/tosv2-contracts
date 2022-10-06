@@ -554,7 +554,8 @@ contract StakingV2 is
         uint256 _claimAmount = getLtosToTos(claimLtos);
 
         uint256 profit = 0;
-        if(stakedAmount > _stakeInfo.deposit) profit = stakedAmount - _stakeInfo.deposit;
+        if (stakedAmount > _stakeInfo.deposit) profit = stakedAmount - _stakeInfo.deposit;
+        else if (stakedAmount < _stakeInfo.deposit && _stakeInfo.ltos == claimLtos) _claimAmount = _stakeInfo.deposit;
 
         _stakeInfo.ltos -= claimLtos;
         totalLtos -= claimLtos;
