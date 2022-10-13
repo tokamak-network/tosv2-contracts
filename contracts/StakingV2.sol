@@ -994,6 +994,6 @@ contract StakingV2 is
     {
         stosEpochUnit = IILockTosV2(lockTos).epochUnit();
         unlockTime = start + (_periodWeeks * stosEpochUnit);
-        // unlockTime = unlockTime / stosEpochUnit * stosEpochUnit;
+        unlockTime = unlockTime / stosEpochUnit * stosEpochUnit;
     }
 }
