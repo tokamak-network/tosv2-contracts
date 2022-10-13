@@ -252,6 +252,7 @@ contract BondDepository is
         returns (uint256 payout_)
     {
         require(msg.value == _amount, "Depository: ETH amounts do not match");
+        require(_lockWeeks > 1, "_lockWeeks must be greater than 1 week.");
         uint256 _tosPrice = 0;
         (payout_, _tosPrice) = _deposit(msg.sender, _amount, _id);
 
