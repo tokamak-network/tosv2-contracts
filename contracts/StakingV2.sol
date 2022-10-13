@@ -12,7 +12,7 @@ import "./libraries/LibTreasury.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IStakingEvent.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 interface ILockTosV2 {
 
@@ -345,14 +345,7 @@ contract StakingV2 is
 
         if (_addAmount > 0)  tos.safeTransferFrom(msg.sender, treasury, _addAmount);
 
-        uint256 stosEpochUnit = 0;
-        uint256 unlockTime = 0;
-        if (_periodWeeks > 0) {
-            (stosEpochUnit, unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
-        } else {
-            stosEpochUnit = ILockTosV2(lockTOS).epochUnit();
-            unlockTime = _stakeInfo.endTime;
-        }
+        (uint256 stosEpochUnit, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
 
         rebaseIndex();
 
@@ -363,7 +356,7 @@ contract StakingV2 is
         uint256 profit = 0;
         if(stakedAmount > _stakeInfo.deposit) profit = stakedAmount - _stakeInfo.deposit;
         _stakeInfo.ltos += addLtos;
-        _stakeInfo.endTime = unlockTime;
+        if (_periodWeeks > 0) _stakeInfo.endTime = unlockTime;
 
         _stakeInfo.deposit = _stakeInfo.deposit + _addAmount + profit;
         stakingPrincipal = stakingPrincipal + _addAmount + profit;
@@ -410,12 +403,9 @@ contract StakingV2 is
 
         if (_addAmount > 0)  tos.safeTransferFrom(msg.sender, treasury, _addAmount);
 
-        uint256 stosEpochUnit = 0;
-        uint256 unlockTime = 0;
-        if (_periodWeeks > 0) {
-            (stosEpochUnit, unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
-        } else {
-            stosEpochUnit = ILockTosV2(lockTOS).epochUnit();
+        (uint256 stosEpochUnit, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
+
+        if (_periodWeeks == 0) {
             unlockTime = _stakeInfo.endTime;
         }
 
@@ -487,20 +477,32 @@ contract StakingV2 is
     {
         require(_amount > 0 || _unlockWeeks > 0, "zero _amount and _unlockWeeks");
 
-        LibStaking.UserBalance memory _stakeInfo = allStakings[_stakeId];
+        LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
         require(_stakeInfo.staker == msg.sender, "caller is not staker");
 
         if(_unlockWeeks > 0) require(userStakingIndex[msg.sender][_stakeId] > 1, "it's simple staking product, can't lock.");
         rebaseIndex();
 
-        // stake 반영
-        _increaseAmountAndPeriodStake(msg.sender, _stakeId, _amount, _unlockWeeks);
-        uint256 stosEpochUnit = ILockTosV2(lockTOS).epochUnit();
         uint256 lockId = connectId[_stakeId];
-        uint256 stosPrincipal = 0;
-        if (userStakingIndex[msg.sender][_stakeId] > 1 && lockId == 0 && _unlockWeeks > 0) {
+        (uint256 stosEpochUnit, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _unlockWeeks) ;
 
+        // -------------
+        if (_amount > 0) {
+            tos.safeTransferFrom(msg.sender, treasury, _amount);
+
+            uint256 ltos = getTosToLtos(_amount);
+            _stakeInfo.deposit += _amount;
+            _stakeInfo.ltos += ltos;
+            stakingPrincipal += _amount;
+            totalLtos += ltos;
+        }
+
+        // -------------
+        uint256 stosPrincipal = 0;
+
+        if (userStakingIndex[msg.sender][_stakeId] > 1 && lockId == 0 && _unlockWeeks > 0) {
             (connectId[_stakeId], stosPrincipal) = _createStos(msg.sender, _amount + getLtosToTos(remainedLtos(_stakeId)), _unlockWeeks, stosEpochUnit);
+            _stakeInfo.endTime = unlockTime;
 
         } else if (userStakingIndex[msg.sender][_stakeId] > 1 && lockId > 0) {
             (, uint256 end, uint256 principalAmount) = ILockTosV2(lockTOS).locksInfo(lockId);
@@ -509,25 +511,33 @@ contract StakingV2 is
             if (_unlockWeeks == 0) { // 물량만 늘릴때 이자도 같이 늘린다.
                 uint256 n = (_stakeInfo.endTime - block.timestamp) / epoch.length_;
                 uint256 amountCompound = LibStaking.compound(_amount, rebasePerEpoch, n);
-                // require (amountCompound > 0, "zero compounded amount");
-                stosPrincipal = principalAmount + amountCompound;
-                ILockTosV2(lockTOS).increaseAmountByStaker(msg.sender, lockId, amountCompound);
+
+                if (amountCompound > 0) {
+                    stosPrincipal = principalAmount + amountCompound;
+                    ILockTosV2(lockTOS).increaseAmountByStaker(msg.sender, lockId, amountCompound);
+                }
 
             } else if (_unlockWeeks > 0) { // 기간만 들어날때는 물량도 같이 늘어난다고 본다. 이자때문에 .
                 uint256 amountCompound1 = 0; // 기간종료후 이자부분
                 uint256 amountCompound2 = 0; // 추가금액이 있을경우, 늘어나는 부분
+                uint256 lockWeeks = _unlockWeeks;
+                uint256 addAmount = _amount;
 
-                uint256 n1 = (_unlockWeeks * stosEpochUnit) / epoch.length_;
-                amountCompound1 = LibStaking.compound(principalAmount, rebasePerEpoch, n1);
-                amountCompound1 = amountCompound1 - principalAmount;
+                if (lockWeeks > 0) {
+                    amountCompound1 = LibStaking.compound(principalAmount, rebasePerEpoch, ((lockWeeks * stosEpochUnit) / epoch.length_));
+                    amountCompound1 = amountCompound1 - principalAmount;
+                }
 
-                if (_amount > 0) {
-                    uint256 n2 = (end - block.timestamp  + (_unlockWeeks * stosEpochUnit)) / epoch.length_;
-                    amountCompound2 = LibStaking.compound(_amount, rebasePerEpoch, n2);
+                if (addAmount > 0) {
+                    uint256 n2 = (end - block.timestamp  + (lockWeeks * stosEpochUnit)) / epoch.length_;
+                    if (n2 > 0) amountCompound2 = LibStaking.compound(addAmount, rebasePerEpoch, n2);
                 }
                 stosPrincipal = principalAmount + amountCompound1 + amountCompound2;
-                ILockTosV2(lockTOS).increaseAmountUnlockTimeByStaker(msg.sender, lockId, amountCompound1 + amountCompound2, _unlockWeeks);
+                ILockTosV2(lockTOS).increaseAmountUnlockTimeByStaker(msg.sender, lockId, amountCompound1 + amountCompound2, lockWeeks);
+
+                _stakeInfo.endTime += (lockWeeks * stosEpochUnit);
             }
+
         }
         emit IncreasedBeforeEndOrNonEnd(msg.sender, _amount, _unlockWeeks, _stakeId, lockId, stosPrincipal);
     }
@@ -804,25 +814,6 @@ contract StakingV2 is
         connectId[stakeId] = stosId;
     }
 
-
-    function _increaseAmountAndPeriodStake(
-        address sender,
-        uint256 _stakeId,
-        uint256 _amount,
-        uint256 _unlockWeeks
-    )
-        internal
-    {
-        if (_amount > 0) tos.safeTransferFrom(sender, treasury, _amount);
-
-        uint256 _periodSeconds = 0;
-        uint256 stosEpochUnit = 0;
-        if (_unlockWeeks > 0) ( stosEpochUnit, _periodSeconds ) = getUnlockTime(lockTOS, 0, _unlockWeeks);
-
-        _increaseStakeInfo(_stakeId, _amount, _periodSeconds);
-    }
-
-
     function _createStos(address _to, uint256 _amount, uint256 _periodWeeks, uint256 stosEpochUnit)
          internal ifFree returns (uint256 stosId, uint256 amountCompound)
     {
@@ -870,27 +861,6 @@ contract StakingV2 is
         }
     }
 
-    function _increaseStakeInfo(
-        uint256 _stakeId,
-        uint256 _amount,
-        uint256 _increaseSeconds
-    ) internal ifFree {
-        require(_amount > 0 || _increaseSeconds > 0, "zero amount and _increaseSeconds");
-
-        LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
-
-        if (_amount > 0) {
-            uint256 ltos = getTosToLtos(_amount);
-            _stakeInfo.deposit += _amount;
-            _stakeInfo.ltos += ltos;
-            stakingPrincipal += _amount;
-            totalLtos += ltos;
-        }
-
-        if (_increaseSeconds > 0) {
-            _stakeInfo.endTime += _increaseSeconds;
-        }
-    }
 
     function _updateStakeInfo(
         uint256 _stakeId,
@@ -901,7 +871,7 @@ contract StakingV2 is
 
         LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
         require(_addAmount > 0 || _claimAmount > 0 || _unlockTime > 0, "zero Amounts");
-        require(_stakeInfo.ltos > 0, "zero ltos");
+        // require(_stakeInfo.ltos > 0, "zero ltos");
         uint256 stakedAmount = getLtosToTos(_stakeInfo.ltos);
         require(_claimAmount <= stakedAmount, "stake amount is insufficient");
 
@@ -992,8 +962,10 @@ contract StakingV2 is
     function getUnlockTime(address lockTos, uint256 start, uint256 _periodWeeks)
         public view returns (uint256 stosEpochUnit, uint256 unlockTime)
     {
-        stosEpochUnit = IILockTosV2(lockTos).epochUnit();
-        unlockTime = start + (_periodWeeks * stosEpochUnit);
-        unlockTime = unlockTime / stosEpochUnit * stosEpochUnit;
+        stosEpochUnit = ILockTosV2(lockTos).epochUnit();
+        if (_periodWeeks > 0) {
+            unlockTime = start + (_periodWeeks * stosEpochUnit);
+            unlockTime = unlockTime / stosEpochUnit * stosEpochUnit;
+        }
     }
 }
