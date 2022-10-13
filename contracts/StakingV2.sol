@@ -55,6 +55,11 @@ contract StakingV2 is
         _;
     }
 
+    modifier nonBasicBond(uint256 stakeId) {
+        require(!(connectId[stakeId] == 0 && allStakings[stakeId].marketId > 0), "basicBond");
+        _;
+    }
+
     /* ========== CONSTRUCTOR ========== */
     constructor() {
     }
@@ -434,6 +439,7 @@ contract StakingV2 is
         external override
         nonZero(_stakeId)
         nonZero(_amount)
+        nonBasicBond(_stakeId)
     {
         LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
 
@@ -474,6 +480,7 @@ contract StakingV2 is
     )
         external override
         nonZero(_stakeId)
+        nonBasicBond(_stakeId)
     {
         require(_amount > 0 || _unlockWeeks > 0, "zero _amount and _unlockWeeks");
 

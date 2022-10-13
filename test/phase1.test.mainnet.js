@@ -1427,187 +1427,27 @@ describe("TOSv2 Phase1", function () {
       ethers.provider.send("evm_mine")
     });
 
-    // it("#3-2-3-11. increaseBeforeEndOrNonEnd  ", async () => {
+    it("#3-2-3-11. increaseBeforeEndOrNonEnd: if the 5-day bonding lock-up, the amount cannot be increased.  ", async () => {
+      let depositor = user1;
+      let depositorUser = "user1";
+      let depositData = getUserLastData(depositorUser);
+      let amount = ethers.utils.parseEther("100");
+      let periodWeeks = ethers.constants.One;
+      await expect(
+        stakingProxylogic.connect(depositor)["increaseBeforeEndOrNonEnd(uint256,uint256)"](depositData.stakeId, amount))
+      .to.be.revertedWith("basicBond");
+    });
 
-    //   let depositData = getUserLastData(depositorUser);
-    //   let amount = ethers.utils.parseEther("100");
-    //   let periodWeeks = ethers.constants.One;
-
-    //   // sTOS 의 잔액
-    //   // console.log("depositData.lockId", depositData.lockId)
-    //   let lockIdPrincipal = ethers.constants.Zero;
-    //   let lockIdEndTime = ethers.constants.Zero;
-    //   if (depositData.lockId.gt(ethers.constants.Zero)) {
-    //     let locksInfo_ = await lockTosContract.locksInfo(depositData.lockId)
-    //     lockIdPrincipal = locksInfo_.amount;
-    //     lockIdEndTime = locksInfo_.end;
-    //   }
-    //   // console.log("lockIdPrincipal", lockIdPrincipal)
-    //   // console.log("lockIdEndTime", lockIdEndTime)
-
-    //   // 기간을 늘리기 전에 얼마의 금액이 다시  원금으로 들어가는지 확인하기 위해 먼저 계산.
-    //   // 락업 기간이 늘어남. 양도 늘어남,
-    //   // (1)추가된 양은 지금부터 락업기간 만큼 복리이자 적용한 양
-    //   // (2)기존의 락업된 양은 기간 종료후 이자부분이 추가된다.
-    //   // (1)+(2)의 양이 stos의 원금이 된다.
-    //   let epochBefore = await stakingProxylogic.epoch();
-    //   let rebasePerEpoch = await stakingProxylogic.rebasePerEpoch();
-    //   let stosEpochUnit = await lockTosContract.epochUnit();
-    //   let n = periodWeeks.mul(stosEpochUnit).div(epochBefore.length_);
-    //   let possibleIndex = await stakingProxylogic.possibleIndex();
-
-    //   const block2 = await ethers.provider.getBlock() ;
-    //   let currentTime2 = ethers.BigNumber.from(block2.timestamp+"");
-    //   let n2 = ethers.constants.Zero;
-    //   if (lockIdEndTime.gt(currentTime2)) {
-    //     n2 = lockIdEndTime.sub(currentTime2).add(periodWeeks.mul(stosEpochUnit));
-    //     n2 = n2.div(epochBefore.length_);
-    //   }
-    //   // console.log("n2", n2)
-    //   let stakedData = await stakingProxylogic.stakeInfo(depositData.stakeId);
-    //   // console.log("stakedData", stakedData)
-
-    //   // (1)추가된 양은 지금부터 락업기간 만큼 복리이자 적용한 양
-    //   let amountCompound_1 = amount;
-    //   // console.log("amountCompound stakedOf.sub(claimAmount)", amountCompound)
-    //   if (n2.gt(ethers.constants.One)) {
-    //     let bnAmountCompound = await calculateCompound({
-    //       tosValuation: amountCompound_1,
-    //       rebasePerEpoch,
-    //       n: n2
-    //     });
-    //     amountCompound_1 = ethers.BigNumber.from(bnAmountCompound.toString());
-    //   }
-
-    //   // console.log("amountCompound_1 추가된 양 복리이자적용", amountCompound_1)
-
-    //   // (2)기존의 락업된 양(락토스의 원금부분)은 기간 종료후 이자부분이 추가된다.
-    //   let amountCompound_2 = lockIdPrincipal;
-    //   // console.log("lockIdPrincipal ", lockIdPrincipal)
-
-    //   // console.log("currentTime2", currentTime2)
-    //   if ( lockIdPrincipal.gt(ethers.constants.Zero) &&
-    //         n.gt(ethers.constants.One)
-    //     ) {
-    //         let bnAmountCompound = await calculateCompound({
-    //           tosValuation: lockIdPrincipal,
-    //           rebasePerEpoch,
-    //           n: n
-    //         });
-    //         // console.log("bnAmountCompound", bnAmountCompound)
-    //         amountCompound_2 = ethers.BigNumber.from(bnAmountCompound.toString());
-    //         // console.log("amountCompound_2  락토스원금이 종료후 복리이자 적용  ", amountCompound_2)
-    //         amountCompound_2 = amountCompound_2.sub(lockIdPrincipal)
-    //         // console.log("amountCompound_2  락토스원금이 종료후 복리이자 적용 후, 이자 부분만 계산 ", amountCompound_2)
-    //   }
-
-    //   let amountCompound = amountCompound_1.add(amountCompound_2);
-    //   // console.log("amountCompound 추가되는양 ", amountCompound)
-
-    //   amountCompound = amountCompound.add(lockIdPrincipal)
-    //   // console.log("amountCompound 추가되는양 + 이전 원금 ", amountCompound)
-    //   // ----
-
-    //   //
-    //   let totalLtos = await stakingProxylogic.totalLtos();
-    //   let balanceOfPrev = await tosContract.balanceOf(depositor.address);
-    //   let balanceOfPrevStakeContract = await tosContract.balanceOf(treasuryProxylogic.address);
-
-    //   if (balanceOfPrev.lt(amount)) {
-    //     await tosContract.connect(_tosAdmin).transfer(depositor.address, amount);
-    //   }
-    //   balanceOfPrev = await tosContract.balanceOf(depositor.address);
-    //   expect(balanceOfPrev).to.be.gte(amount);
-
-    //   let allowance = await tosContract.allowance(depositor.address, stakingProxylogic.address);
-    //   if (allowance < amount) {
-    //     await tosContract.connect(depositor).approve(stakingProxylogic.address, amount);
-    //   }
-
-    //   let stake_data = await stakingProxylogic.stakeInfo(depositData.stakeId);
-    //   // console.log('stake_data',stake_data);
-
-    //   let block = await ethers.provider.getBlock();
-    //   // console.log('block',block.timestamp);
-
-    //   let tx = await stakingProxylogic.connect(depositor)["increaseBeforeEndOrNonEnd(uint256,uint256,uint256)"](
-    //         depositData.stakeId,
-    //         amount,
-    //         periodWeeks
-    //   );
-    //   // console.log('tx',tx);
-
-    //   const receipt = await tx.wait();
-
-    //   let stosPrincipal = ethers.constants.Zero;
-    //   let stosId = ethers.constants.Zero;
-    //   let stakeId = ethers.constants.Zero;
-    //   let interface = stakingProxylogic.interface;
-    //   for (let i = 0; i < receipt.events.length; i++){
-    //       if(receipt.events[i].topics[0] == interface.getEventTopic(eventIncreasedBeforeEndOrNonEnd)){
-    //           let data = receipt.events[i].data;
-    //           let topics = receipt.events[i].topics;
-    //           let log = interface.parseLog({data, topics});
-    //           // console.log("log.args", log.args)
-
-    //           stakeId = log.args.stakeId;
-    //           stosId = log.args.stosId;
-    //           stosPrincipal = log.args.stosPrincipal;
-    //           expect(amount).to.be.eq(log.args.amount);
-    //       }
-    //   }
-
-    //   expect(await tosContract.balanceOf(depositor.address)).to.be.eq(balanceOfPrev.sub(amount));
-    //   expect(await tosContract.balanceOf(treasuryProxylogic.address)).to.be.gte(balanceOfPrevStakeContract.add(amount));
-
-    //   //--
-    //   // let epochAfter = await stakingProxylogic.epoch();
-    //   // let rebasePerEpoch = await stakingProxylogic.rebasePerEpoch();
-    //   // let stosEpochUnit = await lockTosContract.epochUnit();
-
-    //   let lockTosId = await stakingProxylogic.connectId(stakeId);
-    //   let addSTOSAmount = await lockTosContract.balanceOfLock(lockTosId);
-
-    //   const currentTime = await lockTosContract.getCurrentTime();
-    //   // let stakedData = await stakingProxylogic.stakeInfo(stakeId);
-    //   // console.log("stakedData", stakedData)
-    //   // console.log("lockIdPrincipal", lockIdPrincipal)
-    //   // console.log("amount", amount)
-    //   // console.log("amountCompound", amountCompound)
-
-    //   let gweiStosPrincipal = Math.floor(parseFloat(ethers.utils.formatUnits(stosPrincipal, "gwei")));
-    //   let gweiAmountCompound = Math.floor(parseFloat(ethers.utils.formatUnits(amountCompound, "gwei")));
-    //   expect(gweiStosPrincipal).to.be.eq(gweiAmountCompound);
-
-    //   const estimate = await calculateBalanceOfLock({
-    //     lockId: stosId,
-    //     lockTOS: lockTosContract,
-    //     timestamp: currentTime,
-    //   });
-
-    //   const balance = parseInt(await lockTosContract.balanceOfLock(stosId));
-
-    //   let afterStosInfo ;
-    //   if (depositData.lockId.gt(ethers.constants.Zero)) {
-    //     afterStosInfo = await lockTosContract.locksInfo(depositData.lockId);
-    //     expect(stosPrincipal).to.be.eq(afterStosInfo.amount);
-    //   }
-    //   // console.log("afterStosInfo", afterStosInfo)
-    //   // console.log('stakeId',stakeId)
-    //   // console.log('lockTosId',lockTosId)
-    //   // console.log('stosId',stosId)
-    //   // console.log('estimate',estimate)
-    //   // console.log('balance',balance)
-    //   // console.log('addSTOSAmount',addSTOSAmount)
-
-    //   expect(Math.floor(balance/100000)).to.be.eq(Math.floor(estimate/100000));
-
-    //   // LTOS의 end 와 lockId의 end 가 같은지 확인
-    //   const lockIdInfo = await lockTosContract.locksInfo(lockTosId);
-    //   const stakeIdInfo = await stakingProxylogic.stakeInfo(stakeId);
-    //   expect(lockIdInfo[1]).to.be.eq(stakeIdInfo[3]);
-
-    // });
+    it("#3-2-3-11. increaseBeforeEndOrNonEnd: if the 5-day bonding lock-up, the period and amount cannot be increased.  ", async () => {
+      let depositor = user1;
+      let depositorUser = "user1";
+      let depositData = getUserLastData(depositorUser);
+      let amount = ethers.utils.parseEther("100");
+      let periodWeeks = ethers.constants.One;
+      await expect(
+        stakingProxylogic.connect(depositor)["increaseBeforeEndOrNonEnd(uint256,uint256,uint256)"](depositData.stakeId, amount, periodWeeks))
+      .to.be.revertedWith("basicBond");
+    });
 
     it("#3-1-12. ETHDepositWithSTOS:  the lock-up period must be greater than 1 week.  ", async () => {
 
