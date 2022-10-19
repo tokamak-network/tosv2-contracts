@@ -32,7 +32,7 @@ async function main() {
 
     save(networkName, deployInfo);
 
-    printGasUsedOfUnits('bondDepositoryLogic Deploy',tx);
+    // printGasUsedOfUnits('bondDepositoryLogic Deploy',tx);
 
     const bondDepositoryProxy = await (await ethers.getContractFactory("BondDepositoryProxy"))
         .connect(deployer)
@@ -50,7 +50,7 @@ async function main() {
 
     save(networkName, deployInfo);
 
-    printGasUsedOfUnits('bondDepositoryProxy Deploy',tx);
+    // printGasUsedOfUnits('bondDepositoryProxy Deploy',tx);
 
     if(chainId == 1 || chainId == 4) {
       await run("verify", {

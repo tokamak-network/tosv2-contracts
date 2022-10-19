@@ -43,7 +43,7 @@ async function main() {
 
     save(networkName, deployInfo);
 
-    printGasUsedOfUnits('stakingLogic Deploy',tx);
+    // printGasUsedOfUnits('stakingLogic Deploy',tx);
 
 
     //StakingProxy
