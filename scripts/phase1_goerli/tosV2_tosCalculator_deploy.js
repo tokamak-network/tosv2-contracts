@@ -27,7 +27,7 @@ async function main() {
 
     save(networkName, deployInfo);
 
-    printGasUsedOfUnits('tosCalculator Deploy',tx);
+    printGasUsedOfUnits('tosCalculator Deploy', chainId, tx);
 
     if(chainId == 1 || chainId == 4 || chainId == 5) {
       await run("verify", {

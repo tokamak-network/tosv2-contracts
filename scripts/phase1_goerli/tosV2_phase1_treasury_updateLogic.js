@@ -41,7 +41,7 @@ async function main() {
 
   save(networkName, deployInfo);
 
-  printGasUsedOfUnits('treasuryLogic Deploy',tx);
+  printGasUsedOfUnits('treasuryLogic Deploy', chainId, tx);
 
   //TreasuryProxy
   const treasuryProxyContract = new ethers.Contract(treasuryProxyAddress, treasuryV2ProxyAbi.abi, ethers.provider);
