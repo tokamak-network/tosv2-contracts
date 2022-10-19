@@ -1,18 +1,19 @@
 const fs = require("fs");
 
-module.exports = function (network, deployed) {
-  //console.log('save ', network, deployed);
+module.exports = function (filename, deployed) {
+  //console.log('save ', filename, deployed);
 
-  if (!fs.existsSync(`TOSV2_gasUsedFunctions.${network}.json`)) {
-    fs.writeFileSync(`TOSV2_gasUsedFunctions.${network}.json`, '{}', { flag: 'w' }, function (err) {
+  if (!fs.existsSync(`TOSV2.${filename}.tx.json`)) {
+    fs.writeFileSync(`TOSV2.${filename}.tx.json`, '{}', { flag: 'w' }, function (err) {
       if (err) throw err;
     });
   }
 
-  let data = JSON.parse(fs.readFileSync(`TOSV2_gasUsedFunctions.${network}.json`).toString());
-  data[deployed.name] = deployed.tx;
+  // let data = JSON.parse(fs.readFileSync(`TOSV2.${filename}.tx.json`).toString());
+  // data[deployed.name] = deployed.tx;
+  //data[deployed.name] = deployed.gasUsed;
 
   //console.log('data[deployed.name]', deployed.name, data[deployed.name]);
 
-  fs.writeFileSync(`TOSV2_gasUsedFunctions.${network}.json`, JSON.stringify(data, null, 2))
+  // fs.writeFileSync(`TOSV2.${filename}.tx.json`, JSON.stringify(data, null, 2))
 }

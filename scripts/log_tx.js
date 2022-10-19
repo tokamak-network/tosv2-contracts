@@ -1,7 +1,7 @@
 require('dotenv').config()
 const gasUsedFunctions = require("./save_gasUsedFunctions");
 
-function printGasUsedOfUnits( _fun, _tx){
+function printGasUsedOfUnits(filename,  _fun, _tx){
 
   if( _tx != null && (
       (_tx.deployTransaction != null && _tx.deployTransaction.hash!=null)
@@ -13,13 +13,13 @@ function printGasUsedOfUnits( _fun, _tx){
     if(_tx.deployTransaction != null && _tx.deployTransaction.hash!=null) hash = _tx.deployTransaction.hash;
 
 
-    let data = {name:name,tx:hash};
+    let data = {name:name, tx:hash};
 
     // deployed_functions.push(_fun);
     // deployed_gasUsed.push(_tx.gasUsed);
     console.log(data);
 
-    gasUsedFunctions(process.env.NETWORK, data);
+    gasUsedFunctions(filename, data);
   }
 }
 
