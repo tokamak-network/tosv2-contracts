@@ -1,0 +1,31 @@
+{
+  "LockTOSv2Logic0": "0xb007167714e2940013EC3bb551584130B7497E22",
+  "LockTOSv2Proxy": "0x6b39b761b1b64C8C095BF0e3Bb0c6a74705b4788",
+  "TOSValueCalculator": "0x74Df809b1dfC099E8cdBc98f6a8D1F5c2C3f66f8",
+  "BondDepository": "0x3f9A1B67F3a3548e0ea5c9eaf43A402d12b6a273",
+  "BondDepositoryProxy": "0xFD6D23eE2b6b136E34572fc80cbCd33E9787705e",
+  "LibStaking": "0x1D13fF25b10C9a6741DFdce229073bed652197c7",
+  "StakingV2": "0x24d41dbc3d60d0784f8a937c59FBDe51440D5140",
+  "StakingV2Proxy": "0xC976c932092ECcD8f328FfD85066C0c05ED54044",
+  "LibTreasury": "0xa779C1D17bC5230c07afdC51376CAC1cb3Dd5314",
+  "Treasury": "0x76cec9299B6Fa418dc71416FF353737AB7933A7D",
+  "TreasuryProxy": "0xA3307BF348ACC4bEDdd67CCA2f7F0c4349d347Db",
+  "profitZeroLockIds": [
+    1,
+    19,
+    27,
+    36,
+    164,
+    170,
+    177,
+    182,
+    239,
+    186,
+    279,
+    280,
+    283,
+    298
+  ],
+  "prevStakeId": "0",
+  "afterStakeId": "554"
+}
