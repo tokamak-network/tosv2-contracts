@@ -127,35 +127,26 @@ interface IStaking {
 
     /// @dev                used to update the amount of staking after the lockup period is passed
     /// @param _stakeId     stake id
-    /// @param _addAmount   additional TOS to be staked
-    /// @param _claimAmount amount of TOS to claim
+    /// @param _addTosAmount   additional TOS to be staked
+    /// @param _relockLtosAmount amount of LTOS to relock
     /// @param _periodWeeks lockup period
     function resetStakeGetStosAfterLock(
         uint256 _stakeId,
-        uint256 _addAmount,
-        uint256 _claimAmount,
+        uint256 _addTosAmount,
+        uint256 _relockLtosAmount,
         uint256 _periodWeeks
     ) external;
 
     /// @dev                used to update the amount of staking after the lockup period is passed
     /// @param _stakeId     stake id
-    /// @param _addAmount   additional TOS to be staked
+    /// @param _addTosAmount   additional TOS to be staked
     /// @param _periodWeeks lockup period
     function resetStakeGetStosAfterLock(
         uint256 _stakeId,
-        uint256 _addAmount,
+        uint256 _addTosAmount,
         uint256 _periodWeeks
     ) external;
 
-    /*
-    /// @dev                used to update the amount of staking after the lockup period is passed
-    /// @param _stakeId     stake id
-    /// @param _claimAmount amount of TOS to claim
-    function resetStakeGetStosAfterLock(
-        uint256 _stakeId,
-        uint256 _claimAmount
-    ) external;
-    */
 
     /// @dev             used to update the amount of staking before the lockup period is not passed
     /// @param _stakeId  stake id

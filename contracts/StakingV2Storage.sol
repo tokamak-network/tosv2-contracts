@@ -34,7 +34,7 @@ contract StakingV2Storage {
     mapping(uint256 => uint256) public connectId;
 
     modifier nonZero(uint256 tokenId) {
-        require(tokenId != 0, "Staking: zero uint");
+        require(tokenId != 0, "Staking: zero vallue");
         _;
     }
 
