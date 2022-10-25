@@ -147,6 +147,7 @@ interface IStaking {
         uint256 _periodWeeks
     ) external;
 
+    /*
     /// @dev                used to update the amount of staking after the lockup period is passed
     /// @param _stakeId     stake id
     /// @param _claimAmount amount of TOS to claim
@@ -154,7 +155,7 @@ interface IStaking {
         uint256 _stakeId,
         uint256 _claimAmount
     ) external;
-
+    */
 
     /// @dev             used to update the amount of staking before the lockup period is not passed
     /// @param _stakeId  stake id

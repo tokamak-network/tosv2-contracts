@@ -291,7 +291,7 @@ contract StakingV2 is
         ILockTosV2(lockTOS).withdrawByStaker(sender, lockId);
         delete connectId[_stakeId];
     }
-
+    /*
     /// @inheritdoc IStaking
     function resetStakeGetStosAfterLock(
         uint256 _stakeId,
@@ -329,6 +329,7 @@ contract StakingV2 is
 
         emit ResetStakedGetStosAfterLock(msg.sender, 0, _claimAmount, 0, _stakeId, 0, 0);
     }
+    */
 
     /// @inheritdoc IStaking
     function resetStakeGetStosAfterLock(
