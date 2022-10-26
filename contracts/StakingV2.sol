@@ -199,12 +199,12 @@ contract StakingV2 is
         nonZero(_amount)
         returns (uint256 stakeId)
     {
-        tos.safeTransferFrom(msg.sender, treasury, _amount);
-
         _checkStakeId(msg.sender);
         stakeId = userStakings[msg.sender][1]; // 0번은 더미, 1번은 기간없는 순수 스테이킹
 
         rebaseIndex();
+
+        tos.safeTransferFrom(msg.sender, treasury, _amount);
 
         uint256 ltos = getTosToLtos(_amount);
 
@@ -244,13 +244,14 @@ contract StakingV2 is
         // require(stosEpochUnit > 0, "zero stosEpochUnit");
         // require(unlockTime > 0, "zero unlockTime");
 
-        tos.safeTransferFrom(msg.sender, treasury, _amount);
-
         _checkStakeId(msg.sender);
         stakeId = _addStakeId();
         _addUserStakeId(msg.sender, stakeId);
 
         rebaseIndex();
+
+        tos.safeTransferFrom(msg.sender, treasury, _amount);
+
         _createStakeInfo(msg.sender, stakeId, _amount, unlockTime, 0);
 
         (uint256 stosId, uint256 stosPrincipal) = _createStos(msg.sender, _amount, _periodWeeks, stosEpochUnit);
@@ -310,11 +311,11 @@ contract StakingV2 is
         if (lockId > 0) _closeEndTimeOfLockTos(msg.sender, _stakeId, lockId, _stakeInfo.endTime);
         else require(_stakeInfo.endTime < block.timestamp, "lock end time has not passed");
 
-        if (_addAmount > 0)  tos.safeTransferFrom(msg.sender, treasury, _addAmount);
-
         (uint256 stosEpochUnit, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
 
         rebaseIndex();
+
+        if (_addAmount > 0)  tos.safeTransferFrom(msg.sender, treasury, _addAmount);
 
         //--
         uint256 stakedAmount = getLtosToTos(_stakeInfo.ltos);
@@ -416,9 +417,10 @@ contract StakingV2 is
         LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
 
         require(_stakeInfo.staker == msg.sender, "caller is not staker");
-        tos.safeTransferFrom(msg.sender, treasury, _amount);
 
         rebaseIndex();
+
+        tos.safeTransferFrom(msg.sender, treasury, _amount);
 
         uint256 ltos = getTosToLtos(_amount);
         _stakeInfo.deposit += _amount;
