@@ -184,7 +184,7 @@ contract StakingV2 is
 
         uint256 ltos = _createStakeInfo(_to, stakeId, _amount, unlockTime, _marketId);
 
-        (uint256 stosId, uint256 stosPrincipal) = _createStos(_to, _amount, _periodWeeks, stosEpochUnit);
+        (uint256 stosId, uint256 stosPrincipal) = _createStos(stakeId, _to, _amount, _periodWeeks, stosEpochUnit);
         connectId[stakeId] = stosId;
 
         emit StakedGetStosByBond(_to, _amount, ltos, _periodWeeks, _marketId, stakeId, stosId, tosPrice, stosPrincipal);
@@ -254,7 +254,7 @@ contract StakingV2 is
 
         _createStakeInfo(msg.sender, stakeId, _amount, unlockTime, 0);
 
-        (uint256 stosId, uint256 stosPrincipal) = _createStos(msg.sender, _amount, _periodWeeks, stosEpochUnit);
+        (uint256 stosId, uint256 stosPrincipal) = _createStos(stakeId, msg.sender, _amount, _periodWeeks, stosEpochUnit);
         connectId[stakeId] = stosId;
 
         emit StakedGetStos(msg.sender, _amount, _periodWeeks, stakeId, stosId, stosPrincipal);
@@ -336,7 +336,7 @@ contract StakingV2 is
         uint256 stakeId = _stakeId;
 
         if (_periodWeeks > 0) {
-            (stosId, stosPrincipal) = _createStos(msg.sender, stakedAmount + _addAmount, _periodWeeks, stosEpochUnit);
+            (stosId, stosPrincipal) = _createStos(stakeId, msg.sender, stakedAmount + _addAmount, _periodWeeks, stosEpochUnit);
             connectId[stakeId] = stosId;
         }
 
@@ -395,7 +395,7 @@ contract StakingV2 is
         uint256 stakeId = _stakeId;
 
         if (_periodWeeks > 0) {
-            (stosId, stosPrincipal) = _createStos(msg.sender, _stakeInfo.deposit, _periodWeeks, stosEpochUnit);
+            (stosId, stosPrincipal) = _createStos(stakeId, msg.sender, _stakeInfo.deposit, _periodWeeks, stosEpochUnit);
             connectId[stakeId] = stosId;
         }
 
@@ -482,7 +482,7 @@ contract StakingV2 is
         uint256 stosPrincipal = 0;
 
         if (userStakingIndex[msg.sender][_stakeId] > 1 && lockId == 0 && _unlockWeeks > 0) {
-            (connectId[_stakeId], stosPrincipal) = _createStos(msg.sender, _amount + getLtosToTos(remainedLtos(_stakeId)), _unlockWeeks, stosEpochUnit);
+            (connectId[_stakeId], stosPrincipal) = _createStos(_stakeId, msg.sender, _amount + getLtosToTos(remainedLtos(_stakeId)), _unlockWeeks, stosEpochUnit);
             _stakeInfo.endTime = unlockTime;
 
         } else if (userStakingIndex[msg.sender][_stakeId] > 1 && lockId > 0) {
@@ -795,9 +795,10 @@ contract StakingV2 is
         connectId[stakeId] = stosId;
     }
 
-    function _createStos(address _to, uint256 _amount, uint256 _periodWeeks, uint256 stosEpochUnit)
+    function _createStos(uint256 _stakeId, address _to, uint256 _amount, uint256 _periodWeeks, uint256 stosEpochUnit)
          internal ifFree returns (uint256 stosId, uint256 amountCompound)
     {
+        require (connectId[_stakeId] == 0, "not empty stosId");
         amountCompound = LibStaking.compound(_amount, rebasePerEpoch, (_periodWeeks * stosEpochUnit / epoch.length_));
         require (amountCompound > 0, "zero compounded amount");
 
