@@ -432,7 +432,7 @@ contract StakingV2 is
         totalLtos += ltos;
 
         uint256 lockId = connectId[_stakeId];
-        uint256 amountCompound = _amount;
+        uint256 amountCompound = 0;
         if (userStakingIndex[msg.sender][_stakeId] > 1 && lockId > 0) {
             (, uint256 end, uint256 principal) = ILockTosV2(lockTOS).locksInfo(lockId);
             require(end > block.timestamp && _stakeInfo.endTime > block.timestamp, "lock end time has passed");
@@ -440,6 +440,7 @@ contract StakingV2 is
             uint256 n = (_stakeInfo.endTime - block.timestamp) / epoch.length_;
             if (n == 1) amountCompound = _amount * (1 ether + rebasePerEpoch) / 1e18;
             else if (n > 1) amountCompound = LibStaking.compound(_amount, rebasePerEpoch, n);
+            else amountCompound = _amount;
 
             ILockTosV2(lockTOS).increaseAmountByStaker(msg.sender, lockId, amountCompound);
             amountCompound = principal + amountCompound;
