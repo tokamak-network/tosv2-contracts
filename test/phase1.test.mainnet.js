@@ -1658,14 +1658,15 @@ describe("TOSv2 Phase1", function () {
         // console.log('lockTosId',lockTosId)
 
         let rebasePerEpoch = await stakingProxylogic.rebasePerEpoch();
-        let stosEpochUnit = await lockTosContract.epochUnit();
-        // console.log('rebasePerEpoch',rebasePerEpoch)
-        // console.log('stosEpochUnit',stosEpochUnit)
-        // console.log('epochAfter.length_',epochAfter.length_)
-        let n = lockPeriod.mul(stosEpochUnit).div(epochAfter.length_);
 
-        // console.log('n',n)
-        // console.log('tosValuation',tosValuation)
+        let currentTime1 = await lockTosContract.getCurrentTime();
+        currentTime1 = currentTime1.add(ethers.BigNumber.from("12"));
+
+        let stosEpochInfo = await stakingProxylogic.getUnlockTime(lockTosContract.address, currentTime1, lockPeriod)
+        let stosEpochUnit = stosEpochInfo[0];
+        let unlockTime = stosEpochInfo[1];
+        let n = unlockTime.sub(currentTime1).div(epochAfter.length_);
+
         let bnAmountCompound = await calculateCompound({tosValuation, rebasePerEpoch, n});
 
         // console.log('bnAmountCompound',bnAmountCompound, bnAmountCompound.toString())
@@ -1705,11 +1706,10 @@ describe("TOSv2 Phase1", function () {
 
         expect(lockTosId).to.be.eq(stosId);
 
-
         // 자바스크립트 계산과 솔리디티 계산에 약간 오차가 있습니다. 오차없는 정보를 얻으려면 컨트랙에서 조회하는것이 나을것 같습니다.
         // 기준이 되는 주수는 해당 목요일 0시 기준이므로, 2주를 설정하였다고 하더라도, 실제 2주의 이자를 모두 가져가지 못할 수 있습니다.
         // LockTOS에서 계산되는 방법으로 화면에 보여주어야 합니다.
-        expect(Math.floor(balance/100000)).to.be.eq(Math.floor(estimate/100000));
+        expect(Math.floor(balance/1000000)).to.be.eq(Math.floor(estimate/1000000));
 
         // 자바스크립트 계산과 솔리디티 계산에 약간 오차가 있습니다. 오차없는 정보를 얻으려면 컨트랙에서 조회하는것이 나을것 같습니다.
         let gweiStosBalance = Math.floor(parseFloat(ethers.utils.formatUnits(balance+"", "gwei")));
@@ -2087,6 +2087,7 @@ describe("TOSv2 Phase1", function () {
 
         expect(await stakingProxylogic.stakingPrincipal())
         .to.be.lte(await tosContract.balanceOf(treasuryProxylogic.address));
+
       });
 
 
@@ -2240,8 +2241,15 @@ describe("TOSv2 Phase1", function () {
         let lockTosId = await stakingProxylogic.connectId(stakeId);
         let addSTOSAmount = await lockTosContract.balanceOfLock(lockTosId);
         let rebasePerEpoch = await stakingProxylogic.rebasePerEpoch();
-        let stosEpochUnit = await lockTosContract.epochUnit();
-        let n = periodWeeks.mul(stosEpochUnit).div(epochAfter.length_);
+        // let stosEpochUnit = await lockTosContract.epochUnit();
+        // let n = periodWeeks.mul(stosEpochUnit).div(epochAfter.length_);
+
+        let currentTime1 = await lockTosContract.getCurrentTime();
+        currentTime1 = currentTime1.add(ethers.BigNumber.from("12"));
+        let stosEpochInfo = await stakingProxylogic.getUnlockTime(lockTosContract.address, currentTime1, periodWeeks)
+        let stosEpochUnit = stosEpochInfo[0];
+        let unlockTime = stosEpochInfo[1];
+        let n = unlockTime.sub(currentTime1).div(epochAfter.length_);
 
         // console.log('periodWeeks',periodWeeks, 'stosEpochUnit',stosEpochUnit, "epochAfter.length_", epochAfter.length_) ;
         // console.log('n',n ) ;

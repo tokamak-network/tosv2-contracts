@@ -172,9 +172,7 @@ contract StakingV2 is
     {
         require(_amount > 0 && _periodWeeks > 0 && _marketId > 0, "zero input");
 
-        (uint256 stosEpochUnit, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
-        require (stosEpochUnit > 0, "zero stosEpochUnit");
-        require (unlockTime > 0, "zero unlockTime");
+        (, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
 
         _checkStakeId(_to);
         stakeId = _addStakeId();
@@ -184,7 +182,10 @@ contract StakingV2 is
 
         uint256 ltos = _createStakeInfo(_to, stakeId, _amount, unlockTime, _marketId);
 
-        (uint256 stosId, uint256 stosPrincipal) = _createStos(stakeId, _to, _amount, _periodWeeks, stosEpochUnit);
+        uint256 stosPrincipal = LibStaking.compound(_amount, rebasePerEpoch, (unlockTime - block.timestamp) / epoch.length_);
+        uint256 stosId = ILockTosV2(lockTOS).createLockByStaker(_to, stosPrincipal, _periodWeeks);
+        require(stosId > 0, "zero stosId");
+
         connectId[stakeId] = stosId;
 
         emit StakedGetStosByBond(_to, _amount, ltos, _periodWeeks, _marketId, stakeId, stosId, tosPrice, stosPrincipal);
@@ -240,8 +241,7 @@ contract StakingV2 is
         nonZero(rebasePerEpoch)
         returns (uint256 stakeId)
     {
-        (uint256 stosEpochUnit, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
-        // require(stosEpochUnit > 0, "zero stosEpochUnit");
+        (, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
         // require(unlockTime > 0, "zero unlockTime");
 
         _checkStakeId(msg.sender);
@@ -254,7 +254,10 @@ contract StakingV2 is
 
         _createStakeInfo(msg.sender, stakeId, _amount, unlockTime, 0);
 
-        (uint256 stosId, uint256 stosPrincipal) = _createStos(stakeId, msg.sender, _amount, _periodWeeks, stosEpochUnit);
+        uint256 stosPrincipal = LibStaking.compound(_amount, rebasePerEpoch, (unlockTime - block.timestamp) / epoch.length_);
+        uint256 stosId = ILockTosV2(lockTOS).createLockByStaker(msg.sender, stosPrincipal, _periodWeeks);
+        require(stosId > 0, "zero stosId");
+
         connectId[stakeId] = stosId;
 
         emit StakedGetStos(msg.sender, _amount, _periodWeeks, stakeId, stosId, stosPrincipal);
