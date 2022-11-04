@@ -800,7 +800,6 @@ contract StakingV2 is
     function _createStos(uint256 _stakeId, address _to, uint256 _amount, uint256 _periodWeeks, uint256 stosEpochUnit)
          internal ifFree returns (uint256 stosId, uint256 amountCompound)
     {
-        require (connectId[_stakeId] == 0, "not empty stosId");
         amountCompound = LibStaking.compound(_amount, rebasePerEpoch, (_periodWeeks * stosEpochUnit / epoch.length_));
         require (amountCompound > 0, "zero compounded amount");
 
