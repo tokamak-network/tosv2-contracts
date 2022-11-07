@@ -11,7 +11,7 @@ interface IBondDepository {
 
     /**
      * @dev                creates a new market type
-     * @param _token       token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3 
+     * @param _token       token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3
      * @param _market      [capacity of the market, market closing time, return on the deposit in TOS, maximum purchasable bond in TOS]
      * @return id_         returns ID of new bond market
      */
@@ -20,25 +20,17 @@ interface IBondDepository {
         uint256[4] calldata _market
     ) external returns (uint256 id_);
 
+
     /**
-     * @dev                increases the market capacity
+     * @dev                change the market capacity
      * @param _marketId    marketId
-     * @param amount       increases the capacity by amount
+     * @param amount       the capacity amount
      */
-    function increaseCapacity(
+    function changeCapacity(
         uint256 _marketId,
         uint256 amount
     )   external;
 
-    /**
-     * @dev                decreases the market capacity
-     * @param _marketId    marketId
-     * @param amount       decreases the capacity by amount
-     */
-    function decreaseCapacity(
-        uint256 _marketId,
-        uint256 amount
-    ) external;
 
     /**
      * @dev                changes the market closeTime
@@ -106,7 +98,7 @@ interface IBondDepository {
     /// VIEW
     //////////////////////////////////////
 
-    /// @dev              how much is ETH worth in TOS? 
+    /// @dev              how much is ETH worth in TOS?
     /// @param _tosPrice  amount of TOS per 1 ETH
     /// @param _amount    amount of ETH
     /// @return payout    returns amount of TOS to be earned by the user
@@ -169,7 +161,7 @@ interface IBondDepository {
 
     /// @dev               checks whether a market is opened or not
     /// @param _marketId   market id
-    /// @return closedBool true if market is open, false if market is closed  
+    /// @return closedBool true if market is open, false if market is closed
     function isOpened(uint256 _marketId) external view returns (bool closedBool);
 
 

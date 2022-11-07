@@ -124,8 +124,9 @@ contract BondDepository is
         emit CreatedMarket(id_, _token, _market);
     }
 
+
     /// @inheritdoc IBondDepository
-    function increaseCapacity(
+    function changeCapacity(
         uint256 _marketId,
         uint256 _amount
     )   external override onlyPolicyOwner
@@ -133,25 +134,12 @@ contract BondDepository is
         nonZeroPayout(_marketId)
     {
         LibBondDepository.Market storage _info = markets[_marketId];
-        _info.capacity += _amount;
+        require(_info.capacity != _amount, "same capacity");
 
-        emit IncreasedCapacity(_marketId, _amount);
-    }
+        if (_info.capacity < _amount)  _info.capacity += (_amount - _info.capacity);
+        else _info.capacity += (_info.capacity - _amount);
 
-    /// @inheritdoc IBondDepository
-    function decreaseCapacity(
-        uint256 _marketId,
-        uint256 _amount
-    ) external override onlyPolicyOwner
-        nonZero(_amount)
-        nonZeroPayout(_marketId)
-    {
-        require(markets[_marketId].capacity > _amount, "not enough capacity");
-
-        LibBondDepository.Market storage _info = markets[_marketId];
-        _info.capacity -= _amount;
-
-        emit DecreasedCapacity(_marketId, _amount);
+        emit ChangedCapacity(_marketId, _amount);
     }
 
     /// @inheritdoc IBondDepository

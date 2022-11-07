@@ -1761,7 +1761,7 @@ describe("TOSv2 Phase1", function () {
 
     })
 
-    it("#3-1-10. changeCloseTime : admin can change the close time of bond market. ", async () => {
+    it("#3-1-10. increaseCapacitychangeCloseTime : admin can change the close time of bond market. ", async () => {
 
       let block = await ethers.provider.getBlock();
 
@@ -1771,13 +1771,29 @@ describe("TOSv2 Phase1", function () {
       );
     })
 
-    it("#3-1-11. increaseCapacity : admin can increase the capacity of bond market. ", async () => {
 
-      await bondDepositoryProxylogic.connect(admin1).increaseCapacity(
+    it("#3-1-11. changeCapacity : admin can change the capacity of bond market. ", async () => {
+
+      // capAmountOfTos: ethers.BigNumber.from("30400000000000000000000")
+
+      let newCapacity = ethers.BigNumber.from("40400000000000000000000");
+      await bondDepositoryProxylogic.connect(admin1).changeCapacity(
           bondInfoEther.marketId,
-          ethers.utils.parseEther("100")
+          newCapacity
       );
+
+      let _market = await bondDepositoryProxylogic.viewMarket(bondInfoEther.marketId);
+      expect(_market[1]).to.be.eq(newCapacity);
+
     })
+
+    // it("#3-1-11. increaseCapacity : admin can increase the capacity of bond market. ", async () => {
+
+    //   await bondDepositoryProxylogic.connect(admin1).increaseCapacity(
+    //       bondInfoEther.marketId,
+    //       ethers.utils.parseEther("100")
+    //   );
+    // })
 
     // it("#3-1-12. foundationDistribute :  user can't call foundationDistribute ", async () => {
 

@@ -43,15 +43,10 @@ interface IBondDepositoryEvent{
     /// @param tosValuation   amount of TOS earned by the user
     event ETHDepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint256 lockWeeks, uint256 tosValuation);
 
-    /// @dev                  this event occurs when the market capacity is increased
+    /// @dev                  this event occurs when the market capacity is changed
     /// @param _marketId      market id
-    /// @param _amount        increases capacity by amount
-    event IncreasedCapacity(uint256 _marketId, uint256  _amount);
-
-    /// @dev             this event occurs when the market capacity is decreased
-    /// @param _marketId market id
-    /// @param _amount   decreases capacity by amount
-    event DecreasedCapacity(uint256 _marketId, uint256 _amount);
+    /// @param _amount        the capacity amount
+    event ChangedCapacity(uint256 _marketId, uint256  _amount);
 
     /// @dev             this event occurs when the closeTime is updated
     /// @param _marketId market id
