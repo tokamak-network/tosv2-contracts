@@ -33,6 +33,8 @@ contract StakingV2Proxy is
         epoch = LibStaking.Epoch({length_: _epoch[0], end: _epoch[1]});
 
         basicBondPeriod = _basicBondPeriod;
+
+        index_ = 1 ether;
     }
 
     function isTreasury() public pure returns (bool) {

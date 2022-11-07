@@ -32,12 +32,6 @@ interface IStaking {
     ) external;
 
 
-    /// @dev           set index
-    /// @param _index  index (eth uint)
-    function setIndex(
-        uint256 _index
-    ) external;
-
     /// @dev            set minimum bonding period
     /// @param _period  _period (seconds)
     function setBasicBondPeriod(uint256 _period) external ;

@@ -974,7 +974,7 @@ describe("TOSv2 Phase1", function () {
         await stakingProxylogic.connect(admin1).setRebasePerEpoch(rebasePerEpoch);
         expect((await stakingProxylogic.rebasePerEpoch())).to.be.equal(rebasePerEpoch)
       })
-
+      /*
       it("#1-2-4. setIndex : user can't call setIndex", async () => {
         let index = ethers.utils.parseUnits("10", 18)
         await expect(
@@ -991,7 +991,7 @@ describe("TOSv2 Phase1", function () {
         await stakingProxylogic.connect(admin1).setIndex(index);
         expect((await stakingProxylogic.index_())).to.be.equal(index)
       })
-
+      */
       it("#1-2-5. setBasicBondPeriod : user can't call setBasicBondPeriod", async () => {
         await expect(
           stakingProxylogic.connect(user1).setBasicBondPeriod(basicBondPeriod)

@@ -12,7 +12,7 @@ import "./libraries/LibTreasury.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IStakingEvent.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 interface ILockTosV2 {
 
@@ -108,12 +108,6 @@ contract StakingV2 is
         emit SetRebasePerEpoch(_rebasePerEpoch);
     }
 
-    /// @inheritdoc IStaking
-    function setIndex(uint256 _index) external override onlyProxyOwner {
-        index_ = _index;
-
-        emit SetIndex(_index);
-    }
 
     /// @inheritdoc IStaking
     function setBasicBondPeriod(uint256 _period)
