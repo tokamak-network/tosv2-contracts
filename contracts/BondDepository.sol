@@ -137,7 +137,7 @@ contract BondDepository is
         require(_info.capacity != _amount, "same capacity");
 
         if (_info.capacity < _amount)  _info.capacity += (_amount - _info.capacity);
-        else _info.capacity += (_info.capacity - _amount);
+        else _info.capacity -= (_info.capacity - _amount);
 
         emit ChangedCapacity(_marketId, _amount);
     }
