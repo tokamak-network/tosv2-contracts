@@ -128,18 +128,24 @@ contract BondDepository is
     /// @inheritdoc IBondDepository
     function changeCapacity(
         uint256 _marketId,
-        uint256 _amount
+        bool _increaseFlag,
+        uint256 _increaseAmount
     )   external override onlyPolicyOwner
-        nonZero(_amount)
+        nonZero(_increaseAmount)
         nonZeroPayout(_marketId)
     {
         LibBondDepository.Market storage _info = markets[_marketId];
-        require(_info.capacity != _amount, "same capacity");
 
-        if (_info.capacity < _amount)  _info.capacity += (_amount - _info.capacity);
-        else _info.capacity -= (_info.capacity - _amount);
+        if (_increaseFlag) _info.capacity += _increaseAmount;
+        else {
+            if (_increaseAmount < _info.capacity) _info.capacity -= _increaseAmount;
+            else {
+                _info.capacity = 0;
+                emit ClosedMarket(_marketId);
+            }
+        }
 
-        emit ChangedCapacity(_marketId, _amount);
+        emit ChangedCapacity(_marketId, _increaseFlag, _increaseAmount);
     }
 
     /// @inheritdoc IBondDepository
@@ -188,7 +194,7 @@ contract BondDepository is
     }
 
     /// @inheritdoc IBondDepository
-    function close(uint256 _id) external override onlyPolicyOwner {
+    function close(uint256 _id) public override onlyPolicyOwner {
         require(markets[_id].endSaleTime > 0, "empty market");
         require(markets[_id].endSaleTime > block.timestamp || markets[_id].capacity == 0, "already closed");
         LibBondDepository.Market storage _info = markets[_id];

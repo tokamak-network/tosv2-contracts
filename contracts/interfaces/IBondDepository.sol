@@ -22,13 +22,15 @@ interface IBondDepository {
 
 
     /**
-     * @dev                change the market capacity
-     * @param _marketId    marketId
-     * @param amount       the capacity amount
+     * @dev                   change the market capacity
+     * @param _marketId       marketId
+     * @param _increaseFlag   if true, increase capacity, otherwise decrease capacity
+     * @param _increaseAmount the capacity amount
      */
     function changeCapacity(
         uint256 _marketId,
-        uint256 amount
+        bool _increaseFlag,
+        uint256 _increaseAmount
     )   external;
 
 
