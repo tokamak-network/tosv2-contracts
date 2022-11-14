@@ -50,15 +50,11 @@ async function main() {
 
     const stakingProxyContract = new ethers.Contract( stakingProxyAddress, stakingV2ProxyAbi.abi, ethers.provider);
 
-    const block = await ethers.provider.getBlock('latest')
-
-    // let epochLength = 28800;
-    let epochEnd = Number(block.timestamp) + Number(config.epochLength);
-    // let basicBondPeriod = (86400*5);
+    // const block = await ethers.provider.getBlock('latest')
 
     await stakingProxyContract.connect(deployer).initialize(
       uniswapInfo.tos,
-      [config.epochLength, epochEnd],
+      [config.epochLength, config.epochEnd],
       uniswapInfo.lockTOSaddr,
       treasuryProxyAddress,
       config.basicBondPeriod

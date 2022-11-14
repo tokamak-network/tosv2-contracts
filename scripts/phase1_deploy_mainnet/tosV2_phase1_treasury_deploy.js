@@ -30,7 +30,7 @@ async function main() {
 
     save(networkName, deployInfo);
 
-    printGasUsedOfUnits('LibTreasury Deploy', chainId, tx);
+    printGasUsedOfUnits(chainId, 'LibTreasury Deploy',  tx);
 
     //Treasury Deploy
 
@@ -52,7 +52,7 @@ async function main() {
 
     save(networkName, deployInfo);
 
-    printGasUsedOfUnits('treasuryLogic Deploy', chainId, tx);
+    printGasUsedOfUnits(chainId, 'treasuryLogic Deploy',  tx);
 
 
     //TreasuryProxy Deploy
@@ -72,7 +72,7 @@ async function main() {
 
     save(networkName, deployInfo);
 
-    printGasUsedOfUnits('treasuryProxy Deploy', chainId, tx);
+    printGasUsedOfUnits(chainId, 'treasuryProxy Deploy',  tx);
 
 
     if(chainId == 1 || chainId == 4 || chainId == 5) {

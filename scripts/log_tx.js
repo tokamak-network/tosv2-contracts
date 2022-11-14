@@ -17,7 +17,7 @@ function printGasUsedOfUnits(filename,  _fun, _tx){
 
     // deployed_functions.push(_fun);
     // deployed_gasUsed.push(_tx.gasUsed);
-    console.log(data);
+    // console.log("printGasUsedOfUnits data ", data);
 
     gasUsedFunctions(filename, data);
   }

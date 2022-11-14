@@ -42,7 +42,7 @@ async function main() {
     if(addLockTosInfos.ids == null) return;
 
     stosMigrationSet.prevStakeId = await stakingProxylogic.stakingIdCounter();
-    console.log('stosMigrationSet.prevStakeId', stosMigrationSet.prevStakeId)
+    console.log('stosMigrationSet.prevStakeId', stosMigrationSet.prevStakeId.toString())
 
     save(stosMigrationBlockNumber,{
         name: "prevStakeId",

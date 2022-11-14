@@ -51,9 +51,9 @@ async function main() {
     console.log("stakingContract setRebasePerEpoch ", config.RebasePerEpoch);
     await tx.wait();
 
-    tx = await stakingContract.connect(deployer).setIndex(config.index);
-    console.log("stakingContract setIndex ", config.index);
-    await tx.wait();
+    // tx = await stakingContract.connect(deployer).setIndex(config.index);
+    // console.log("stakingContract setIndex ", config.index);
+    // await tx.wait();
 
 }
 

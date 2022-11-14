@@ -30,7 +30,7 @@ async function main() {
 
     save(networkName, deployInfo);
 
-    printGasUsedOfUnits('LibStaking Deploy', chainId, tx);
+    printGasUsedOfUnits(chainId,  'LibStaking Deploy', tx);
 
     // StakingLogic Deploy
     const stakingLogic = await (await ethers.getContractFactory("StakingV2", {
@@ -51,7 +51,7 @@ async function main() {
 
     save(networkName, deployInfo);
 
-    printGasUsedOfUnits('stakingLogic Deploy', chainId, tx);
+    printGasUsedOfUnits(chainId, 'stakingLogic Deploy',  tx);
 
     //StakingProxy Deploy
     const stakingProxy = await (await ethers.getContractFactory("StakingV2Proxy"))
@@ -70,7 +70,7 @@ async function main() {
 
     save(networkName, deployInfo);
 
-    printGasUsedOfUnits('stakingProxy Deploy', chainId, tx);
+    printGasUsedOfUnits(chainId, 'stakingProxy Deploy', tx);
 
     if(chainId == 1 || chainId == 4 || chainId == 5) {
       await run("verify", {
