@@ -1,3 +1,27 @@
+# Mainnet Deployed Contract addresses:
+  "TOSValueCalculator": "0xD062C01b317933EAabd8F64e3f59141a79C3f95c",\
+  "BondDepository": "0xe3ECA73384Bcfcc16ECd7894C5cA5b6DD64Ce39F",\
+  "LibStaking": "0xC17c09a48793Bff31e7F8CC465DF6451CC9d9fB0",\
+  "StakingV2": "0xC42698D87c95dCB9aaE9aaBE8c70a4d52b243847",\
+  "LibTreasury": "0x2c77067900f1544345552f0A12d0bDf4EaE6fE04",\
+  "Treasury": "0x0bA799B755017a5E148A4De63DD65e816B15BC9E",\
+  "BondDepositoryProxy": "0xbf715e63d767D8378102cdD3FFE3Ce2BF1E02c91",\
+  "StakingV2Proxy": "0x14fb0933Ec45ecE75A431D10AFAa1DDF7BfeE44C",\
+  "TreasuryProxy": "0xD27A68a457005f822863199Af0F817f672588ad6"
+
+
+# Goerli Deployed Contract addresses:
+  "TOSValueCalculator": "0x2daEBfC5eA67Ed04cE9eE154D626A6e2144333BC",\
+  "BondDepository": "0x83660630Dffb1f4ec15cEB3948849135da9E9d50",\
+  "BondDepositoryProxy": "0x56eE8C5e99425c9B38D9001408d2d0Bcb1085E23",\
+  "LibStaking": "0xEfCDCa72f05b6492663155e38ECC5C0342a82E0c",\
+  "StakingV2": "0x2f04B7641116fA9e9473208Ed3D35cF35A1a984d",\
+  "StakingV2Proxy": "0x2fF6D99EbEE9A61430FE4909745FFa9C69a3FCD0",\
+  "LibTreasury": "0x35f1cc098d14dE8C79806B6A8aDDe56a23fc5f57",\
+  "Treasury": "0xd835046432891d5C2657237eC06f9F84Fea647A7",\
+  "TreasuryProxy": "0x138b6757BF88Cbba7b4eE6d166fCB4fFB12c656D"\
+
+
 # Rinkeby Deployed Contract addresses:
   "TOSValueCalculator": "0xCb7eB6567BD93a5bA71eB74b904087fF645D28ca",\
   "BondDepository": "0xf902FbF4e30022E40cBd1d84f021ec8B20a889e5",\

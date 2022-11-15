@@ -16,23 +16,16 @@ async function main() {
     const bondDepositoryProxyAddress = loadDeployed(networkName, "BondDepositoryProxy");
 
     //=========
-    // 1. lockTOS의 어드민 권한 삭제
+    // 1. lockTOS의 tos를 treasury로 전송
     const lockTosContract = new ethers.Contract(uniswapInfo.lockTOSaddr, LockTOSProxyAbi.abi, ethers.provider);
 
-    const admin_role = "0xdf8b4c520ffe197c5343c6f5aec59570151ef9a492f2c624fd45ddde6135ec42";
-
-    let tx = await lockTosContract.connect(deployer).removeAdmin(
-      deployer.address
+    let tx = await lockTosContract.connect(deployer).transferTosToTreasury(
+      treasuryProxyAddress
     )
-    console.log("lockTOS grantRole admin_role ", tx.hash);
+
+    console.log("lockTOS transferTosToTreasury ", treasuryProxyAddress, tx.hash);
 
     await tx.wait();
-
-    // 2. lockTOS의 어드민 권한 확인
-    let isAdmin = await lockTosContract.isAdmin(
-      deployer.address
-    )
-    console.log("lockTOS isAdmin ", deployer.address,  isAdmin);
 
 }
 

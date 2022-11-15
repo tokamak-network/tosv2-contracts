@@ -1,17 +1,17 @@
 const { ethers } = require("hardhat");
 
 let config = {
-    adminAddress: "0x3b9878Ef988B086F13E5788ecaB9A35E74082ED9", //test
+    adminAddress: "0x15280a52E79FD4aB35F4B9Acbb376DCD72b44Fd1",
     epochLength: 28800,
     epochEnd: 1668682800,
     basicBondPeriod : 432000,
     RebasePerEpoch : ethers.BigNumber.from("87045050000000"),
     index : ethers.BigNumber.from("1000000000000000000"),
-    mintRate : ethers.BigNumber.from("242427000000000000000000000"),
+    mintRate : ethers.BigNumber.from("125000000000000000000000"),
     mintRateDenominator : ethers.BigNumber.from("1000000000000000000")
 }
 
-let stosMigrationBlockNumber = "15966835";
+let stosMigrationBlockNumber = "15972346";
 
 // mainnet
 let uniswapInfo_mainnet  = {

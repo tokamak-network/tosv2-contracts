@@ -30,7 +30,7 @@ contract StakingV2Storage {
 
     mapping(uint256 => LibStaking.UserBalance) public allStakings;
 
-    // stakeId -sTOSid
+    // stakeId - sTOSid
     mapping(uint256 => uint256) public connectId;
 
     modifier nonZero(uint256 tokenId) {

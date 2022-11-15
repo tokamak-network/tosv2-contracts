@@ -69,7 +69,7 @@ async function main() {
 
     // 아래 round 를 하나씩 증가 .
     // for(c = 0; c < loopCount; c++){
-    let round = 0;
+    let round = 3;
     if(round <= maxRound){
         c = round;
         let start = c * batchSize;

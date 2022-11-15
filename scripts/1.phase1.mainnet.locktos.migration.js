@@ -60,7 +60,7 @@ async function main() {
   // for(c = 0; c < loopCount; c++){
 
   // 아래 라운드를 0부터 순차적으로 실행. 트랜잭션이 끝나는 것 확인 후 다음 라운드 실행하자.
-  let round = 0;
+  let round = 3;
   if(round <= maxRound){
     c = round;
 

@@ -52,9 +52,9 @@ module.exports = {
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-      accounts: [`${process.env.PRIVATE_KEY}`],
+      accounts: [`${process.env.TONStarter_Deployer}`],
       gasMultiplier: 1.25,
-      gasPrice: 25000000000,
+      gasPrice: 20000000000,
     },
   },
   localhost: {
