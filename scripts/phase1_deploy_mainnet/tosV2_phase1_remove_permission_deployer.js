@@ -67,7 +67,7 @@ async function main() {
     isProxyAdmin = await terasuryProxyContract.isProxyAdmin(deployer.address);
     console.log("terasuryProxyContract isProxyAdmin ", isProxyAdmin, deployer.address);
 
-    // terasuryProxyContract
+    // stakingV2ProxyContract
     const stakingProxyContract = new ethers.Contract( stakingProxyAddress, stakingV2ProxyAbi.abi, ethers.provider);
     tx = await stakingProxyContract.connect(deployer).removePolicy()
     await tx.wait();
