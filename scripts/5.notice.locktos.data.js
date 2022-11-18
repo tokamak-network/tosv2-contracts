@@ -41,7 +41,10 @@ async function main() {
 
     const lockTOS = new ethers.Contract(uniswapInfo.lockTOSaddr, lockTOSLogic2abi.abi, ethers.provider);
 
-    lockTOS.defaultBlock = Number(stosMigrationBlockNumber);
+    //lockTOS.defaultBlock = Number(stosMigrationBlockNumber);
+    //15972329
+    lockTOS.defaultBlock = 15972329;
+
     console.log("prev defaultBlock ", lockTOS.defaultBlock );
 
     let stosHolders = await lockTOS.allHolders();
@@ -88,7 +91,9 @@ async function main() {
     }
 
     //-----------------------------------
-    lockTOS.defaultBlock = 0;
+    // lockTOS.defaultBlock = 0;
+
+    lockTOS.defaultBlock = 15974270;
     console.log("after " );
 
 
