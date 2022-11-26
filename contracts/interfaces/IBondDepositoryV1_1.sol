@@ -14,6 +14,7 @@ interface IBondDepositoryV1_1 {
      * @param _token       token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3
      * @param _market      [capacity of the market, market closing time, return on the deposit in TOS, maximum purchasable bond in TOS]
      * @param initialCapacity initial capacity amount
+     * @param initialMaxPayout initial max payout
      * @param capacityUpdatePeriod capacity update period ( 1 real time, 60*60*24 one day, 60*60*24*7 one week )
      * @param availableBasicBond available basic bond
      * @param availableLockupBond available lockup bond
@@ -23,6 +24,7 @@ interface IBondDepositoryV1_1 {
         address _token,
         uint256[4] calldata _market,
         uint256 initialCapacity,
+        uint256 initialMaxPayout,
         uint256 capacityUpdatePeriod,
         bool availableBasicBond,
         bool availableLockupBond
@@ -189,7 +191,7 @@ interface IBondDepositoryV1_1 {
     /// @param _marketId        market id
     /// @param _periodWeeks     lockup weeks
     /// @return maximumAmount_  maximum amount
-    function possibleLockupCapacity(
+    function maxPayoutPerLockUpPeriod(
         uint256 _marketId,
         uint256 _periodWeeks
     ) external view returns (uint256 maximumAmount_);

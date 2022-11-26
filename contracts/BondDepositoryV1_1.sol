@@ -86,6 +86,7 @@ contract BondDepositoryV1_1 is
         address _token,
         uint256[4] calldata _market,
         uint256 _initialCapacity,
+        uint256 _initialMaxPayout,
         uint256 _capacityUpdatePeriod,
         bool _availableBasicBond,
         bool _availableLockupBond
@@ -121,6 +122,7 @@ contract BondDepositoryV1_1 is
             {
                 startTime: block.timestamp,
                 initialCapacity: _initialCapacity,
+                initialMaxPayout: _initialMaxPayout,
                 capacityUpdatePeriod: _capacityUpdatePeriod,
                 totalSold: 0,
                 availableBasicBond: _availableBasicBond,
@@ -291,15 +293,14 @@ contract BondDepositoryV1_1 is
         LibBondDepository.Market memory market = markets[_marketId];
         _tosPrice = market.tosPrice;
 
-        require(_amount <= purchasableAssetAmountAtOneTime(_tosPrice, market.maxPayout), "Depository : over maxPay");
+        //require(_amount <= purchasableAssetAmountAtOneTime(_tosPrice, market.maxPayout), "Depository : over maxPay");
 
         _payout = calculateTosAmountForAsset(_tosPrice, _amount);
         require(_payout > 0, "zero staking amount");
 
         //-------------------------
         // v1.1
-        uint256 currentCapacity = maximumPurchasableAmountAtOneTime(_marketId, _lockWeeks);
-        require(_payout <= currentCapacity, "exceed currentCapacityLimit");
+        require(_payout <= maximumPurchasableAmountAtOneTime(_marketId, _lockWeeks), "exceed currentCapacityLimit");
         //-------------------------
 
         uint256 mrAmount = _amount * IITreasury(treasury).getMintRate() / 1e18;
@@ -417,24 +418,24 @@ contract BondDepositoryV1_1 is
         public override view returns (uint256 maximumAmount_)
     {
         (, uint256 currentCapacity) = possibleMaxCapacity(_marketId);
-        uint256 lockupCapacity = possibleLockupCapacity(_marketId, _periodWeeks);
-        maximumAmount_ = Math.max(currentCapacity, lockupCapacity);
-        maximumAmount_ = Math.min(maximumAmount_, markets[_marketId].maxPayout);
+        uint256 _maxPayoutPerLockUpPeriod = maxPayoutPerLockUpPeriod(_marketId, _periodWeeks);
+        maximumAmount_ = Math.max(currentCapacity, _maxPayoutPerLockUpPeriod);
     }
 
     /// @inheritdoc IBondDepositoryV1_1
-    function possibleLockupCapacity (
+    function maxPayoutPerLockUpPeriod (
         uint256 _marketId,
         uint256 _periodWeeks
     )
-        public override view returns (uint256 lockupCapacity)
+        public override view returns (uint256 _maxPayoutPerLockUpPeriod)
     {
         LibBondDepository.Market memory market = markets[_marketId];
+        LibBondDepositoryV1_1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
 
-        if (_periodWeeks == 0 ) {
-            lockupCapacity = market.maxPayout * 5 / (7 * 156 );
+        if (_periodWeeks == 0) {
+            _maxPayoutPerLockUpPeriod = market.maxPayout;
         } else {
-            lockupCapacity = market.maxPayout * _periodWeeks / 156;
+            _maxPayoutPerLockUpPeriod = market.maxPayout * _periodWeeks / 156 + capacityInfo.initialMaxPayout;
         }
     }
 
@@ -449,7 +450,7 @@ contract BondDepositoryV1_1 is
         LibBondDepository.Market memory market = markets[_marketId];
         LibBondDepositoryV1_1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
 
-        dailyCapacity = capacityInfo.initialCapacity + ( market.capacity / _totalSaleDays );
+        dailyCapacity = capacityInfo.initialCapacity + (market.capacity / _totalSaleDays);
         currentCapacity = capacityInfo.initialCapacity + (market.capacity * _passedDays / _totalSaleDays) - capacityInfo.totalSold;
 
     }
@@ -458,9 +459,6 @@ contract BondDepositoryV1_1 is
     function saleDays(uint256 _marketId) public override view returns (uint256 totalSaleDays, uint256 passedDays) {
 
         LibBondDepositoryV1_1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
-
-         capacityInfo.startTime;
-         capacityInfo.capacityUpdatePeriod;
 
         if (capacityInfo.startTime > 0){
             LibBondDepository.Market memory market = markets[_marketId];
