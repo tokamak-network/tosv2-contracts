@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.4;
 
-interface IBondDepositoryEventV1 {
+interface IBondDepositoryEventV1_1 {
 
 
     /// @dev                        this event occurs when set the calculator address

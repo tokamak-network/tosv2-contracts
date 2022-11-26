@@ -3,12 +3,12 @@ pragma solidity ^0.8.4;
 
 import "./BondDepositoryStorage.sol";
 import "./common/ProxyAccessCommon.sol";
-import "./BondDepositoryStorageV1.sol";
+import "./BondDepositoryStorageV1_1.sol";
 
 import "./libraries/SafeERC20.sol";
 
-import "./interfaces/IBondDepositoryV1.sol";
-import "./interfaces/IBondDepositoryEventV1.sol";
+import "./interfaces/IBondDepositoryV1_1.sol";
+import "./interfaces/IBondDepositoryEventV1_1.sol";
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 // import "hardhat/console.sol";
@@ -38,12 +38,12 @@ interface IITreasury {
     function addBondAsset(address _address) external;
 }
 
-contract BondDepositoryV1 is
+contract BondDepositoryV1_1 is
     BondDepositoryStorage,
     ProxyAccessCommon,
-    IBondDepositoryV1,
-    IBondDepositoryEventV1,
-    BondDepositoryStorageV1
+    IBondDepositoryV1_1,
+    IBondDepositoryEventV1_1,
+    BondDepositoryStorageV1_1
 {
     using SafeERC20 for IERC20;
 
@@ -81,7 +81,7 @@ contract BondDepositoryV1 is
     constructor() {
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function create(
         address _token,
         uint256[4] calldata _market,
@@ -117,7 +117,7 @@ contract BondDepositoryV1 is
 
         /// add v1.1
         // Market.capacity change the total capacity
-        marketCapacityInfos[id_] = LibBondDepositoryV1.CapacityInfo(
+        marketCapacityInfos[id_] = LibBondDepositoryV1_1.CapacityInfo(
             {
                 startTime: block.timestamp,
                 initialCapacity: _initialCapacity,
@@ -142,7 +142,7 @@ contract BondDepositoryV1 is
             );
     }
 
-     /// @inheritdoc IBondDepositoryV1
+     /// @inheritdoc IBondDepositoryV1_1
     function changeCapacity(
         uint256 _marketId,
         bool _increaseFlag,
@@ -152,7 +152,7 @@ contract BondDepositoryV1 is
         nonZeroPayout(_marketId)
     {
         LibBondDepository.Market storage _info = markets[_marketId];
-        LibBondDepositoryV1.CapacityInfo storage _capacityInfo = marketCapacityInfos[_marketId];
+        LibBondDepositoryV1_1.CapacityInfo storage _capacityInfo = marketCapacityInfos[_marketId];
 
         if (_increaseFlag) _info.capacity += _increaseAmount;
         else {
@@ -168,7 +168,7 @@ contract BondDepositoryV1 is
         emit ChangedCapacity(_marketId, _increaseFlag, _increaseAmount);
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function changeCloseTime(
         uint256 _marketId,
         uint256 closeTime
@@ -185,7 +185,7 @@ contract BondDepositoryV1 is
         emit ChangedCloseTime(_marketId, closeTime);
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function changeMaxPayout(
         uint256 _marketId,
         uint256 _amount
@@ -199,7 +199,7 @@ contract BondDepositoryV1 is
         emit ChangedMaxPayout(_marketId, _amount);
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function changePrice(
         uint256 _marketId,
         uint256 _tosPrice
@@ -213,12 +213,12 @@ contract BondDepositoryV1 is
         emit ChangedPrice(_marketId, _tosPrice);
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function close(uint256 _id) public override onlyPolicyOwner {
         require(markets[_id].endSaleTime > 0, "empty market");
         require(markets[_id].endSaleTime > block.timestamp || markets[_id].capacity == 0, "already closed");
 
-        LibBondDepositoryV1.CapacityInfo storage _capacityInfo = marketCapacityInfos[_id];
+        LibBondDepositoryV1_1.CapacityInfo storage _capacityInfo = marketCapacityInfos[_id];
         _capacityInfo.closed = true;
         emit ClosedMarket(_id);
     }
@@ -227,7 +227,7 @@ contract BondDepositoryV1 is
     /// Anyone can use.
     //////////////////////////////////////
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function ETHDeposit(
         uint256 _id,
         uint256 _amount
@@ -254,7 +254,7 @@ contract BondDepositoryV1 is
     }
 
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function ETHDepositWithSTOS(
         uint256 _id,
         uint256 _amount,
@@ -306,7 +306,7 @@ contract BondDepositoryV1 is
         require(mrAmount >= _payout, "mintableAmount is less than staking amount.");
         require(_payout <= (market.capacity - marketCapacityInfos[_marketId].totalSold), "Depository: sold out");
 
-        LibBondDepositoryV1.CapacityInfo storage capacityInfo = marketCapacityInfos[_marketId];
+        LibBondDepositoryV1_1.CapacityInfo storage capacityInfo = marketCapacityInfos[_marketId];
         capacityInfo.totalSold += _payout;
 
         //check closing
@@ -324,7 +324,7 @@ contract BondDepositoryV1 is
     /// VIEW
     //////////////////////////////////////
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function calculateTosAmountForAsset(
         uint256 _tosPrice,
         uint256 _amount
@@ -336,7 +336,7 @@ contract BondDepositoryV1 is
         return (_amount * _tosPrice / 1e18);
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function purchasableAssetAmountAtOneTime(
         uint256 _tosPrice,
         uint256 _maxPayout
@@ -347,7 +347,7 @@ contract BondDepositoryV1 is
     }
 
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function getBonds() external override view
         returns (
             uint256[] memory,
@@ -374,17 +374,17 @@ contract BondDepositoryV1 is
         return (_marketIds, _quoteTokens, _capacities, _endSaleTimes, _pricesTos);
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function getMarketList() external override view returns (uint256[] memory) {
         return marketList;
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function totalMarketCount() external override view returns (uint256) {
         return marketList.length;
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function viewMarket(uint256 _marketId) external override view
         returns (
             address quoteToken,
@@ -403,13 +403,13 @@ contract BondDepositoryV1 is
         );
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function isOpened(uint256 _marketId) external override view returns (bool closedBool)
     {
         return block.timestamp < markets[_marketId].endSaleTime && markets[_marketId].capacity > 0;
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function maximumPurchasableAmountAtOneTime(
         uint256 _marketId,
         uint256 _periodWeeks
@@ -422,7 +422,7 @@ contract BondDepositoryV1 is
         maximumAmount_ = Math.min(maximumAmount_, markets[_marketId].maxPayout);
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function possibleLockupCapacity (
         uint256 _marketId,
         uint256 _periodWeeks
@@ -438,7 +438,7 @@ contract BondDepositoryV1 is
         }
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function possibleMaxCapacity (
         uint256 _marketId
     )
@@ -447,17 +447,17 @@ contract BondDepositoryV1 is
         (uint256 _totalSaleDays, uint256 _passedDays) = saleDays(_marketId);
 
         LibBondDepository.Market memory market = markets[_marketId];
-        LibBondDepositoryV1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
+        LibBondDepositoryV1_1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
 
         dailyCapacity = capacityInfo.initialCapacity + ( market.capacity / _totalSaleDays );
         currentCapacity = capacityInfo.initialCapacity + (market.capacity * _passedDays / _totalSaleDays) - capacityInfo.totalSold;
 
     }
 
-    /// @inheritdoc IBondDepositoryV1
+    /// @inheritdoc IBondDepositoryV1_1
     function saleDays(uint256 _marketId) public override view returns (uint256 totalSaleDays, uint256 passedDays) {
 
-        LibBondDepositoryV1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
+        LibBondDepositoryV1_1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
 
          capacityInfo.startTime;
          capacityInfo.capacityUpdatePeriod;

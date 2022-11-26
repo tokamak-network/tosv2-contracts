@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "./IERC20.sol";
 
-interface IBondDepositoryV1 {
+interface IBondDepositoryV1_1 {
 
     ///////////////////////////////////////
     /// onlyPolicyOwner

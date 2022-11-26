@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.4;
 
-/// @title LibBondDepositoryV1
-library LibBondDepositoryV1
+/// @title LibBondDepositoryV1_1
+library LibBondDepositoryV1_1
 {
     // market capacity info
     struct CapacityInfo {
