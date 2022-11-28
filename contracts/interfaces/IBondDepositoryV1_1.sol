@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "./IERC20.sol";
+import "../libraries/LibBondDepositoryV1_1.sol";
 
 interface IBondDepositoryV1_1 {
 
@@ -110,41 +111,21 @@ interface IBondDepositoryV1_1 {
     /// VIEW
     //////////////////////////////////////
 
-    /// @dev              how much is ETH worth in TOS?
-    /// @param _tosPrice  amount of TOS per 1 ETH
-    /// @param _amount    amount of ETH
-    /// @return payout    returns amount of TOS to be earned by the user
-    function calculateTosAmountForAsset(
-        uint256 _tosPrice,
-        uint256 _amount
-    )
-        external
-        pure
-        returns (uint256 payout);
-
-
-    /// @dev               maximum purchasable bond amount in TOS
-    /// @param _tosPrice   amount of TOS per 1 ETH
-    /// @param _maxPayout  maximum purchasable bond amount in TOS
-    /// @return maxPayout_ returns maximum amount of ETH that can be used
-    function purchasableAssetAmountAtOneTime(
-        uint256 _tosPrice,
-        uint256 _maxPayout
-    ) external pure returns (uint256 maxPayout_);
-
     /// @dev                 returns information from active markets
     /// @return marketIds    array of total marketIds
     /// @return quoteTokens  array of total market's quoteTokens
     /// @return capacities   array of total market's capacities
     /// @return endSaleTimes array of total market's endSaleTimes
     /// @return pricesTos    array of total market's pricesTos
+    /// @return capacityInfos    array of total market's capacity information
     function getBonds() external view
         returns (
             uint256[] memory marketIds,
             address[] memory quoteTokens,
             uint256[] memory capacities,
             uint256[] memory endSaleTimes,
-            uint256[] memory pricesTos
+            uint256[] memory pricesTos,
+            LibBondDepositoryV1_1.CapacityInfo[] memory capacityInfos
         );
 
     /// @dev              returns all generated marketIDs
@@ -155,20 +136,22 @@ interface IBondDepositoryV1_1 {
     /// @return Total number of markets
     function totalMarketCount() external view returns (uint256) ;
 
-    /// @dev                returns information about the market
-    /// @param _marketId    market id
-    /// @return quoteToken  saleToken Address
-    /// @return capacity    tokenSaleAmount
-    /// @return endSaleTime market endTime
-    /// @return maxPayout   maximum purchasable bond in TOS
-    /// @return tosPrice    amount of TOS per 1 ETH
+    /// @dev                    returns information about the market
+    /// @param _marketId        market id
+    /// @return quoteToken      saleToken Address
+    /// @return capacity        tokenSaleAmount
+    /// @return endSaleTime     market endTime
+    /// @return maxPayout       maximum purchasable bond in TOS
+    /// @return tosPrice        amount of TOS per 1 ETH
+    /// @return capacityInfo    capacity information
     function viewMarket(uint256 _marketId) external view
         returns (
             address quoteToken,
             uint256 capacity,
             uint256 endSaleTime,
             uint256 maxPayout,
-            uint256 tosPrice
+            uint256 tosPrice,
+            LibBondDepositoryV1_1.CapacityInfo memory capacityInfo
             );
 
     /// @dev               checks whether a market is opened or not

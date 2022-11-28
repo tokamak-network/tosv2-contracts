@@ -13,27 +13,9 @@ import "./interfaces/IBondDepositoryEventV1_1.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 // import "hardhat/console.sol";
 
-interface IIIERC20 {
-    function decimals() external view returns (uint256);
-}
-
-interface IUniswapV3Pool {
-    function token0() external view returns (address);
-    function token1() external view returns (address);
-}
-
-interface IITOSValueCalculator {
-    function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
-        external view
-        returns (bool existedWethPool, bool existedTosPool,  uint256 priceWethOrTosPerAsset, uint256 convertedAmount);
-}
 
 interface IITreasury {
-
-    function getETHPricePerTOS() external view returns (uint256 price);
     function getMintRate() external view returns (uint256);
-    function mintRateDenominator() external view returns (uint256);
-
     function requestMint(uint256 _mintAmount, uint256 _payout, bool _distribute) external ;
     function addBondAsset(address _address) external;
 }
@@ -51,21 +33,13 @@ contract BondDepositoryV1_1 is
         require(marketCapacityInfos[id_].startTime < block.timestamp, "no start time yet");
         require(!marketCapacityInfos[id_].closed, "closed market");
         require(markets[id_].endSaleTime > block.timestamp, "BondDepository: closed market");
-        require(markets[id_].capacity > 0 , "BondDepository: zero capacity" );
+        require(markets[id_].capacity > marketCapacityInfos[id_].totalSold, "BondDepository: zero capacity" );
         _;
     }
 
     modifier isEthMarket(uint256 id_) {
         require(markets[id_].quoteToken == address(0) && markets[id_].endSaleTime > 0,
             "BondDepository: not ETH market"
-        );
-        _;
-    }
-
-    modifier nonEthMarket(uint256 id_) {
-        require(
-            markets[id_].quoteToken != address(0) && markets[id_].endSaleTime > 0,
-            "BondDepository: ETH market"
         );
         _;
     }
@@ -293,9 +267,7 @@ contract BondDepositoryV1_1 is
         LibBondDepository.Market memory market = markets[_marketId];
         _tosPrice = market.tosPrice;
 
-        //require(_amount <= purchasableAssetAmountAtOneTime(_tosPrice, market.maxPayout), "Depository : over maxPay");
-
-        _payout = calculateTosAmountForAsset(_tosPrice, _amount);
+        _payout = LibBondDepositoryV1_1.calculateTosAmountForAsset(_tosPrice, _amount, 18);
         require(_payout > 0, "zero staking amount");
 
         //-------------------------
@@ -326,36 +298,14 @@ contract BondDepositoryV1_1 is
     //////////////////////////////////////
 
     /// @inheritdoc IBondDepositoryV1_1
-    function calculateTosAmountForAsset(
-        uint256 _tosPrice,
-        uint256 _amount
-    )
-        public
-        pure override
-        returns (uint256 payout)
-    {
-        return (_amount * _tosPrice / 1e18);
-    }
-
-    /// @inheritdoc IBondDepositoryV1_1
-    function purchasableAssetAmountAtOneTime(
-        uint256 _tosPrice,
-        uint256 _maxPayout
-    )
-        public pure override returns (uint256 maxPayout_)
-    {
-        return ( _maxPayout *  1e18 / _tosPrice );
-    }
-
-
-    /// @inheritdoc IBondDepositoryV1_1
     function getBonds() external override view
         returns (
             uint256[] memory,
             address[] memory,
             uint256[] memory,
             uint256[] memory,
-            uint256[] memory
+            uint256[] memory,
+            LibBondDepositoryV1_1.CapacityInfo[] memory
         )
     {
         uint256 len = marketList.length;
@@ -364,6 +314,7 @@ contract BondDepositoryV1_1 is
         uint256[] memory _capacities = new uint256[](len);
         uint256[] memory _endSaleTimes = new uint256[](len);
         uint256[] memory _pricesTos = new uint256[](len);
+        LibBondDepositoryV1_1.CapacityInfo[] memory _capacityInfos = new LibBondDepositoryV1_1.CapacityInfo[](len);
 
         for (uint256 i = 0; i < len; i++){
             _marketIds[i] = marketList[i];
@@ -371,8 +322,9 @@ contract BondDepositoryV1_1 is
             _capacities[i] = markets[_marketIds[i]].capacity;
             _endSaleTimes[i] = markets[_marketIds[i]].endSaleTime;
             _pricesTos[i] = markets[_marketIds[i]].tosPrice;
+            _capacityInfos[i] = marketCapacityInfos[i];
         }
-        return (_marketIds, _quoteTokens, _capacities, _endSaleTimes, _pricesTos);
+        return (_marketIds, _quoteTokens, _capacities, _endSaleTimes, _pricesTos, _capacityInfos);
     }
 
     /// @inheritdoc IBondDepositoryV1_1
@@ -392,7 +344,8 @@ contract BondDepositoryV1_1 is
             uint256 capacity,
             uint256 endSaleTime,
             uint256 maxPayout,
-            uint256 tosPrice
+            uint256 tosPrice,
+            LibBondDepositoryV1_1.CapacityInfo memory capacityInfo
             )
     {
         return (
@@ -400,7 +353,8 @@ contract BondDepositoryV1_1 is
             markets[_marketId].capacity,
             markets[_marketId].endSaleTime,
             markets[_marketId].maxPayout,
-            markets[_marketId].tosPrice
+            markets[_marketId].tosPrice,
+            marketCapacityInfos[_marketId]
         );
     }
 

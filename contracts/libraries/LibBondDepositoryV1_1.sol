@@ -15,4 +15,26 @@ library LibBondDepositoryV1_1
         bool availableLockupBond;
         bool closed;
     }
+
+    function calculateTosAmountForAsset(
+        uint256 _tosPrice,
+        uint256 _amount,
+        uint256 _erc20Decimal
+    )
+        public
+        pure
+        returns (uint256 payout)
+    {
+        return (_amount * _tosPrice / (10 ** _erc20Decimal));
+    }
+
+    function purchasableAssetAmountAtOneTime(
+        uint256 _tosPrice,
+        uint256 _maxPayout
+    )
+        public pure returns (uint256 maxPayout_)
+    {
+        return ( _maxPayout * 1e18 / _tosPrice );
+    }
+
 }
