@@ -59,5 +59,6 @@ async function getUniswapInfo() {
 }
 
 module.exports = {
-    getUniswapInfo
+    getUniswapInfo,
+    networkName, uniswapInfo, config, deployed
 }

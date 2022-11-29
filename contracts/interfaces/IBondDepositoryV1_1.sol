@@ -11,19 +11,21 @@ interface IBondDepositoryV1_1 {
     //////////////////////////////////////
 
     /**
-     * @dev                creates a new market type
-     * @param _token       token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3
-     * @param _market      [capacity of the market, market closing time, return on the deposit in TOS, maximum purchasable bond in TOS]
-     * @param initialCapacity initial capacity amount
-     * @param initialMaxPayout initial max payout
-     * @param capacityUpdatePeriod capacity update period ( 1 real time, 60*60*24 one day, 60*60*24*7 one week )
-     * @param availableBasicBond available basic bond
-     * @param availableLockupBond available lockup bond
-     * @return id_         returns ID of new bond market
+     * @dev                         creates a new market type
+     * @param _token                token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3
+     * @param _market               [capacity of the market, market closing time, return on the deposit in TOS, maximum purchasable bond in TOS]
+     * @param startTime             start time
+     * @param initialCapacity       initial capacity amount
+     * @param initialMaxPayout      initial max payout
+     * @param capacityUpdatePeriod  capacity update period ( 1 real time, 60*60*24 one day, 60*60*24*7 one week )
+     * @param availableBasicBond    available basic bond
+     * @param availableLockupBond   available lockup bond
+     * @return id_                  returns ID of new bond market
      */
     function create(
         address _token,
         uint256[4] calldata _market,
+        uint256 startTime,
         uint256 initialCapacity,
         uint256 initialMaxPayout,
         uint256 capacityUpdatePeriod,

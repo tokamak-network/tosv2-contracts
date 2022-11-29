@@ -18,18 +18,20 @@ interface IBondDepositoryEventV1_1 {
     event Deposited(address user, uint256 marketId, uint256 amount, uint256 payout, bool isEth, uint256 mintAmount);
 
 
-    /// @dev            this event occurs when a specific market product is created
-    /// @param marketId market id
-    /// @param token    token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3
-    /// @param market   [capacity of the market, market closing time, return on the deposit in TOS, maximum purchasable bond in TOS]
-    /// @param initialCapacity initial capacity amount
+    /// @dev                        this event occurs when a specific market product is created
+    /// @param marketId             market id
+    /// @param token                token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3
+    /// @param market               [capacity of the market, market closing time, return on the deposit in TOS, maximum purchasable bond in TOS]
+    /// @param startTime            start time
+    /// @param initialCapacity      initial capacity amount
     /// @param capacityUpdatePeriod capacity update period ( 1 real time, 60*60*24 one day, 60*60*24*7 one week )
-    /// @param availableBasicBond available basic bond
-    /// @param availableLockupBond available lockup bond
+    /// @param availableBasicBond   available basic bond
+    /// @param availableLockupBond  available lockup bond
     event CreatedMarket(
         uint256 marketId,
         address token,
         uint256[4] market,
+        uint256 startTime,
         uint256 initialCapacity,
         uint256 capacityUpdatePeriod,
         bool availableBasicBond,

@@ -59,6 +59,7 @@ contract BondDepositoryV1_1 is
     function create(
         address _token,
         uint256[4] calldata _market,
+        uint256 _startTime,
         uint256 _initialCapacity,
         uint256 _initialMaxPayout,
         uint256 _capacityUpdatePeriod,
@@ -70,15 +71,18 @@ contract BondDepositoryV1_1 is
         nonZero(_market[0])
         nonZero(_market[2])
         nonZero(_market[3])
+        nonZero(_startTime)
         returns (uint256 id_)
     {
-        require(_capacityUpdatePeriod > 0, "zero capacityUpdatePeriod");
+        require(_capacityUpdatePeriod > 0 &&
+            (_capacityUpdatePeriod == 1 ||
+            (_capacityUpdatePeriod % 86400 == 0)), "invalid capacityUpdatePeriod");
         require(_availableBasicBond || _availableLockupBond, "both false _availableBasicBond & _availableLockupBond");
 
         require(_market[0] > 100 ether, "need the totalSaleAmount > 100");
+        require(_market[1] > _startTime && _market[1] > block.timestamp, "invalid endSaleTime");
+
         id_ = staking.generateMarketId();
-        require(markets[id_].endSaleTime == 0, "already registered market");
-        require(_market[1] > block.timestamp, "endSaleTime has passed");
 
         markets[id_] = LibBondDepository.Market({
                             quoteToken: _token,
@@ -94,7 +98,7 @@ contract BondDepositoryV1_1 is
         // Market.capacity change the total capacity
         marketCapacityInfos[id_] = LibBondDepositoryV1_1.CapacityInfo(
             {
-                startTime: block.timestamp,
+                startTime: _startTime,
                 initialCapacity: _initialCapacity,
                 initialMaxPayout: _initialMaxPayout,
                 capacityUpdatePeriod: _capacityUpdatePeriod,
@@ -111,6 +115,7 @@ contract BondDepositoryV1_1 is
             id_,
             _token,
             _market,
+            _startTime,
             _initialCapacity,
             _capacityUpdatePeriod,
             _availableBasicBond,
