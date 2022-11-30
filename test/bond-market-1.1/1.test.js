@@ -453,7 +453,7 @@ describe("TOSv2 Bond Market V1.1", function () {
         0
       );
 
-      if (bondInfo.market.initialCapacity.gt(bondInfo.market.purchasableTOSAmountAtOneTime) )
+      if (bondInfo.market.initialCapacity.lt(bondInfo.market.purchasableTOSAmountAtOneTime) )
         expect(maximumAmount).to.be.equal(bondInfo.market.initialCapacity);
       else
         expect(maximumAmount).to.be.equal(bondInfo.market.purchasableTOSAmountAtOneTime);
@@ -470,7 +470,7 @@ describe("TOSv2 Bond Market V1.1", function () {
         1
       );
 
-      if (bondInfo.market.initialCapacity.gt(bondInfo.market.initialMaxPayout) )
+      if (bondInfo.market.initialCapacity.lt(bondInfo.market.initialMaxPayout) )
         expect(maximumAmount).to.be.equal(bondInfo.market.initialCapacity);
       else
         expect(maximumAmount).to.be.equal(bondInfo.market.initialMaxPayout);

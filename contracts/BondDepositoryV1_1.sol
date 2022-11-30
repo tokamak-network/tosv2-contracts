@@ -381,7 +381,7 @@ contract BondDepositoryV1_1 is
         if (block.timestamp > marketCapacityInfos[_marketId].startTime && block.timestamp < markets[_marketId].endSaleTime) {
             (, uint256 currentCapacity) = possibleMaxCapacity(_marketId);
             uint256 _maxPayoutPerLockUpPeriod = maxPayoutPerLockUpPeriod(_marketId, _periodWeeks);
-            maximumAmount_ = Math.max(currentCapacity, _maxPayoutPerLockUpPeriod);
+            maximumAmount_ = Math.min(currentCapacity, _maxPayoutPerLockUpPeriod);
         }
     }
 
