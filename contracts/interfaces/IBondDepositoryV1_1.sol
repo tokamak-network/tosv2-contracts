@@ -19,7 +19,7 @@ interface IBondDepositoryV1_1 {
      * @param initialMaxPayout      initial max payout
      * @param capacityUpdatePeriod  capacity update period ( 1 real time, 60*60*24 one day, 60*60*24*7 one week )
      * @param availableBasicBond    available basic bond
-     * @param availableLockupBond   available lockup bond
+     * @param availableStosBond     available sTOS bond
      * @return id_                  returns ID of new bond market
      */
     function create(
@@ -30,7 +30,7 @@ interface IBondDepositoryV1_1 {
         uint256 initialMaxPayout,
         uint256 capacityUpdatePeriod,
         bool availableBasicBond,
-        bool availableLockupBond
+        bool availableStosBond
     ) external returns (uint256 id_);
 
 

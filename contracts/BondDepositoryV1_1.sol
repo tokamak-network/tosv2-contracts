@@ -11,7 +11,7 @@ import "./interfaces/IBondDepositoryV1_1.sol";
 import "./interfaces/IBondDepositoryEventV1_1.sol";
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 
 interface IITreasury {
@@ -64,7 +64,7 @@ contract BondDepositoryV1_1 is
         uint256 _initialMaxPayout,
         uint256 _capacityUpdatePeriod,
         bool _availableBasicBond,
-        bool _availableLockupBond
+        bool _availableStosBond
     )
         external override
         onlyPolicyOwner
@@ -75,9 +75,10 @@ contract BondDepositoryV1_1 is
         returns (uint256 id_)
     {
         require(_capacityUpdatePeriod > 0 &&
-            (_capacityUpdatePeriod == 1 ||
-            (_capacityUpdatePeriod % 86400 == 0)), "invalid capacityUpdatePeriod");
-        require(_availableBasicBond || _availableLockupBond, "both false _availableBasicBond & _availableLockupBond");
+            (_capacityUpdatePeriod == 1 || _capacityUpdatePeriod == 3600 ||  _capacityUpdatePeriod == 21600 ||
+                _capacityUpdatePeriod == 43200 || (_capacityUpdatePeriod % 86400 == 0)
+            ), "invalid capacityUpdatePeriod");
+        require(_availableBasicBond || _availableStosBond, "both false _availableBasicBond & _availableStosBond");
 
         require(_market[0] > 100 ether, "need the totalSaleAmount > 100");
         require(_market[1] > _startTime && _market[1] > block.timestamp, "invalid endSaleTime");
@@ -104,7 +105,7 @@ contract BondDepositoryV1_1 is
                 capacityUpdatePeriod: _capacityUpdatePeriod,
                 totalSold: 0,
                 availableBasicBond: _availableBasicBond,
-                availableLockupBond: _availableLockupBond,
+                availableStosBond: _availableStosBond,
                 closed: false
             }
         );
@@ -117,9 +118,10 @@ contract BondDepositoryV1_1 is
             _market,
             _startTime,
             _initialCapacity,
+            _initialMaxPayout,
             _capacityUpdatePeriod,
             _availableBasicBond,
-            _availableLockupBond
+            _availableStosBond
             );
     }
 
@@ -249,7 +251,7 @@ contract BondDepositoryV1_1 is
         returns (uint256 payout_)
     {
         require(msg.value == _amount, "Depository: ETH amounts do not match");
-        require(marketCapacityInfos[_id].availableLockupBond, "unavailable in lockup bond");
+        require(marketCapacityInfos[_id].availableStosBond, "unavailable in lockup bond");
 
         require(_lockWeeks > 1, "_lockWeeks must be greater than 1 week.");
         uint256 _tosPrice = 0;
@@ -376,9 +378,11 @@ contract BondDepositoryV1_1 is
     )
         public override view returns (uint256 maximumAmount_)
     {
-        (, uint256 currentCapacity) = possibleMaxCapacity(_marketId);
-        uint256 _maxPayoutPerLockUpPeriod = maxPayoutPerLockUpPeriod(_marketId, _periodWeeks);
-        maximumAmount_ = Math.max(currentCapacity, _maxPayoutPerLockUpPeriod);
+        if (block.timestamp > marketCapacityInfos[_marketId].startTime && block.timestamp < markets[_marketId].endSaleTime) {
+            (, uint256 currentCapacity) = possibleMaxCapacity(_marketId);
+            uint256 _maxPayoutPerLockUpPeriod = maxPayoutPerLockUpPeriod(_marketId, _periodWeeks);
+            maximumAmount_ = Math.max(currentCapacity, _maxPayoutPerLockUpPeriod);
+        }
     }
 
     /// @inheritdoc IBondDepositoryV1_1
@@ -394,7 +398,8 @@ contract BondDepositoryV1_1 is
         if (_periodWeeks == 0) {
             _maxPayoutPerLockUpPeriod = market.maxPayout;
         } else {
-            _maxPayoutPerLockUpPeriod = market.maxPayout * _periodWeeks / 156 + capacityInfo.initialMaxPayout;
+            if(_periodWeeks > 156) _periodWeeks = 156;
+            _maxPayoutPerLockUpPeriod = capacityInfo.initialMaxPayout + market.maxPayout * (_periodWeeks-1) / 155;
         }
     }
 
@@ -404,18 +409,21 @@ contract BondDepositoryV1_1 is
     )
         public override view returns (uint256 dailyCapacity, uint256 currentCapacity)
     {
-        (uint256 _totalSaleDays, uint256 _passedDays) = saleDays(_marketId);
+        (uint256 _totalSaleDays, uint256 _curWhatDays) = saleDays(_marketId);
 
         LibBondDepository.Market memory market = markets[_marketId];
         LibBondDepositoryV1_1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
 
-        dailyCapacity = capacityInfo.initialCapacity + (market.capacity / _totalSaleDays);
-        currentCapacity = capacityInfo.initialCapacity + (market.capacity * _passedDays / _totalSaleDays) - capacityInfo.totalSold;
+        if (_totalSaleDays > 0)
+            dailyCapacity = capacityInfo.initialCapacity + (market.capacity / (_totalSaleDays-1));
+
+        if (_curWhatDays > 0)
+            currentCapacity = capacityInfo.initialCapacity + (market.capacity * (_curWhatDays-1) / (_totalSaleDays-1)) - capacityInfo.totalSold;
 
     }
 
     /// @inheritdoc IBondDepositoryV1_1
-    function saleDays(uint256 _marketId) public override view returns (uint256 totalSaleDays, uint256 passedDays) {
+    function saleDays(uint256 _marketId) public override view returns (uint256 totalSaleDays, uint256 curWhatDays) {
 
         LibBondDepositoryV1_1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
 
@@ -429,11 +437,13 @@ contract BondDepositoryV1_1 is
                     totalSaleDays++;
 
                 if (block.timestamp > capacityInfo.startTime && block.timestamp < market.endSaleTime ) {
-                    passedDays = (block.timestamp - capacityInfo.startTime) / capacityInfo.capacityUpdatePeriod;
-                    if (capacityInfo.capacityUpdatePeriod > 1 &&
-                        (block.timestamp - capacityInfo.startTime) % capacityInfo.capacityUpdatePeriod > 0) passedDays++;
+                    curWhatDays = (block.timestamp - capacityInfo.startTime) / capacityInfo.capacityUpdatePeriod;
+
+                    uint256 passedTime = (block.timestamp - capacityInfo.startTime) % capacityInfo.capacityUpdatePeriod ;
+                    if (capacityInfo.capacityUpdatePeriod > 1 && passedTime > 0) curWhatDays++;
                 }
             }
         }
     }
+
 }

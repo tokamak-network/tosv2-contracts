@@ -12,7 +12,7 @@ library LibBondDepositoryV1_1
         uint256 capacityUpdatePeriod;
         uint256 totalSold;
         bool availableBasicBond;
-        bool availableLockupBond;
+        bool availableStosBond;
         bool closed;
     }
 
