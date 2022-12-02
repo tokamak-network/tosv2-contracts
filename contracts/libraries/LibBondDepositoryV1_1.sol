@@ -7,7 +7,6 @@ library LibBondDepositoryV1_1
     // market capacity info
     struct CapacityInfo {
         uint256 startTime;
-        uint256 initialCapacity;
         uint256 initialMaxPayout;
         uint256 capacityUpdatePeriod;
         uint256 totalSold;

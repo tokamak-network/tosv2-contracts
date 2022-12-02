@@ -60,7 +60,6 @@ contract BondDepositoryV1_1 is
         address _token,
         uint256[4] calldata _market,
         uint256 _startTime,
-        uint256 _initialCapacity,
         uint256 _initialMaxPayout,
         uint256 _capacityUpdatePeriod,
         bool _availableBasicBond,
@@ -100,7 +99,6 @@ contract BondDepositoryV1_1 is
         marketCapacityInfos[id_] = LibBondDepositoryV1_1.CapacityInfo(
             {
                 startTime: _startTime,
-                initialCapacity: _initialCapacity,
                 initialMaxPayout: _initialMaxPayout,
                 capacityUpdatePeriod: _capacityUpdatePeriod,
                 totalSold: 0,
@@ -117,7 +115,6 @@ contract BondDepositoryV1_1 is
             _token,
             _market,
             _startTime,
-            _initialCapacity,
             _initialMaxPayout,
             _capacityUpdatePeriod,
             _availableBasicBond,
@@ -415,10 +412,10 @@ contract BondDepositoryV1_1 is
         LibBondDepositoryV1_1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
 
         if (_totalSaleDays > 0)
-            dailyCapacity = capacityInfo.initialCapacity + (market.capacity / (_totalSaleDays-1));
+            dailyCapacity = market.capacity / _totalSaleDays;
 
         if (_curWhatDays > 0)
-            currentCapacity = capacityInfo.initialCapacity + (market.capacity * (_curWhatDays-1) / (_totalSaleDays-1)) - capacityInfo.totalSold;
+            currentCapacity = market.capacity * _curWhatDays / _totalSaleDays - capacityInfo.totalSold;
 
     }
 

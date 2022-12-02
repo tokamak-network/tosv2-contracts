@@ -23,7 +23,6 @@ interface IBondDepositoryEventV1_1 {
     /// @param token                token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3
     /// @param market               [capacity of the market, market closing time, return on the deposit in TOS, maximum purchasable bond in TOS]
     /// @param startTime            start time
-    /// @param initialCapacity      initial capacity amount
     /// @param initialMaxPayout     initial max payout
     /// @param capacityUpdatePeriod capacity update period ( 1 real time, 60*60*24 one day, 60*60*24*7 one week )
     /// @param availableBasicBond   available basic bond
@@ -33,7 +32,6 @@ interface IBondDepositoryEventV1_1 {
         address token,
         uint256[4] market,
         uint256 startTime,
-        uint256 initialCapacity,
         uint256 initialMaxPayout,
         uint256 capacityUpdatePeriod,
         bool availableBasicBond,
