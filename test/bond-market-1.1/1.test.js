@@ -27,21 +27,7 @@ const TreasuryABI = require('../../artifacts/contracts/Treasury.sol/Treasury.jso
 let tosAdmin = "0x12a936026f072d4e97047696a9d11f97eae47d21";
 let TosV2Admin = "0x15280a52E79FD4aB35F4B9Acbb376DCD72b44Fd1";
 
-// let eventCreatedMarket ="CreatedMarket(uint256,address,uint256[4])";
-// let eventETHDeposited ="ETHDeposited(address,uint256,uint256,uint256,uint256)";
-// let eventETHDepositWithSTOS ="ETHDepositedWithSTOS(address,uint256,uint256,uint256,uint256,uint256)";
-// let eventDeposited ="Deposited(address,uint256,uint256,uint256,bool,uint256)";
-
-// let eventStakedGetStosByBond ="StakedGetStosByBond(address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)";
-
-// let eventStaked ="Staked(address,uint256,uint256)";
-// let eventStakedGetStos ="StakedGetStos(address,uint256,uint256,uint256,uint256,uint256)";
-// let eventIncreasedAmountForSimpleStake ="IncreasedAmountForSimpleStake(address,uint256,uint256)";
-// let eventResetStakedGetStosAfterLock ="ResetStakedGetStosAfterLock(address,uint256,uint256,uint256,uint256,uint256,uint256)";
-// let eventIncreasedBeforeEndOrNonEnd ="IncreasedBeforeEndOrNonEnd(address,uint256,uint256,uint256,uint256,uint256)";
-
 // test : https://docs.google.com/spreadsheets/d/1BozidTCxcwMT0wRcQrnIJkRMvE5xKZgDUF092fNPUpI/edit#gid=0
-
 
 describe("TOSv2 Bond Market V1.1", function () {
 
