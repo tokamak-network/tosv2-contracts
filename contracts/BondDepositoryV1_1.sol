@@ -30,7 +30,7 @@ contract BondDepositoryV1_1 is
     using SafeERC20 for IERC20;
 
     modifier nonEndMarket(uint256 id_) {
-        require(marketCapacityInfos[id_].startTime < block.timestamp, "no start time yet");
+        require(marketCapacityInfos[id_].startTime < block.timestamp, "Market is not opened yet");
         require(!marketCapacityInfos[id_].closed, "closed market");
         require(markets[id_].endSaleTime > block.timestamp, "BondDepository: closed market");
         require(markets[id_].capacity > marketCapacityInfos[id_].totalSold, "BondDepository: zero capacity" );
