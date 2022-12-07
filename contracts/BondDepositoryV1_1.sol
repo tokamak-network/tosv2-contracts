@@ -136,7 +136,7 @@ contract BondDepositoryV1_1 is
         if (_increaseFlag) _info.capacity += _increaseAmount;
         else {
             if (_increaseAmount <= (_info.capacity - _capacityInfo.totalSold) ) _info.capacity -= _increaseAmount;
-            else _info.capacity -= (_info.capacity - _capacityInfo.totalSold);
+            else _info.capacity = _capacityInfo.totalSold;
         }
 
         if ( (_info.capacity - _capacityInfo.totalSold) <= 100 ether ) {
