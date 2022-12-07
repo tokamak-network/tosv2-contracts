@@ -393,7 +393,7 @@ contract BondDepositoryV1_1 is
         LibBondDepositoryV1_1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
 
         if (_periodWeeks == 0) {
-            _maxPayoutPerLockUpPeriod = market.maxPayout;
+            _maxPayoutPerLockUpPeriod = capacityInfo.initialMaxPayout;
         } else {
             if(_periodWeeks > 156) _periodWeeks = 156;
             _maxPayoutPerLockUpPeriod = capacityInfo.initialMaxPayout + market.maxPayout * (_periodWeeks-1) / 155;
