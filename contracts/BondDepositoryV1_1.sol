@@ -415,7 +415,7 @@ contract BondDepositoryV1_1 is
             dailyCapacity = market.capacity / _totalSaleDays;
 
         if (_curWhatDays > 0)
-            currentCapacity = market.capacity * _curWhatDays / _totalSaleDays - capacityInfo.totalSold;
+            currentCapacity = dailyCapacity * _curWhatDays - capacityInfo.totalSold;
 
     }
 
