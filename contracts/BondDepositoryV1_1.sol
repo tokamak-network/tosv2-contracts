@@ -47,7 +47,7 @@ contract BondDepositoryV1_1 is
     modifier nonZeroPayout(uint256 id_) {
         require(
             markets[id_].maxPayout > 0,
-            "BondDepository: non-exist market"
+            "BondDepository: payout has to be greater than 0"
         );
         _;
     }
