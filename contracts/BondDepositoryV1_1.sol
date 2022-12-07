@@ -194,6 +194,7 @@ contract BondDepositoryV1_1 is
 
     /// @inheritdoc IBondDepositoryV1_1
     function close(uint256 _id) public override onlyPolicyOwner {
+        require(!marketCapacityInfos[_id].closed, "closed market");
         require(markets[_id].endSaleTime > 0, "empty market");
         require(markets[_id].endSaleTime > block.timestamp || markets[_id].capacity == 0, "already closed");
 
