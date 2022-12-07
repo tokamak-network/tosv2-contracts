@@ -23,9 +23,9 @@ interface IITreasury {
 contract BondDepositoryV1_1 is
     BondDepositoryStorage,
     ProxyAccessCommon,
+    BondDepositoryStorageV1_1,
     IBondDepositoryV1_1,
-    IBondDepositoryEventV1_1,
-    BondDepositoryStorageV1_1
+    IBondDepositoryEventV1_1
 {
     using SafeERC20 for IERC20;
 
@@ -326,7 +326,7 @@ contract BondDepositoryV1_1 is
             _capacities[i] = markets[_marketIds[i]].capacity;
             _endSaleTimes[i] = markets[_marketIds[i]].endSaleTime;
             _pricesTos[i] = markets[_marketIds[i]].tosPrice;
-            _capacityInfos[i] = marketCapacityInfos[i];
+            _capacityInfos[i] = marketCapacityInfos[_marketIds[i]];
         }
         return (_marketIds, _quoteTokens, _capacities, _endSaleTimes, _pricesTos, _capacityInfos);
     }
