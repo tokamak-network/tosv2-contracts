@@ -375,7 +375,7 @@ contract BondDepositoryV1_1 is
     )
         public override view returns (uint256 maximumAmount_)
     {
-        if (block.timestamp > marketCapacityInfos[_marketId].startTime && block.timestamp < markets[_marketId].endSaleTime) {
+        if (block.timestamp >= marketCapacityInfos[_marketId].startTime && block.timestamp < markets[_marketId].endSaleTime) {
             (, uint256 currentCapacity) = possibleMaxCapacity(_marketId);
             uint256 _maxPayoutPerLockUpPeriod = maxPayoutPerLockUpPeriod(_marketId, _periodWeeks);
             maximumAmount_ = Math.min(currentCapacity, _maxPayoutPerLockUpPeriod);
