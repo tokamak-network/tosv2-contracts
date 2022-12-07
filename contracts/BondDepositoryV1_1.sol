@@ -67,7 +67,6 @@ contract BondDepositoryV1_1 is
     )
         external override
         onlyPolicyOwner
-        nonZero(_market[0])
         nonZero(_market[2])
         nonZero(_market[3])
         nonZero(_startTime)
