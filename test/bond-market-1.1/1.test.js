@@ -425,7 +425,7 @@ describe("TOSv2 Bond Market V1.1", function () {
       expect(capacity[1]).to.be.equal(currentCapacity);
     })
 
-    it("#5-2. maximumPurchasableAmountAtOneTime : In the first round, lock-up weeks is 0, the smaller value of the currentCapacity and the set maxPayout is returned.", async () => {
+    it("#5-2. maximumPurchasableAmountAtOneTime : In the first round, lock-up weeks is 0, the smaller value of the currentCapacity and the set initialMaxPayout is returned.", async () => {
 
       let marketId = markets[markets.length-1].id ;
       let bondInfo = markets[markets.length-1].info ;
@@ -438,12 +438,12 @@ describe("TOSv2 Bond Market V1.1", function () {
       let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
-      let currentCapacity = bondInfo.market.capAmountOfTos.mul(days_[1]).div(days_[0])
 
-      if (currentCapacity.lt(bondInfo.market.purchasableTOSAmountAtOneTime) )
+      let currentCapacity = bondInfo.market.capAmountOfTos.mul(days_[1]).div(days_[0])
+      if (currentCapacity.lt(bondInfo.market.initialMaxPayout) )
         expect(maximumAmount).to.be.equal(currentCapacity);
       else
-        expect(maximumAmount).to.be.equal(bondInfo.market.purchasableTOSAmountAtOneTime);
+        expect(maximumAmount).to.be.equal(bondInfo.market.initialMaxPayout);
 
     })
 
@@ -514,7 +514,7 @@ describe("TOSv2 Bond Market V1.1", function () {
         0
       );
 
-      expect(payoutWeek0).to.be.equal(bondInfo.market.purchasableTOSAmountAtOneTime);
+      expect(payoutWeek0).to.be.equal(bondInfo.market.initialMaxPayout);
     })
 
     it("#4-2. maxPayoutPerLockUpPeriod", async () => {
@@ -708,7 +708,7 @@ describe("TOSv2 Bond Market V1.1", function () {
     it("#2-2. salePeriod : During the sales period, it is returned as 1 on the first cycle. ", async () => {
       let marketId = markets[markets.length-1].id ;
 
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDasalePeriodys(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
 
@@ -749,10 +749,10 @@ describe("TOSv2 Bond Market V1.1", function () {
       );
       let currentCapacity = bondInfo.market.capAmountOfTos.mul(days_[1]).div(days_[0])
 
-      if (currentCapacity.lt(bondInfo.market.purchasableTOSAmountAtOneTime) )
+      if (currentCapacity.lt(bondInfo.market.initialMaxPayout) )
         expect(maximumAmount).to.be.equal(currentCapacity);
       else
-        expect(maximumAmount).to.be.equal(bondInfo.market.purchasableTOSAmountAtOneTime);
+        expect(maximumAmount).to.be.equal(bondInfo.market.initialMaxPayout);
 
     })
 
@@ -822,7 +822,7 @@ describe("TOSv2 Bond Market V1.1", function () {
         0
       );
 
-      expect(payoutWeek0).to.be.equal(bondInfo.market.purchasableTOSAmountAtOneTime);
+      expect(payoutWeek0).to.be.equal(bondInfo.market.initialMaxPayout);
     })
 
     it("#4-2. maxPayoutPerLockUpPeriod", async () => {
