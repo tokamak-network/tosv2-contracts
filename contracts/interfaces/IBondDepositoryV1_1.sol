@@ -190,12 +190,12 @@ interface IBondDepositoryV1_1 {
     ) external view returns (uint256 dailyCapacity, uint256 currentCapacity);
 
 
-    /// @dev                        calculate the sale days
-    /// @param _marketId            market id
-    /// @return totalSaleDays       the total sale days
-    /// @return curWhatDays         what days
-    function saleDays(
+    /// @dev                            calculate the sale periods
+    /// @param _marketId                market id
+    /// @return numberOfPeriods         number of periods
+    /// @return numberOfPeriodsPassed   number of periods passed
+    function salePeriod(
         uint256 _marketId
-    ) external view returns (uint256 totalSaleDays, uint256 curWhatDays);
+    ) external view returns (uint256 numberOfPeriods, uint256 numberOfPeriodsPassed);
 
 }

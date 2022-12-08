@@ -352,11 +352,11 @@ describe("TOSv2 Bond Market V1.1", function () {
 
   describe("#2~8. bondDepositoryV1_1 : VIEW FUNCTIONS", async () => {
 
-    it("#2-1. saleDays : Before the start time, the 0th day is returned.", async () => {
+    it("#2-1. salePeriod : Before the start time, the 0th day is returned.", async () => {
 
       let marketId = markets[markets.length-1].id ;
 
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
 
@@ -396,10 +396,10 @@ describe("TOSv2 Bond Market V1.1", function () {
       ethers.provider.send("evm_mine")
     });
 
-    it("#2-2. saleDays : During the sales period, it is returned as 1 on the first cycle. ", async () => {
+    it("#2-2. salePeriod : During the sales period, it is returned as 1 on the first cycle. ", async () => {
       let marketId = markets[markets.length-1].id ;
 
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
 
@@ -411,7 +411,7 @@ describe("TOSv2 Bond Market V1.1", function () {
       let marketId = markets[markets.length-1].id ;
       let bondInfo = markets[markets.length-1].info ;
 
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
       expect(days_[1]).to.be.equal(ethers.constants.One);
@@ -435,7 +435,7 @@ describe("TOSv2 Bond Market V1.1", function () {
         0
       );
 
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
       let currentCapacity = bondInfo.market.capAmountOfTos.mul(days_[1]).div(days_[0])
@@ -456,7 +456,7 @@ describe("TOSv2 Bond Market V1.1", function () {
         marketId,
         1
       );
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
       let currentCapacity = bondInfo.market.capAmountOfTos.mul(days_[1]).div(days_[0])
@@ -474,10 +474,10 @@ describe("TOSv2 Bond Market V1.1", function () {
       ethers.provider.send("evm_mine")
     });
 
-    it("#2-3. saleDays : During the sales period, it returns to 2 for the second cycle.", async () => {
+    it("#2-3. salePeriod : During the sales period, it returns to 2 for the second cycle.", async () => {
       let marketId = markets[markets.length-1].id ;
 
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
 
@@ -489,7 +489,7 @@ describe("TOSv2 Bond Market V1.1", function () {
       let marketId = markets[markets.length-1].id ;
       let bondInfo = markets[markets.length-1].info ;
 
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
 
@@ -661,11 +661,11 @@ describe("TOSv2 Bond Market V1.1", function () {
 
   describe("#2~8. bondDepositoryV1_1 : VIEW FUNCTIONS", async () => {
 
-    it("#2-1. saleDays : Before the start time, the 0th day is returned.", async () => {
+    it("#2-1. salePeriod : Before the start time, the 0th day is returned.", async () => {
 
       let marketId = markets[markets.length-1].id ;
 
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
 
@@ -705,10 +705,10 @@ describe("TOSv2 Bond Market V1.1", function () {
       ethers.provider.send("evm_mine")
     });
 
-    it("#2-2. saleDays : During the sales period, it is returned as 1 on the first cycle. ", async () => {
+    it("#2-2. salePeriod : During the sales period, it is returned as 1 on the first cycle. ", async () => {
       let marketId = markets[markets.length-1].id ;
 
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).saleDasalePeriodys(
         marketId
       );
 
@@ -720,7 +720,7 @@ describe("TOSv2 Bond Market V1.1", function () {
       let marketId = markets[markets.length-1].id ;
       let bondInfo = markets[markets.length-1].info ;
 
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
       expect(days_[1]).to.be.equal(ethers.constants.One);
@@ -744,7 +744,7 @@ describe("TOSv2 Bond Market V1.1", function () {
         0
       );
 
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
       let currentCapacity = bondInfo.market.capAmountOfTos.mul(days_[1]).div(days_[0])
@@ -765,7 +765,7 @@ describe("TOSv2 Bond Market V1.1", function () {
         marketId,
         1
       );
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
       let currentCapacity = bondInfo.market.capAmountOfTos.mul(days_[1]).div(days_[0])
@@ -783,10 +783,10 @@ describe("TOSv2 Bond Market V1.1", function () {
       ethers.provider.send("evm_mine")
     });
 
-    it("#2-3. saleDays : During the sales period, it returns to 2 for the second cycle.", async () => {
+    it("#2-3. salePeriod : During the sales period, it returns to 2 for the second cycle.", async () => {
       let marketId = markets[markets.length-1].id ;
 
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
 
@@ -798,7 +798,7 @@ describe("TOSv2 Bond Market V1.1", function () {
       let marketId = markets[markets.length-1].id ;
       let bondInfo = markets[markets.length-1].info ;
 
-      let days_ = await bondDepository.connect(_TosV2Admin).saleDays(
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
         marketId
       );
       expect(days_[1]).to.be.equal(ethers.constants.Two);

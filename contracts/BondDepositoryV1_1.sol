@@ -406,21 +406,21 @@ contract BondDepositoryV1_1 is
     )
         public override view returns (uint256 dailyCapacity, uint256 currentCapacity)
     {
-        (uint256 _totalSaleDays, uint256 _curWhatDays) = saleDays(_marketId);
+        (uint256 _numberOfPeriods, uint256 _numberOfPeriodsPassed) = salePeriod(_marketId);
 
         LibBondDepository.Market memory market = markets[_marketId];
         LibBondDepositoryV1_1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
 
-        if (_totalSaleDays > 0)
-            dailyCapacity = market.capacity / _totalSaleDays;
+        if (_numberOfPeriods > 0)
+            dailyCapacity = market.capacity / _numberOfPeriods;
 
-        if (_curWhatDays > 0)
-            currentCapacity = dailyCapacity * _curWhatDays - capacityInfo.totalSold;
+        if (_numberOfPeriodsPassed > 0)
+            currentCapacity = dailyCapacity * _numberOfPeriodsPassed - capacityInfo.totalSold;
 
     }
 
     /// @inheritdoc IBondDepositoryV1_1
-    function saleDays(uint256 _marketId) public override view returns (uint256 totalSaleDays, uint256 curWhatDays) {
+    function salePeriod(uint256 _marketId) public override view returns (uint256 numberOfPeriods, uint256 numberOfPeriodsPassed) {
 
         LibBondDepositoryV1_1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
 
@@ -429,15 +429,15 @@ contract BondDepositoryV1_1 is
 
             if (market.endSaleTime > capacityInfo.startTime){
                 uint256 periodSeconds = market.endSaleTime - capacityInfo.startTime;
-                totalSaleDays = periodSeconds /  capacityInfo.capacityUpdatePeriod;
+                numberOfPeriods = periodSeconds /  capacityInfo.capacityUpdatePeriod;
                 if (capacityInfo.capacityUpdatePeriod > 1 && periodSeconds % capacityInfo.capacityUpdatePeriod > 0)
-                    totalSaleDays++;
+                    numberOfPeriods++;
 
                 if (block.timestamp > capacityInfo.startTime && block.timestamp < market.endSaleTime ) {
-                    curWhatDays = (block.timestamp - capacityInfo.startTime) / capacityInfo.capacityUpdatePeriod;
+                    numberOfPeriodsPassed = (block.timestamp - capacityInfo.startTime) / capacityInfo.capacityUpdatePeriod;
 
                     uint256 passedTime = (block.timestamp - capacityInfo.startTime) % capacityInfo.capacityUpdatePeriod ;
-                    if (capacityInfo.capacityUpdatePeriod > 1 && passedTime > 0) curWhatDays++;
+                    if (capacityInfo.capacityUpdatePeriod > 1 && passedTime > 0) numberOfPeriodsPassed++;
                 }
             }
         }
