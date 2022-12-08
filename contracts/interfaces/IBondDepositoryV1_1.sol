@@ -183,11 +183,11 @@ interface IBondDepositoryV1_1 {
 
     /// @dev                        calculate the possible max capacity
     /// @param _marketId            market id
-    /// @return dailyCapacity       the daily capacity
+    /// @return periodicCapacity    the periodic capacity
     /// @return currentCapacity     the current capacity
     function possibleMaxCapacity(
         uint256 _marketId
-    ) external view returns (uint256 dailyCapacity, uint256 currentCapacity);
+    ) external view returns (uint256 periodicCapacity, uint256 currentCapacity);
 
 
     /// @dev                            calculate the sale periods

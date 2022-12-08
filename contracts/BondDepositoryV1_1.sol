@@ -404,7 +404,7 @@ contract BondDepositoryV1_1 is
     function possibleMaxCapacity (
         uint256 _marketId
     )
-        public override view returns (uint256 dailyCapacity, uint256 currentCapacity)
+        public override view returns (uint256 periodicCapacity, uint256 currentCapacity)
     {
         (uint256 _numberOfPeriods, uint256 _numberOfPeriodsPassed) = salePeriod(_marketId);
 
@@ -412,10 +412,10 @@ contract BondDepositoryV1_1 is
         LibBondDepositoryV1_1.CapacityInfo memory capacityInfo = marketCapacityInfos[_marketId];
 
         if (_numberOfPeriods > 0)
-            dailyCapacity = market.capacity / _numberOfPeriods;
+            periodicCapacity = market.capacity / _numberOfPeriods;
 
         if (_numberOfPeriodsPassed > 0)
-            currentCapacity = dailyCapacity * _numberOfPeriodsPassed - capacityInfo.totalSold;
+            currentCapacity = periodicCapacity * _numberOfPeriodsPassed - capacityInfo.totalSold;
 
     }
 
