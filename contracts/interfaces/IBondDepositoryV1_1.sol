@@ -81,6 +81,12 @@ interface IBondDepositoryV1_1 {
      */
     function close(uint256 _id) external;
 
+     /**
+     * @dev             change remaining TOS tolerance
+     * @param _amount   tolerance
+     */
+    function changeRemainingTosTolerance(uint256 _amount) external;
+
     ///////////////////////////////////////
     /// Anyone can use.
     //////////////////////////////////////

@@ -7,5 +7,5 @@ contract BondDepositoryStorageV1_1 {
 
     /// marketId - CapacityInfo
     mapping(uint256 => LibBondDepositoryV1_1.CapacityInfo) marketCapacityInfos;
-
+    uint256 public remainingTosTolerance;
 }

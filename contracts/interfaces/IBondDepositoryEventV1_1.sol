@@ -43,6 +43,10 @@ interface IBondDepositoryEventV1_1 {
     /// @param marketId market id
     event ClosedMarket(uint256 marketId);
 
+    /// @dev            this event occurs when change remaining TOS tolerance
+    /// @param amount   amount
+    event ChangedRemainingTosTolerance(uint256 amount);
+
     /// @dev                  this event occurs when a user bonds with ETH
     /// @param user           user account
     /// @param marketId       market id

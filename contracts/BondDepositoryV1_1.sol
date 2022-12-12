@@ -78,7 +78,9 @@ contract BondDepositoryV1_1 is
             ), "invalid capacityUpdatePeriod");
         require(_availableBasicBond || _availableStosBond, "both false _availableBasicBond & _availableStosBond");
 
-        require(_market[0] > 100 ether, "need the totalSaleAmount > 100");
+        if (remainingTosTolerance == 0) remainingTosTolerance = 100 ether;
+
+        require(_market[0] > remainingTosTolerance, "Insufficient sales quota");
         require(_market[1] > _startTime && _market[1] > block.timestamp, "invalid endSaleTime");
 
         id_ = staking.generateMarketId();
@@ -121,7 +123,7 @@ contract BondDepositoryV1_1 is
             );
     }
 
-     /// @inheritdoc IBondDepositoryV1_1
+    /// @inheritdoc IBondDepositoryV1_1
     function changeCapacity(
         uint256 _marketId,
         bool _increaseFlag,
@@ -138,8 +140,8 @@ contract BondDepositoryV1_1 is
             if (_increaseAmount <= (_info.capacity - _capacityInfo.totalSold) ) _info.capacity -= _increaseAmount;
             else _info.capacity = _capacityInfo.totalSold;
         }
-
-        if ( (_info.capacity - _capacityInfo.totalSold) <= 100 ether ) {
+        if (remainingTosTolerance == 0) remainingTosTolerance = 100 ether;
+        if ( (_info.capacity - _capacityInfo.totalSold) <= remainingTosTolerance ) {
             _capacityInfo.closed = true;
             emit ClosedMarket(_marketId);
         }
@@ -202,6 +204,19 @@ contract BondDepositoryV1_1 is
         _capacityInfo.closed = true;
         emit ClosedMarket(_id);
     }
+
+    /// @inheritdoc IBondDepositoryV1_1
+    function changeRemainingTosTolerance(
+        uint256 _amount
+    )   external override onlyPolicyOwner
+    {
+        require(remainingTosTolerance != _amount, "same amount");
+
+        remainingTosTolerance = _amount;
+
+        emit ChangedRemainingTosTolerance(_amount);
+    }
+
 
     ///////////////////////////////////////
     /// Anyone can use.
@@ -286,8 +301,10 @@ contract BondDepositoryV1_1 is
         LibBondDepositoryV1_1.CapacityInfo storage capacityInfo = marketCapacityInfos[_marketId];
         capacityInfo.totalSold += _payout;
 
+        if (remainingTosTolerance == 0) remainingTosTolerance = 100 ether;
+
         //check closing
-        if (market.capacity - capacityInfo.totalSold <= 100 ether) {
+        if (market.capacity - capacityInfo.totalSold <= remainingTosTolerance) {
            capacityInfo.closed = true;
            emit ClosedMarket(_marketId);
         }
