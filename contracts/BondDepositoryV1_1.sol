@@ -141,7 +141,7 @@ contract BondDepositoryV1_1 is
             else _info.capacity = _capacityInfo.totalSold;
         }
         if (remainingTosTolerance == 0) remainingTosTolerance = 100 ether;
-        if ( (_info.capacity - _capacityInfo.totalSold) <= remainingTosTolerance ) {
+        if ((_info.capacity - _capacityInfo.totalSold) <= remainingTosTolerance) {
             _capacityInfo.closed = true;
             emit ClosedMarket(_marketId);
         }
@@ -432,8 +432,8 @@ contract BondDepositoryV1_1 is
         if (_numberOfPeriods > 0)
             periodicCapacity = market.capacity / _numberOfPeriods;
 
-        if (_numberOfPeriodsPassed > 0)
-            currentCapacity = periodicCapacity * _numberOfPeriodsPassed - capacityInfo.totalSold;
+        if (_numberOfPeriodsPassed > 0 && periodicCapacity * _numberOfPeriodsPassed > capacityInfo.totalSold)
+                currentCapacity = periodicCapacity * _numberOfPeriodsPassed - capacityInfo.totalSold;
 
     }
 
