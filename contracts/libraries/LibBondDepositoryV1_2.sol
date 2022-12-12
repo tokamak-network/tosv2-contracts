@@ -4,7 +4,8 @@ pragma solidity ^0.8.4;
 /// @title LibBondDepositoryV1_2
 library LibBondDepositoryV1_2
 {
-    // market liquidity pool info
+
+    // market liquidity token info
     struct LiquidityTokenInfo {
         address token0;
         address token1;
