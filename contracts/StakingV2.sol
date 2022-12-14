@@ -308,7 +308,7 @@ contract StakingV2 is
         if (lockId > 0) _closeEndTimeOfLockTos(msg.sender, _stakeId, lockId, _stakeInfo.endTime);
         else require(_stakeInfo.endTime < block.timestamp, "lock end time has not passed");
 
-        (uint256 stosEpochUnit, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
+        (, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
 
         rebaseIndex();
 
@@ -333,7 +333,11 @@ contract StakingV2 is
         uint256 stakeId = _stakeId;
 
         if (_periodWeeks > 0) {
-            (stosId, stosPrincipal) = _createStos(stakeId, msg.sender, stakedAmount + _addAmount, _periodWeeks, stosEpochUnit);
+
+            stosPrincipal = LibStaking.compound(stakedAmount + _addAmount, rebasePerEpoch, (unlockTime - block.timestamp) / epoch.length_);
+            stosId = ILockTosV2(lockTOS).createLockByStaker(msg.sender, stosPrincipal, _periodWeeks);
+            require(stosId > 0, "zero stosId");
+
             connectId[stakeId] = stosId;
         }
 
@@ -368,7 +372,7 @@ contract StakingV2 is
         uint256 _claimTosAmount = 0;
         if (_relockLtosAmount < _stakeInfo.ltos) _claimTosAmount = getLtosToTos(_stakeInfo.ltos - _relockLtosAmount);
 
-        (uint256 stosEpochUnit, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
+        (, uint256 unlockTime) = getUnlockTime(lockTOS, block.timestamp, _periodWeeks) ;
         if (_periodWeeks == 0)  unlockTime = _stakeInfo.endTime;
 
         if (_addTosAmount > 0)  tos.safeTransferFrom(msg.sender, treasury, _addTosAmount);
@@ -392,7 +396,11 @@ contract StakingV2 is
         uint256 stakeId = _stakeId;
 
         if (_periodWeeks > 0) {
-            (stosId, stosPrincipal) = _createStos(stakeId, msg.sender, _stakeInfo.deposit, _periodWeeks, stosEpochUnit);
+
+            stosPrincipal = LibStaking.compound(_stakeInfo.deposit, rebasePerEpoch, (unlockTime - block.timestamp) / epoch.length_);
+            stosId = ILockTosV2(lockTOS).createLockByStaker(msg.sender, stosPrincipal, _periodWeeks);
+            require(stosId > 0, "zero stosId");
+
             connectId[stakeId] = stosId;
         }
 
