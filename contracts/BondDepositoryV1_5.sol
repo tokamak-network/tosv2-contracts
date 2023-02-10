@@ -362,15 +362,16 @@ contract BondDepositoryV1_5 is
     function _deposit(
         address user,
         uint256 _amount,
-        uint256 _maximumPayablePrice,
+        uint256 _minimumTosPrice,
         uint256 _marketId,
         uint8 _lockWeeks
     ) internal nonReentrant returns (uint256 _payout, uint256 bondingPrice) {
 
         LibBondDepository.Market memory market = markets[_marketId];
+        (uint256 basePrice, , uint256 uniswapPrice) = getBasePrice(_marketId);
+        require(uniswapPrice >= _minimumTosPrice, "The uniswap swap amount is greater than the minimum amount.");
 
-        (bondingPrice, , , ) = getBondingPrice(_marketId, _lockWeeks);
-        require(bondingPrice <= _maximumPayablePrice, "The bonding price is greater than the maximum payable amount.");
+        bondingPrice = getBondingPrice(_marketId, _lockWeeks, basePrice);
 
         _payout = (_amount *  1e18 / bondingPrice);
         require(_payout + marketInfos[_marketId].totalSold <= market.capacity, "sales volume is lacking");
@@ -473,12 +474,10 @@ contract BondDepositoryV1_5 is
             && markets[_marketId].capacity > (marketInfos[_marketId].totalSold + remainingTosTolerance));
     }
 
-    function getBondingPrice(uint256 _marketId, uint8 _lockWeeks)
+    function getBondingPrice(uint256 _marketId, uint8 _lockWeeks, uint256 basePrice)
         public override view
-        returns (uint256 bondingPrice, uint256 basePrice, uint256 lowerPriceLimit, uint256 uniswapPrice)
+        returns (uint256 bondingPrice)
     {
-        (basePrice, lowerPriceLimit, uniswapPrice) = getBasePrice(_marketId);
-
         if (basePrice > 0 && _lockWeeks > 0) {
             LibBondDepositoryV1_5.DiscountRateInfo memory discountInfo = discountRateInfos[_marketId];
             if (discountInfo.discountRatesAddress != address(0) && discountInfo.discountRatesId != 0) {

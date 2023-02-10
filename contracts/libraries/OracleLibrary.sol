@@ -64,4 +64,5 @@ library OracleLibrary {
                 : FullMath.mulDiv(1 << 128, baseAmount, ratioX128);
         }
     }
+
 }

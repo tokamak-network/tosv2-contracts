@@ -197,13 +197,11 @@ interface IBondDepositoryV1_5 {
     /// @dev                    get bonding price
     /// @param _marketId        market id
     /// @param _lockWeeks       lock weeks
+    /// @param basePrice       base price
     /// @return bondingPrice    bonding price
-    /// @return basePrice       base price
-    /// @return lowerPriceLimit lower price limit
-    /// @return uniswapPrice    uniswap price
-    function getBondingPrice(uint256 _marketId, uint8 _lockWeeks)
+    function getBondingPrice(uint256 _marketId, uint8 _lockWeeks, uint256 basePrice)
         external view
-        returns (uint256 bondingPrice, uint256 basePrice, uint256 lowerPriceLimit, uint256 uniswapPrice);
+        returns (uint256 bondingPrice);
 
 
     /// @dev                    get base price
