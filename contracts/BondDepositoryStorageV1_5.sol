@@ -12,4 +12,7 @@ contract BondDepositoryStorageV1_5 {
     /// marketId - MarketInfo
     mapping(uint256 => LibBondDepositoryV1_5.MarketInfo) marketInfos;
 
+    /// marketId - DiscountRateInfo
+    mapping(uint256 => LibBondDepositoryV1_5.DiscountRateInfo) discountRateInfos;
+
 }

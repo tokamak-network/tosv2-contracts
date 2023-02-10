@@ -21,17 +21,26 @@ interface IBondDepositoryEventV1_5 {
     /// @dev                        this event occurs when a specific market product is created
     /// @param marketId             market id
     /// @param token                token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3
-    /// @param capacity             capacity of the market
-    /// @param lowerPriceLimit     lowerPriceLimit
+    /// @param marketInfos          [capacity, maxPayout, lowerPriceLimit, initialMaxPayout, capacityUpdatePeriod]
+    ///                             capacity            capacity of the market
+    ///                             maxPayout           maximum purchasable bond in TOS
+    ///                             lowerPriceLimit     lowerPriceLimit
+    ///                             initialMaxPayout    initial max payout
+    ///                             capacityUpdatePeriod capacity update period(seconds)
+    /// @param discountRatesAddress discountRates logic address
+    /// @param discountRatesId      discountRates id
     /// @param startTime            start time
     /// @param endTime              market closing time
+    /// @param pools                pool addresses for calculating the pricing
     event CreatedMarket(
         uint256 marketId,
         address token,
-        uint256 capacity,
-        uint256 lowerPriceLimit,
-        int16 startTime,
-        int16 endTime
+        uint256[5] marketInfos,
+        address discountRatesAddress,
+        uint256 discountRatesId,
+        uint32 startTime,
+        uint32 endTime,
+        address[] pools
         );
 
 
@@ -43,23 +52,24 @@ interface IBondDepositoryEventV1_5 {
     /// @param amount   amount
     event ChangedRemainingTosTolerance(uint256 amount);
 
-    /// @dev                  this event occurs when a user bonds with ETH
-    /// @param user           user account
-    /// @param marketId       market id
-    /// @param stakeId        stake id
-    /// @param amount         amount of deposit in ETH
-    /// @param lockWeeks      number of weeks to locking
-    /// @param tosValuation   amount of TOS earned by the user
-    event ETHDepositedWithoutStos(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint8 lockWeeks, uint256 tosValuation);
+    /// @dev                        this event occurs when a user bonds with ETH
+    /// @param user                 user account
+    /// @param marketId             market id
+    /// @param stakeId              stake id
+    /// @param amount               amount of deposit in ETH
+    /// @param maximumPayablePrice  the maximum price (per TOS) the user is willing to pay for bonding
+    /// @param tosValuation         amount of TOS earned by the user
+    event ETHDeposited(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint256 maximumPayablePrice, uint256 tosValuation);
 
-    /// @dev                  this event occurs when a user bonds with ETH and earns sTOS
-    /// @param user           user account
-    /// @param marketId       market id
-    /// @param stakeId        stake id
-    /// @param amount         amount of deposit in ETH
-    /// @param lockWeeks      number of weeks to locking
-    /// @param tosValuation   amount of TOS earned by the user
-    event ETHDepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint8 lockWeeks, uint256 tosValuation);
+    /// @dev                        this event occurs when a user bonds with ETH and earns sTOS
+    /// @param user                 user account
+    /// @param marketId             market id
+    /// @param stakeId              stake id
+    /// @param amount               amount of deposit in ETH
+    /// @param maximumPayablePrice  the maximum price (per TOS) the user is willing to pay for bonding
+    /// @param lockWeeks            number of weeks to locking
+    /// @param tosValuation         amount of TOS earned by the user
+    event ETHDepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint256 maximumPayablePrice, uint8 lockWeeks, uint256 tosValuation);
 
     /// @dev                   this event occurs when the market capacity is changed
     /// @param _marketId       market id
@@ -81,6 +91,10 @@ interface IBondDepositoryEventV1_5 {
     /// @param _marketId market id
     /// @param _tosPrice amount of TOS per 1 ETH
     event ChangedPrice(uint256 _marketId, uint256 _tosPrice);
+
+    /// @dev            this event occurs when oracle library is changed
+    /// @param oralceLibrary oralceLibrary address
+    event ChangedOracleLibrary(address oralceLibrary);
 
     /// @dev             this event occurs when the maxPayout is updated
     /// @param _marketId market id

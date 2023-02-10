@@ -13,11 +13,16 @@ library LibBondDepositoryV1_5
     struct MarketInfo {
         uint8 bondType;
         uint32 startTime;
-        bool availableBasicBond;
-        bool availableStosBond;
         bool closed;
+        uint256 initialMaxPayout;
+        uint256 capacityUpdatePeriod;
         uint256 totalSold;
         address[] pools;
+    }
+
+    struct DiscountRateInfo {
+        address discountRatesAddress;
+        uint256 discountRatesId;
     }
 
     function calculateTosAmountForAsset(
@@ -40,5 +45,7 @@ library LibBondDepositoryV1_5
     {
         return ( _maxPayout * 1e18 / _tosPrice );
     }
+
+
 
 }
