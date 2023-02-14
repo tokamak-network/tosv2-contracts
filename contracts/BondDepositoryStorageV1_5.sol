@@ -6,6 +6,7 @@ import "./libraries/LibBondDepositoryV1_5.sol";
 contract BondDepositoryStorageV1_5 {
     uint256 public remainingTosTolerance;
     address public oracleLibrary;
+    address public uniswapFactory;
     uint32 public oracleConsultPeriod;
     uint8 public maxLockupWeeks;
 
@@ -14,5 +15,8 @@ contract BondDepositoryStorageV1_5 {
 
     /// marketId - DiscountRateInfo
     mapping(uint256 => LibBondDepositoryV1_5.DiscountRateInfo) discountRateInfos;
+
+    /// marketId - PricePathInfo
+    mapping(uint256 => bytes[]) pricePathInfos;
 
 }

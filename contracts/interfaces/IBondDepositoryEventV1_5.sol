@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.4;
+import "../libraries/LibBondDepositoryV1_5.sol";
 
 interface IBondDepositoryEventV1_5 {
 
@@ -31,7 +32,7 @@ interface IBondDepositoryEventV1_5 {
     /// @param discountRatesId      discountRates id
     /// @param startTime            start time
     /// @param endTime              market closing time
-    /// @param pools                pool addresses for calculating the pricing
+    /// @param pathes               pathes
     event CreatedMarket(
         uint256 marketId,
         address token,
@@ -40,7 +41,7 @@ interface IBondDepositoryEventV1_5 {
         uint256 discountRatesId,
         uint32 startTime,
         uint32 endTime,
-        address[] pools
+        bytes[] pathes
         );
 
 
@@ -82,15 +83,21 @@ interface IBondDepositoryEventV1_5 {
     /// @param closeTime new close time
     event ChangedCloseTime(uint256 _marketId, uint256 closeTime);
 
-    /// @dev             this event occurs when the maxPayout is updated
-    /// @param _marketId market id
-    /// @param _amount   maxPayout
-    event ChangedMaxPayout(uint256 _marketId, uint256 _amount);
+    /// @dev                            this event occurs when the discount rate info is updated
+    /// @param _marketId                market id
+    /// @param discountRatesAddress     discount rates address
+    /// @param discountRatesId          discount rates id
+    event ChangedDiscountRateInfo(uint256 _marketId, address discountRatesAddress, uint256 discountRatesId);
+
+    /// @dev                            this event occurs when the price path info is updated
+    /// @param _marketId                market id
+    /// @param pathes                   price path
+    event ChangedPricePathInfo(uint256 _marketId, bytes[] pathes);
 
     /// @dev             this event occurs when the maxPayout is updated
     /// @param _marketId market id
     /// @param _tosPrice amount of TOS per 1 ETH
-    event ChangedPrice(uint256 _marketId, uint256 _tosPrice);
+    event ChangedLowerPriceLimit(uint256 _marketId, uint256 _tosPrice);
 
     /// @dev            this event occurs when oracle library is changed
     /// @param oralceLibrary oralceLibrary address

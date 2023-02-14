@@ -25,6 +25,7 @@ let deployed = {
     TreasuryProxy: "0xD27A68a457005f822863199Af0F817f672588ad6"
   }
 
+  /// https://docs.uniswap.org/contracts/v3/reference/deployments
 let uniswapInfo_mainnet  = {
     poolfactory: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
     npm: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
@@ -41,7 +42,11 @@ let uniswapInfo_mainnet  = {
     NonfungibleTokenPositionDescriptor: "0x91ae842A5Ffd8d12023116943e72A606179294f3",
     UniswapV3Staker: "0xe34139463bA50bD61336E0c446Bd8C0867c6fE65",
     ton: "0x2be5e8c109e2197D077D13A82dAead6a9b3433C5",
-    lockTOSaddr: "0x69b4A202Fa4039B42ab23ADB725aA7b1e9EEBD79"
+    lockTOSaddr: "0x69b4A202Fa4039B42ab23ADB725aA7b1e9EEBD79",
+    Quoter: "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6",
+    QuoterV2: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
+    Multicall2: "0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696"
+
 }
 
 let networkName = "mainnet";

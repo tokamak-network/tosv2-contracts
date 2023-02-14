@@ -11,7 +11,7 @@ import "./interfaces/IBondDepositoryV1_5.sol";
 import "./interfaces/IBondDepositoryEventV1_5.sol";
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 interface IITreasury {
     function getMintRate() external view returns (uint256);
@@ -21,12 +21,17 @@ interface IITreasury {
 
 interface IIOracleLibrary {
     function consult(address pool, uint32 period) external view returns (int24 timeWeightedAverageTick) ;
+
     function getQuoteAtTick(
         int24 tick,
         uint128 baseAmount,
         address baseToken,
         address quoteToken
     ) external pure returns (uint256 quoteAmount);
+
+    function getOutAmounts(address factory, bytes memory _path, uint256 _amountIn, uint32 oracleConsultPeriod)
+        external view returns (uint256 amountOut);
+
 }
 
 interface IIDiscountRateLockUpMap {
@@ -103,7 +108,7 @@ contract BondDepositoryV1_5 is
         uint256 _discountRatesId,
         uint32 _startTime,
         uint32 _endTime,
-        address[] calldata pools
+        bytes[] calldata _pathes
     )
         external override
         onlyPolicyOwner
@@ -143,8 +148,7 @@ contract BondDepositoryV1_5 is
                 closed: false,
                 initialMaxPayout: _marketInfos[3],
                 capacityUpdatePeriod: _marketInfos[4],
-                totalSold: 0,
-                pools: pools
+                totalSold: 0
             }
         );
 
@@ -157,6 +161,13 @@ contract BondDepositoryV1_5 is
             );
         }
 
+        if (_pathes.length != 0) {
+            pricePathInfos[id_] = new bytes[](_pathes.length);
+            for (uint256 i = 0; i < _pathes.length; i++){
+                pricePathInfos[id_].push(_pathes[i]);
+            }
+        }
+
         if (_token != address(0)) IITreasury(treasury).addBondAsset(_token);
 
         emit CreatedMarket(
@@ -167,7 +178,7 @@ contract BondDepositoryV1_5 is
             _discountRatesId,
             _startTime,
             _endTime,
-            pools
+            _pathes
             );
     }
 
@@ -213,21 +224,7 @@ contract BondDepositoryV1_5 is
     }
 
     /// @inheritdoc IBondDepositoryV1_5
-    function changeMaxPayout(
-        uint256 _marketId,
-        uint256 _amount
-    )   external override onlyPolicyOwner
-        nonEndMarket(_marketId)
-        nonZero(_amount)
-    {
-        LibBondDepository.Market storage _info = markets[_marketId];
-        _info.maxPayout = _amount;
-
-        emit ChangedMaxPayout(_marketId, _amount);
-    }
-
-    /// @inheritdoc IBondDepositoryV1_5
-    function changePrice(
+    function changeLowerPriceLimit(
         uint256 _marketId,
         uint256 _tosPrice
     )   external override onlyPolicyOwner
@@ -237,10 +234,10 @@ contract BondDepositoryV1_5 is
         LibBondDepository.Market storage _info = markets[_marketId];
         _info.tosPrice = _tosPrice;
 
-        emit ChangedPrice(_marketId, _tosPrice);
+        emit ChangedLowerPriceLimit(_marketId, _tosPrice);
     }
 
-     /// @inheritdoc IBondDepositoryV1_5
+    /// @inheritdoc IBondDepositoryV1_5
     function changeOracleLibrary(
         address _oralceLibrary
     )   external override onlyPolicyOwner
@@ -252,28 +249,56 @@ contract BondDepositoryV1_5 is
         emit ChangedOracleLibrary(_oralceLibrary);
     }
 
+    /// @inheritdoc IBondDepositoryV1_5
+    function changeDiscountRateInfo(
+        uint256 _marketId,
+        address _discountRatesAddress,
+        uint256 _discountRatesId
+    )   external override onlyPolicyOwner
+        nonEndMarket(_marketId)
+        nonZeroAddress(_discountRatesAddress)
+        nonZero(_discountRatesId)
+    {
+
+        require(
+            !(discountRateInfos[_marketId].discountRatesAddress == _discountRatesAddress
+            && discountRateInfos[_marketId].discountRatesId == _discountRatesId),
+            "same info");
+
+        discountRateInfos[_marketId] = LibBondDepositoryV1_5.DiscountRateInfo(
+            {
+                discountRatesAddress: _discountRatesAddress,
+                discountRatesId: _discountRatesId
+            }
+        );
+
+        emit ChangedDiscountRateInfo(_marketId, _discountRatesAddress, _discountRatesId);
+    }
+
 
     /// @inheritdoc IBondDepositoryV1_5
-    function changePools(
+    function changePricePathInfo(
         uint256 _marketId,
-        address[] calldata _pools
+        bytes[] memory pathes
     )   external override onlyPolicyOwner
         nonEndMarket(_marketId)
     {
-        LibBondDepositoryV1_5.MarketInfo storage _info = marketInfos[_marketId];
-
-        if (_info.pools.length > 0) {
-            delete _info.pools;
+        if (pricePathInfos[_marketId].length != 0) {
+            for (uint256 i = (pricePathInfos[_marketId].length-1); i > 0 ; i--){
+                pricePathInfos[_marketId].pop();
+            }
+            pricePathInfos[_marketId].pop();
+            delete pricePathInfos[_marketId];
         }
 
-        if (_pools.length > 0) {
-            _info.pools = new address[](_pools.length);
-            for (uint256 i = 0; i < _pools.length; i++){
-                _info.pools[i] = _pools[i];
+        if (pathes.length != 0) {
+            pricePathInfos[_marketId] = new bytes[](pathes.length);
+            for (uint256 i = 0; i < pathes.length; i++){
+                pricePathInfos[_marketId].push(pathes[i]);
             }
         }
 
-        emit ChangedPools(_marketId, _pools);
+        emit ChangedPricePathInfo(_marketId, pathes);
     }
 
     /// @inheritdoc IBondDepositoryV1_5
@@ -368,7 +393,9 @@ contract BondDepositoryV1_5 is
     ) internal nonReentrant returns (uint256 _payout, uint256 bondingPrice) {
 
         LibBondDepository.Market memory market = markets[_marketId];
+
         (uint256 basePrice, , uint256 uniswapPrice) = getBasePrice(_marketId);
+
         require(uniswapPrice >= _minimumTosPrice, "The uniswap swap amount is greater than the minimum amount.");
 
         bondingPrice = getBondingPrice(_marketId, _lockWeeks, basePrice);
@@ -404,33 +431,21 @@ contract BondDepositoryV1_5 is
     function getBonds() external override view
         returns (
             uint256[] memory,
-            address[] memory,
-            uint256[] memory,
-            uint256[] memory,
-            uint256[] memory,
-            LibBondDepositoryV1_5.DiscountRateInfo[] memory,
-            LibBondDepositoryV1_5.MarketInfo[] memory
+            LibBondDepositoryV1_5.MarketInfo[] memory,
+            LibBondDepositoryV1_5.DiscountRateInfo[] memory
         )
     {
         uint256 len = marketList.length;
         uint256[] memory _marketIds = new uint256[](len);
-        address[] memory _quoteTokens = new address[](len);
-        uint256[] memory _capacities = new uint256[](len);
-        uint256[] memory _endSaleTimes = new uint256[](len);
-        uint256[] memory _pricesTos = new uint256[](len);
         LibBondDepositoryV1_5.DiscountRateInfo[] memory _discountInfo = new LibBondDepositoryV1_5.DiscountRateInfo[](len);
         LibBondDepositoryV1_5.MarketInfo[] memory _marketInfo = new LibBondDepositoryV1_5.MarketInfo[](len);
 
         for (uint256 i = 0; i < len; i++){
-            _marketIds[i] = marketList[i];
-            _quoteTokens[i] = markets[_marketIds[i]].quoteToken;
-            _capacities[i] = markets[_marketIds[i]].capacity;
-            _endSaleTimes[i] = markets[_marketIds[i]].endSaleTime;
-            _pricesTos[i] = markets[_marketIds[i]].tosPrice;
-            _discountInfo[i] = discountRateInfos[_marketIds[i]];
-            _marketInfo[i] = marketInfos[_marketIds[i]];
+            uint256 id = _marketIds[i];
+            _discountInfo[i] = discountRateInfos[id];
+            _marketInfo[i] = marketInfos[id];
         }
-        return (_marketIds, _quoteTokens, _capacities, _endSaleTimes, _pricesTos, _discountInfo, _marketInfo);
+        return (_marketIds, _marketInfo, _discountInfo);
     }
 
     /// @inheritdoc IBondDepositoryV1_5
@@ -446,23 +461,15 @@ contract BondDepositoryV1_5 is
     /// @inheritdoc IBondDepositoryV1_5
     function viewMarket(uint256 _marketId) external override view
         returns (
-            address quoteToken,
-            uint256 capacity,
-            uint256 endSaleTime,
-            uint256 maxPayout,
-            uint256 tosPrice,
+            LibBondDepositoryV1_5.MarketInfo memory marketInfo,
             LibBondDepositoryV1_5.DiscountRateInfo memory discountInfo,
-            LibBondDepositoryV1_5.MarketInfo memory marketInfo
+            bytes[] memory pricePathes
             )
     {
         return (
-            markets[_marketId].quoteToken,
-            markets[_marketId].capacity,
-            markets[_marketId].endSaleTime,
-            markets[_marketId].maxPayout,
-            markets[_marketId].tosPrice,
+            marketInfos[_marketId],
             discountRateInfos[_marketId],
-            marketInfos[_marketId]
+            pricePathInfos[_marketId]
         );
     }
 
@@ -474,10 +481,13 @@ contract BondDepositoryV1_5 is
             && markets[_marketId].capacity > (marketInfos[_marketId].totalSold + remainingTosTolerance));
     }
 
+
     function getBondingPrice(uint256 _marketId, uint8 _lockWeeks, uint256 basePrice)
         public override view
         returns (uint256 bondingPrice)
     {
+        (basePrice,,) = getBasePrice(_marketId);
+
         if (basePrice > 0 && _lockWeeks > 0) {
             LibBondDepositoryV1_5.DiscountRateInfo memory discountInfo = discountRateInfos[_marketId];
             if (discountInfo.discountRatesAddress != address(0) && discountInfo.discountRatesId != 0) {
@@ -493,45 +503,38 @@ contract BondDepositoryV1_5 is
 
     function getBasePrice(uint256 _marketId)
         public override view
-        returns (uint256 basePrice, uint256 lowerPriceLimit, uint256 uniswapMaxPrice)
+        returns (uint256 basePrice, uint256 lowerPriceLimit, uint256 uniswapPrice)
     {
         lowerPriceLimit = markets[_marketId].tosPrice;
-        address[] memory pools = marketInfos[_marketId].pools;
-
-        if (pools.length == 0){
-            basePrice = lowerPriceLimit;
-        } else {
-            (, uniswapMaxPrice) = getUniswapPrice(pools);
-
-            basePrice = Math.max(lowerPriceLimit, uniswapMaxPrice);
-        }
+        uniswapPrice = getUniswapPrice(_marketId, uint8(LibBondDepositoryV1_5.PRICING_TYPE.MAX));
+        basePrice = Math.max(lowerPriceLimit, uniswapPrice);
     }
 
-    function getUniswapPrice(address[] memory pools)
+    function getUniswapPrice(uint256 _marketId, uint8 pricingType)
         public override view
-        returns (uint256 poolCount, uint256 uniswapMaxPrice)
+        returns (uint256 uniswapPrice)
     {
-        if (oracleLibrary != address(0) && pools.length != 0) {
-            for(uint256 i=0; i < pools.length; i++){
-                address baseToken = address(0);
-                address quoteToken = address(tos);
-                if (address(tos) == IIIUniswapV3Pool(pools[i]).token0()) {
-                    baseToken = IIIUniswapV3Pool(pools[i]).token1();
-                } else if (address(tos) == IIIUniswapV3Pool(pools[i]).token1()) {
-                    baseToken = IIIUniswapV3Pool(pools[i]).token0();
-                }
+        bytes[] memory pathes = pricePathInfos[_marketId];
+        uint256 count = 0;
+        if (pathes.length > 0){
+            uint256[] memory prices = new uint256[](pathes.length);
+            for (uint256 i = 0; i < pathes.length; i++){
 
-                if (baseToken != address(0)) {
-                    uint256 price = IIOracleLibrary(oracleLibrary).getQuoteAtTick(
-                        IIOracleLibrary(oracleLibrary).consult(pools[i], oracleConsultPeriod),
-                        1 ether,
-                        baseToken,
-                        quoteToken
-                    );
-                    poolCount++;
-                    uniswapMaxPrice = Math.max(uniswapMaxPrice, price);
+                prices[i] = IIOracleLibrary(oracleLibrary).getOutAmounts(uniswapFactory, pathes[i], 1 ether, 120);
+
+                if (pricingType == uint8(LibBondDepositoryV1_5.PRICING_TYPE.MIN)) {
+                    uniswapPrice = Math.min(uniswapPrice, prices[i]);
+
+                } else if (pricingType == uint8(LibBondDepositoryV1_5.PRICING_TYPE.AVERAGE)){
+                    if (prices[i] > 0) {
+                        count++;
+                        uniswapPrice += prices[i];
+                    }
+                } else {
+                    uniswapPrice = Math.max(uniswapPrice, prices[i]);
                 }
             }
+            if (count > 0) uniswapPrice = uniswapPrice / count;
         }
     }
 

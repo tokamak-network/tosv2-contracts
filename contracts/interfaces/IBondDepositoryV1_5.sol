@@ -22,8 +22,8 @@ interface IBondDepositoryV1_5 {
     /// @param discountRatesId      discountRates id
     /// @param startTime            start time
     /// @param endTime              market closing time
-    /// @param pools                pool addresses for calculating the pricing
-    /// @return id_                  returns ID of new bond market
+    /// @param pathes               pathes for find out the price
+    /// @return id_                 returns ID of new bond market
     function create(
         address token,
         uint256[5] calldata marketInfos,
@@ -31,7 +31,7 @@ interface IBondDepositoryV1_5 {
         uint256 discountRatesId,
         uint32 startTime,
         uint32 endTime,
-        address[] calldata pools
+        bytes[] calldata pathes
     ) external returns (uint256 id_);
 
 
@@ -59,21 +59,11 @@ interface IBondDepositoryV1_5 {
     )   external ;
 
     /**
-     * @dev                changes the maxPayout (maximum purchasable bond in TOS)
-     * @param _marketId    marketId
-     * @param _amount      maxPayout amount
-     */
-    function changeMaxPayout(
-        uint256 _marketId,
-        uint256 _amount
-    )   external;
-
-    /**
      * @dev                changes the market price
      * @param _marketId    marketId
      * @param _tosPrice    tosPrice
      */
-    function changePrice(
+    function changeLowerPriceLimit(
         uint256 _marketId,
         uint256 _tosPrice
     )   external ;
@@ -87,13 +77,25 @@ interface IBondDepositoryV1_5 {
     )   external ;
 
     /**
-     * @dev                changes the market pools
-     * @param _marketId    marketId
-     * @param _pools       pool addresses
+     * @dev                             changes discount rate info
+     * @param _marketId                 market id
+     * @param _discountRatesAddress     discount rates address
+     * @param _discountRatesId          discount rates id
      */
-    function changePools(
+    function changeDiscountRateInfo(
         uint256 _marketId,
-        address[] calldata _pools
+        address _discountRatesAddress,
+        uint256 _discountRatesId
+    )   external ;
+
+    /**
+     * @dev                             this event occurs when the price path info is updated
+     * @param _marketId                 market id
+     * @param pathes                    path for pricing
+     */
+    function changePricePathInfo(
+        uint256 _marketId,
+        bytes[] calldata pathes
     )   external ;
 
     /**
@@ -144,21 +146,13 @@ interface IBondDepositoryV1_5 {
 
     /// @dev                        returns information from active markets
     /// @return marketIds           array of total marketIds
-    /// @return quoteTokens         array of total market's quoteTokens
-    /// @return capacities          array of total market's capacities
-    /// @return endSaleTimes        array of total market's endSaleTimes
-    /// @return pricesTos           array of total market's pricesTos
-    /// @return discountRateInfo    array of total market's discountRateInfos
     /// @return marketInfo          array of total market's information
+    /// @return discountRateInfo    array of total market's discountRateInfos
     function getBonds() external view
         returns (
             uint256[] memory marketIds,
-            address[] memory quoteTokens,
-            uint256[] memory capacities,
-            uint256[] memory endSaleTimes,
-            uint256[] memory pricesTos,
-            LibBondDepositoryV1_5.DiscountRateInfo[] memory discountRateInfo,
-            LibBondDepositoryV1_5.MarketInfo[] memory marketInfo
+            LibBondDepositoryV1_5.MarketInfo[] memory marketInfo,
+            LibBondDepositoryV1_5.DiscountRateInfo[] memory discountRateInfo
         );
 
     /// @dev              returns all generated marketIDs
@@ -169,24 +163,16 @@ interface IBondDepositoryV1_5 {
     /// @return Total number of markets
     function totalMarketCount() external view returns (uint256) ;
 
-    /// @dev                    returns information about the market
+    /// @dev     turns information about the market
     /// @param _marketId        market id
-    /// @return quoteToken      saleToken Address
-    /// @return capacity        tokenSaleAmount
-    /// @return endSaleTime     market endTime
-    /// @return maxPayout       maximum purchasable bond in TOS
-    /// @return tosPrice        amount of TOS per 1 ETH
-    /// @return discountInfo    discount information
     /// @return marketInfo      market information
+    /// @return discountInfo    discount information
+    /// @return pricePathes     pathes for price
     function viewMarket(uint256 _marketId) external view
         returns (
-            address quoteToken,
-            uint256 capacity,
-            uint256 endSaleTime,
-            uint256 maxPayout,
-            uint256 tosPrice,
+            LibBondDepositoryV1_5.MarketInfo memory marketInfo,
             LibBondDepositoryV1_5.DiscountRateInfo memory discountInfo,
-            LibBondDepositoryV1_5.MarketInfo memory marketInfo
+            bytes[] memory pricePathes
             );
 
     /// @dev               checks whether a market is opened or not
@@ -213,15 +199,9 @@ interface IBondDepositoryV1_5 {
         external view
         returns (uint256 basePrice, uint256 lowerPriceLimit, uint256 uniswapPrice);
 
-
-    /// @dev                    get uniswap price
-    /// @param pools            pool addresses
-    /// @return poolCount       pool count
-    /// @return uniswapMaxPrice uniswap max price
-    function getUniswapPrice(address[] memory pools)
+    function getUniswapPrice(uint256 _marketId, uint8 pricingType)
         external view
-        returns (uint256 poolCount, uint256 uniswapMaxPrice);
-
+        returns (uint256 uniswapPrice);
 
     /// @dev                        calculate the possible max capacity
     /// @param _marketId            market id
