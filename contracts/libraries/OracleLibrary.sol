@@ -3,6 +3,9 @@ pragma solidity ^0.8.0;
 
 import '../libraries/FullMath.sol';
 import '../libraries/TickMath.sol';
+import '../libraries/SafeCast.sol';
+import '../libraries/PoolAddress.sol';
+import '../libraries/Path.sol';
 
 interface IIIUniswapV3Pool {
 
@@ -16,6 +19,9 @@ interface IIIUniswapV3Pool {
 /// @title Oracle library
 /// @notice Provides functions to integrate with V3 pool oracle
 library OracleLibrary {
+    using Path for bytes;
+    using BytesLib for bytes;
+    using SafeCast for uint256;
 
     /// @notice Fetches time-weighted average tick using Uniswap V3 oracle
     /// @param pool Address of Uniswap V3 pool that we want to observe
@@ -62,6 +68,46 @@ library OracleLibrary {
             quoteAmount = baseToken < quoteToken
                 ? FullMath.mulDiv(ratioX128, baseAmount, 1 << 128)
                 : FullMath.mulDiv(1 << 128, baseAmount, ratioX128);
+        }
+    }
+
+    function getPool(
+        address factory,
+        address tokenA,
+        address tokenB,
+        uint24 fee
+    ) public pure returns (address) {
+        return (PoolAddress.computeAddress(factory, PoolAddress.getPoolKey(tokenA, tokenB, fee)));
+    }
+
+    function getOutAmounts(address factory, bytes memory _path, uint256 _amountIn, uint32 oracleConsultPeriod)
+        public view returns (uint256 amountOut)
+    {
+        // uint256 count = _path.numPools();
+        uint256 i = 0;
+        uint256 amountIn = _amountIn;
+        bytes memory path = _path;
+        while (true) {
+            (address tokenIn, address tokenOut, uint24 fee) = path.decodeFirstPool();
+
+            address pool = getPool(factory, tokenIn, tokenOut, fee);
+            // the outputs of prior swaps become the inputs to subsequent ones
+            uint256 _amountOut = getQuoteAtTick(
+                consult(pool, oracleConsultPeriod),
+                uint128(amountIn),
+                tokenIn,
+                tokenOut
+            );
+
+            amountIn = _amountOut;
+            i++;
+
+            // decide whether to continue or terminate
+            if (path.hasMultiplePools()) {
+                path = path.skipToken();
+            } else {
+                return (amountIn);
+            }
         }
     }
 
