@@ -22,23 +22,22 @@ interface IBondDepositoryEventV1_5 {
     /// @dev                        this event occurs when a specific market product is created
     /// @param marketId             market id
     /// @param token                token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3
-    /// @param marketInfos          [capacity, maxPayout, lowerPriceLimit, initialMaxPayout, capacityUpdatePeriod]
+    /// @param marketInfos          [capacity, lowerPriceLimit, initialMaxPayout, capacityUpdatePeriod]
     ///                             capacity            capacity of the market
-    ///                             maxPayout           maximum purchasable bond in TOS
     ///                             lowerPriceLimit     lowerPriceLimit
     ///                             initialMaxPayout    initial max payout
     ///                             capacityUpdatePeriod capacity update period(seconds)
-    /// @param discountRatesAddress discountRates logic address
-    /// @param discountRatesId      discountRates id
+    /// @param bonusRatesAddress    bonusRates logic address
+    /// @param bonusRatesId         bonusRates id
     /// @param startTime            start time
     /// @param endTime              market closing time
     /// @param pathes               pathes
     event CreatedMarket(
         uint256 marketId,
         address token,
-        uint256[5] marketInfos,
-        address discountRatesAddress,
-        uint256 discountRatesId,
+        uint256[4] marketInfos,
+        address bonusRatesAddress,
+        uint256 bonusRatesId,
         uint32 startTime,
         uint32 endTime,
         bytes[] pathes
@@ -58,19 +57,19 @@ interface IBondDepositoryEventV1_5 {
     /// @param marketId             market id
     /// @param stakeId              stake id
     /// @param amount               amount of deposit in ETH
-    /// @param maximumPayablePrice  the maximum price (per TOS) the user is willing to pay for bonding
+    /// @param minimumTosPrice      the minimum tos price
     /// @param tosValuation         amount of TOS earned by the user
-    event ETHDeposited(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint256 maximumPayablePrice, uint256 tosValuation);
+    event ETHDeposited(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint256 minimumTosPrice, uint256 tosValuation);
 
     /// @dev                        this event occurs when a user bonds with ETH and earns sTOS
     /// @param user                 user account
     /// @param marketId             market id
     /// @param stakeId              stake id
     /// @param amount               amount of deposit in ETH
-    /// @param maximumPayablePrice  the maximum price (per TOS) the user is willing to pay for bonding
+    /// @param minimumTosPrice      the minimum tos price
     /// @param lockWeeks            number of weeks to locking
     /// @param tosValuation         amount of TOS earned by the user
-    event ETHDepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint256 maximumPayablePrice, uint8 lockWeeks, uint256 tosValuation);
+    event ETHDepositedWithSTOS(address user, uint256 marketId, uint256 stakeId, uint256 amount, uint256 minimumTosPrice, uint8 lockWeeks, uint256 tosValuation);
 
     /// @dev                   this event occurs when the market capacity is changed
     /// @param _marketId       market id
@@ -83,11 +82,11 @@ interface IBondDepositoryEventV1_5 {
     /// @param closeTime new close time
     event ChangedCloseTime(uint256 _marketId, uint256 closeTime);
 
-    /// @dev                            this event occurs when the discount rate info is updated
+    /// @dev                            this event occurs when the bonus rate info is updated
     /// @param _marketId                market id
-    /// @param discountRatesAddress     discount rates address
-    /// @param discountRatesId          discount rates id
-    event ChangedDiscountRateInfo(uint256 _marketId, address discountRatesAddress, uint256 discountRatesId);
+    /// @param bonusRatesAddress     bonus rates address
+    /// @param bonusRatesId          bonus rates id
+    event ChangedBonusRateInfo(uint256 _marketId, address bonusRatesAddress, uint256 bonusRatesId);
 
     /// @dev                            this event occurs when the price path info is updated
     /// @param _marketId                market id
@@ -101,7 +100,8 @@ interface IBondDepositoryEventV1_5 {
 
     /// @dev            this event occurs when oracle library is changed
     /// @param oralceLibrary oralceLibrary address
-    event ChangedOracleLibrary(address oralceLibrary);
+    /// @param uniswapFactory uniswapFactory address
+    event ChangedOracleLibrary(address oralceLibrary, address uniswapFactory);
 
     /// @dev             this event occurs when the maxPayout is updated
     /// @param _marketId market id

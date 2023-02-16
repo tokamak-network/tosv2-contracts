@@ -89,11 +89,10 @@ describe("Price Calculate with uniswap pools", function () {
         [FeeAmount.MEDIUM]
       );
 
-      let result = await oracleLibrary.connect(admin1).getOutAmounts(
+      let result = await oracleLibrary.connect(admin1).getOutAmountsCurTick(
           uniswapInfo.poolfactory,
           path,
-          amountIn,
-          120
+          amountIn
         );
 
       console.log("result", result.toString())
@@ -107,11 +106,10 @@ describe("Price Calculate with uniswap pools", function () {
         [FeeAmount.MEDIUM, FeeAmount.MEDIUM]
       );
 
-      let result = await oracleLibrary.connect(admin1).getOutAmounts(
+      let result = await oracleLibrary.connect(admin1).getOutAmountsCurTick(
           uniswapInfo.poolfactory,
           path,
-          amountIn,
-          120
+          amountIn
         );
 
       console.log("result", result.toString())

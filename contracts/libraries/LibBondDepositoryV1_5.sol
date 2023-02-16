@@ -11,12 +11,6 @@ library LibBondDepositoryV1_5
         LIQUIDITY_V1_5
     }
 
-    enum PRICING_TYPE {
-        MAX,
-        MIN,
-        AVERAGE
-    }
-
     // market market info
     struct MarketInfo {
         uint8 bondType;
@@ -27,8 +21,8 @@ library LibBondDepositoryV1_5
         uint256 totalSold;
     }
 
-    struct DiscountRateInfo {
-        address discountRatesAddress;
-        uint256 discountRatesId;
+    struct BonusRateInfo {
+        address bonusRatesAddress;
+        uint256 bonusRatesId;
     }
 }

@@ -6,7 +6,7 @@ import '../libraries/TickMath.sol';
 import '../libraries/SafeCast.sol';
 import '../libraries/PoolAddress.sol';
 import '../libraries/Path.sol';
-
+import "hardhat/console.sol";
 interface IIIUniswapV3Pool {
 
     function observe(uint32[] calldata secondsAgos)
@@ -14,6 +14,18 @@ interface IIIUniswapV3Pool {
         view
         returns (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidityCumulativeX128s);
 
+    function slot0()
+        external
+        view
+        returns (
+            uint160 sqrtPriceX96,
+            int24 tick,
+            uint16 observationIndex,
+            uint16 observationCardinality,
+            uint16 observationCardinalityNext,
+            uint8 feeProtocol,
+            bool unlocked
+        );
 }
 
 /// @title Oracle library
@@ -111,4 +123,39 @@ library OracleLibrary {
         }
     }
 
+    function getOutAmountsCurTick(address factory, bytes memory _path, uint256 _amountIn)
+        public view returns (uint256 amountOut)
+    {
+        // uint256 count = _path.numPools();
+        // uint256 i = 0;
+        uint256 amountIn = _amountIn;
+        bytes memory path = _path;
+        while (true) {
+            (address tokenIn, address tokenOut, uint24 fee) = path.decodeFirstPool();
+            // console.log(" tokenIn %s", tokenIn);
+            // console.log(" tokenOut %s", tokenOut);
+            address pool = getPool(factory, tokenIn, tokenOut, fee);
+            // console.log(" pool %s", pool);
+
+            (,int24 tick,,,,,) = IIIUniswapV3Pool(pool).slot0();
+
+            // the outputs of prior swaps become the inputs to subsequent ones
+            uint256 _amountOut = getQuoteAtTick(
+                tick,
+                uint128(amountIn),
+                tokenIn,
+                tokenOut
+            );
+            // console.log(" _amountOut %s", _amountOut);
+            amountIn = _amountOut;
+            // i++;
+
+            // decide whether to continue or terminate
+            if (path.hasMultiplePools()) {
+                path = path.skipToken();
+            } else {
+                return (amountIn);
+            }
+        }
+    }
 }

@@ -13,6 +13,7 @@ const {
 } = require("web3-utils");
 
 let { uniswapInfo, config, deployed} = require('./tosv2-mainnet-config.js');
+const { FeeAmount, encodePath } = require("./utils");
 
 const BondDepositoryProxyABI = require('../../artifacts/contracts/BondDepositoryProxy.sol/BondDepositoryProxy.json');
 const BondDepositoryV1_5ABI = require('../../artifacts/contracts/BondDepositoryV1_5.sol/BondDepositoryV1_5.json');
@@ -34,7 +35,7 @@ describe("TOSv2 Bond Market V1.5", function () {
   let treasury;
   let stakingV2;
   let bondDepositoryProxy, bondDepositoryV1_5, bondDepository, libBondDepositoryV1_5;
-  let discountRateLockUp;
+  let bonusRateLockUp;
 
   let _TosV2Admin;
   let _tosAdmin;
@@ -42,13 +43,12 @@ describe("TOSv2 Bond Market V1.5", function () {
   let markets = [];
   let viewMarketlength;
 
-  //[팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격, 한번에 구매 가능한 TOS물량]
+  //[팔려고 하는 tos의 목표치,tos token의 가격, _initialMaxPayout,_capacityUpdatePeriod]
   // 이더상품.
   //0. uint256 _capacity,
-  //1. uint256 _maxPayout, - 이것이 의미가 없어서, 0으로 설정한다.
-  //2. uint256 _lowerPriceLimit,
-  //3. uint256 _initialMaxPayout,
-  //4. uint256 _capacityUpdatePeriod
+  //1. uint256 _lowerPriceLimit,
+  //2. uint256 _initialMaxPayout,
+  //3. uint256 _capacityUpdatePeriod
 
   let bondInfoEther_sample = {
     marketId : null,
@@ -61,7 +61,17 @@ describe("TOSv2 Bond Market V1.5", function () {
       lowerPriceLimit: ethers.BigNumber.from("1616841458170000000000"),
       initialMaxPayout: ethers.BigNumber.from("2000000000000000000"),
       capacityUpdatePeriod: 60*60*24,
-      salePeriod : 60*60*24*7*4 // 7일 * 4
+      salePeriod : 60*60*24*7*156 ,
+      pathes : [
+        encodePath(
+          [uniswapInfo.weth, uniswapInfo.tos],
+          [FeeAmount.MEDIUM]
+        ),
+        encodePath(
+          [uniswapInfo.weth, uniswapInfo.wton, uniswapInfo.tos],
+          [FeeAmount.MEDIUM, FeeAmount.MEDIUM]
+        )
+      ]
     },
     stakeId: 0,
     tosValuation: 0,
@@ -69,13 +79,8 @@ describe("TOSv2 Bond Market V1.5", function () {
     stosId: 0
   }
 
-  let pools = [
-    {count:1, path:[tosethPool]},
-    {count:2, path:[wtonTosPool, wtonWethPool]}
-  ];
-
-  let discountSets = [ ];
-  let discountMaxWeek = 156;
+  let bonusSets = [ ];
+  let bonusMaxWeek = 156;
 
   let deposits = {user1 : [], user2: []};
   let depositor, depositorUser, index, depositData;
@@ -102,7 +107,7 @@ describe("TOSv2 Bond Market V1.5", function () {
   }
 
 
-  function setDiscountRate(discountRate,  intervalWeeks) {
+  function setBonusRate(bonusRate,  intervalWeeks) {
     let set = {
       address: '',
       id: 0,
@@ -110,16 +115,16 @@ describe("TOSv2 Bond Market V1.5", function () {
       rates : []
     }
 
-    let maxIndex = parseInt(discountMaxWeek / set.intervalWeeks);
+    let maxIndex = parseInt(bonusMaxWeek / set.intervalWeeks);
 
     for (i = 0; i < maxIndex; i++){
-      let rate = parseInt(( 1.0 - (discountRate * i)) * 10000);
+      let rate = parseInt((bonusRate * i) * 10000);
       // console.log(i, '<= weeks <' ,i * set.intervalWeeks, rate);
       set.rates.push(rate);
     }
 
-    if ((set.rates.length-1) * set.intervalWeeks < discountMaxWeek) {
-      let rate = parseInt(( 1.0 - (discountRate * maxIndex)) * 10000);
+    if ((set.rates.length-1) * set.intervalWeeks == bonusMaxWeek) {
+      let rate = parseInt((bonusRate * maxIndex) * 10000);
       // console.log(  'weeks <' ,maxIndex * set.intervalWeeks, rate);
       set.rates.push(rate);
     }
@@ -154,35 +159,44 @@ describe("TOSv2 Bond Market V1.5", function () {
 
   });
 
-  describe("Deploy DiscountedRateLockUp ", () => {
+  describe("Deploy OracleLibrary and BonusRateLockUp ", () => {
 
-    it("deploy DiscountedRateLockUp ", async () => {
-      let factory = await ethers.getContractFactory("DiscountedRateLockUp")
-      discountRateLockUp = await factory.deploy();
-      await discountRateLockUp.deployed()
-      // console.log("discountRateLockUp ", discountRateLockUp.address)
-      let code = await ethers.provider.getCode(discountRateLockUp.address);
+    it("deploy OracleLibrary ", async () => {
+      let factory = await ethers.getContractFactory("OracleLibrary")
+      oracleLibrary = await factory.deploy();
+      await oracleLibrary.deployed();
+      console.log("oracleLibrary ", oracleLibrary.address)
+      let code = await ethers.provider.getCode(oracleLibrary.address);
+      expect(code).to.not.eq("0x");
+    })
+
+    it("deploy BonusRateLockUp ", async () => {
+      let factory = await ethers.getContractFactory("BonusRateLockUp")
+      bonusRateLockUp = await factory.deploy();
+      await bonusRateLockUp.deployed()
+      // console.log("bonusRateLockUp ", bonusRateLockUp.address)
+      let code = await ethers.provider.getCode(bonusRateLockUp.address);
       expect(code).to.not.eq("0x");
     })
 
   })
 
-  describe("Set DiscountedRateLockUp ", () => {
-    it("Set discount datas : interval weeks is 13 weeks ", async () => {
+  describe("Set BonusRateLockUp ", () => {
+    it("Set bonus datas : interval weeks is 13 weeks ", async () => {
 
-      let discountRate = 0.06 ;
+      let bonusRate = 0.06 ;
 
-      let set = setDiscountRate(discountRate,  13);
-      set.address = discountRateLockUp.address;
-      let tx = await discountRateLockUp.connect(admin1).createDiscountRates(
+      let set = setBonusRate(bonusRate,  13);
+      set.address = bonusRateLockUp.address;
+      let tx = await bonusRateLockUp.connect(admin1).createBonusRates(
         set.intervalWeeks,
         set.rates
       );
       await tx.wait();
 
       const receipt = await tx.wait();
-      let _function ="CreatedDiscountRates(uint256,uint8,uint16[])";
-      let interface = discountRateLockUp.interface;
+      let _function ="CreatedBonusRates(uint256,uint8,uint16[])";
+      let interface = bonusRateLockUp.interface;
 
       for(let i=0; i< receipt.events.length; i++){
           if(receipt.events[i].topics[0] == interface.getEventTopic(_function)){
@@ -194,25 +208,24 @@ describe("TOSv2 Bond Market V1.5", function () {
               set.id = log.args._id;
           }
       }
-      console.log("set", set);
-      discountSets.push(set);
+      // console.log("set", set);
+      bonusSets.push(set);
     })
+    it("Set bonus datas : interval weeks is 3 weeks ", async () => {
 
-    it("Set discount datas : interval weeks is 26 weeks ", async () => {
+      let bonusRate = 0.06 ;
 
-      let discountRate = 0.06 ;
-
-      let set = setDiscountRate(discountRate,  26);
-
-      let tx = await discountRateLockUp.connect(admin1).createDiscountRates(
+      let set = setBonusRate(bonusRate,  3);
+      set.address = bonusRateLockUp.address;
+      let tx = await bonusRateLockUp.connect(admin1).createBonusRates(
         set.intervalWeeks,
         set.rates
       );
       await tx.wait();
 
       const receipt = await tx.wait();
-      let _function ="CreatedDiscountRates(uint256,uint8,uint16[])";
-      let interface = discountRateLockUp.interface;
+      let _function ="CreatedBonusRates(uint256,uint8,uint16[])";
+      let interface = bonusRateLockUp.interface;
 
       for(let i=0; i< receipt.events.length; i++){
           if(receipt.events[i].topics[0] == interface.getEventTopic(_function)){
@@ -224,8 +237,8 @@ describe("TOSv2 Bond Market V1.5", function () {
               set.id = log.args._id;
           }
       }
-      console.log("set", set);
-      discountSets.push(set);
+      // console.log("set", set);
+      bonusSets.push(set);
     })
   })
 
@@ -282,36 +295,51 @@ describe("TOSv2 Bond Market V1.5", function () {
       console.log("bondDepository ", bondDepository.address)
     })
 
+    it("changeOracleLibrary of BondDepositoryV1_5 ", async () => {
+
+      let tx = await bondDepository.connect(_TosV2Admin).changeOracleLibrary(
+        oracleLibrary.address,
+        uniswapInfo.poolfactory
+      );
+      await tx.wait();
+
+      expect(await bondDepository.oracleLibrary()).to.be.eq(oracleLibrary.address);
+      expect(await bondDepository.uniswapFactory()).to.be.eq(uniswapInfo.poolfactory);
+    })
+
   })
 
   describe("#1. bondDepositoryV1_5 : create bond 1.5 market ", async () => {
 
     it("#1-1. create : fail when caller is not an policy admin", async () => {
       const block = await ethers.provider.getBlock('latest')
-      let discountSetsIndex = 0;
+      let bonusSetsIndex = 0;
       let bondInfo =  _.cloneDeep(bondInfoEther_sample);
       bondInfo.market.startTime = block.timestamp + (60*5);
       bondInfo.market.closeTime = bondInfo.market.startTime + bondInfo.market.salePeriod;
+
+      // console.log(bondInfo);
 
       await expect(
         bondDepository.connect(user1).create(
           bondInfo.token,
           [
             bondInfo.market.capacity,
-            ethers.constants.Zero,
             bondInfo.market.lowerPriceLimit,
             bondInfo.market.initialMaxPayout,
             bondInfo.market.capacityUpdatePeriod
           ],
-          discountSets[discountSetsIndex].address,
-          discountSets[discountSetsIndex].id,
+          bonusSets[bonusSetsIndex].address,
+          bonusSets[bonusSetsIndex].id,
           bondInfo.market.startTime,
-          bondInfo.market.closeTime
+          bondInfo.market.closeTime,
+          bondInfo.market.pathes
         )
       ).to.be.revertedWith("Accessible: Caller is not an policy admin")
     })
 
     it("#1-1. create : onlyPolicy can call create", async () => {
+      let bonusSetsIndex = 0;
       const block = await ethers.provider.getBlock('latest')
       viewMarketlength = await stakingV2.marketIdCounter();
 
@@ -319,41 +347,43 @@ describe("TOSv2 Bond Market V1.5", function () {
       bondInfo.market.startTime = block.timestamp + (60*5);
       bondInfo.market.closeTime = bondInfo.market.startTime + bondInfo.market.salePeriod;
 
-
       const tx = await bondDepository.connect(_TosV2Admin).create(
-        bondInfo.token,
+          bondInfo.token,
           [
             bondInfo.market.capacity,
-            ethers.constants.Zero,
             bondInfo.market.lowerPriceLimit,
             bondInfo.market.initialMaxPayout,
             bondInfo.market.capacityUpdatePeriod
           ],
-          discountSets[discountSetsIndex].address,
-          discountSets[discountSetsIndex].id,
+          bonusSets[bonusSetsIndex].address,
+          bonusSets[bonusSetsIndex].id,
           bondInfo.market.startTime,
-          bondInfo.market.closeTime
+          bondInfo.market.closeTime,
+          bondInfo.market.pathes
       );
       const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
       // console.log('receipt',receipt);
 
-      const interface = new ethers.utils.Interface(["event CreatedMarket(uint256 marketId, address token, uint256[5] marketInfos, address discountRatesAddress, uint256 discountRatesId, uint32 startTime, uint32 endTime, address[] pools)"]);
+      const interface = new ethers.utils.Interface(["event CreatedMarket(uint256 marketId, address token, uint256[4] marketInfos, address bonusRatesAddress, uint256 bonusRatesId, uint32 startTime, uint32 endTime, bytes[] pathes)"]);
       const data = receipt.logs[0].data;
       const topics = receipt.logs[0].topics;
       const event = interface.decodeEventLog("CreatedMarket", data, topics);
       // console.log('event',event);
+      // console.log('event.pathes',event.pathes);
+      // console.log('bondInfo.market.pathes',bondInfo.market.pathes);
 
       expect(event.token).to.equal(bondInfo.token);
-      expect(event.market.length).to.equal(4);
-      expect(event.market[0]).to.equal(bondInfo.market.capAmountOfTos);
-      expect(event.market[1]).to.equal(bondInfo.market.closeTime);
-      expect(event.market[2]).to.equal(bondInfo.market.priceTosPerToken);
-      expect(event.market[3]).to.equal(bondInfo.market.purchasableTOSAmountAtOneTime);
+      expect(event.marketInfos.length).to.equal(4);
+      expect(event.marketInfos[0]).to.equal(bondInfo.market.capacity);
+      expect(event.marketInfos[1]).to.equal(bondInfo.market.lowerPriceLimit);
+      expect(event.marketInfos[2]).to.equal(bondInfo.market.initialMaxPayout);
+      expect(event.marketInfos[3]).to.equal(bondInfo.market.capacityUpdatePeriod);
       expect(event.startTime).to.equal(bondInfo.market.startTime);
-      expect(event.initialMaxPayout).to.equal(bondInfo.market.initialMaxPayout);
-      expect(event.capacityUpdatePeriod).to.equal(bondInfo.market.capacityUpdatePeriod);
-      expect(event.availableBasicBond).to.equal(bondInfo.market.availableBasicBond);
-      expect(event.availableStosBond).to.equal(bondInfo.market.availableStosBond);
+      expect(event.endTime).to.equal(bondInfo.market.closeTime);
+      expect(event.bonusRatesAddress).to.equal(bonusSets[bonusSetsIndex].address);
+      expect(event.bonusRatesId).to.equal(bonusSets[bonusSetsIndex].id);
+      expect(event.pathes.length).to.equal(bondInfo.market.pathes.length);
+      // console.log('event.pathes.length',event.pathes.length);
 
       markets.push({
         id: event.marketId,
@@ -367,9 +397,10 @@ describe("TOSv2 Bond Market V1.5", function () {
     })
 
     it("#1-2. create : Fails if _capacityUpdatePeriod is not appropriate.", async () => {
+      let bonusSetsIndex = 0;
       const block = await ethers.provider.getBlock('latest')
 
-      let bondInfo = _.cloneDeep(bondInfoEther_5days);
+      let bondInfo = _.cloneDeep(bondInfoEther_sample);
       bondInfo.market.startTime = block.timestamp + (60*5);
       bondInfo.market.closeTime = bondInfo.market.startTime + bondInfo.market.salePeriod;
 
@@ -377,46 +408,681 @@ describe("TOSv2 Bond Market V1.5", function () {
         bondDepository.connect(_TosV2Admin).create(
           bondInfo.token,
           [
-            bondInfo.market.capAmountOfTos,
-            bondInfo.market.closeTime,
-            bondInfo.market.priceTosPerToken,
-            bondInfo.market.purchasableTOSAmountAtOneTime
+            bondInfo.market.capacity,
+            bondInfo.market.lowerPriceLimit,
+            bondInfo.market.initialMaxPayout,
+            ethers.constants.Zero
           ],
+          bonusSets[bonusSetsIndex].address,
+          bonusSets[bonusSetsIndex].id,
           bondInfo.market.startTime,
-          bondInfo.market.initialMaxPayout,
-          3,
-          bondInfo.market.availableBasicBond,
-          bondInfo.market.availableStosBond
+          bondInfo.market.closeTime,
+          bondInfo.market.pathes
         )
-      ).to.be.revertedWith("invalid capacityUpdatePeriod")
+      ).to.be.revertedWith("BondDepository: zero uint")
+    })
+  })
+
+  describe("#2~8. bondDepositoryV1_5 : VIEW FUNCTIONS", async () => {
+
+    it("#2-1. salePeriod : Before the start time, the 0th day is returned.", async () => {
+
+      let marketId = markets[markets.length-1].id ;
+
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
+        marketId
+      );
+
+      expect(days_[1]).to.be.equal(ethers.constants.Zero);
     })
 
-    it("#1-3. create : Either _availableBasicBond or _availableLockupBond must be true. or fail", async () => {
+    it("#3-1. possibleMaxCapacity : Before the start time, currentCapacity is zero.", async () => {
+
+      let marketId = markets[markets.length-1].id ;
+
+      let capacity = await bondDepository.connect(_TosV2Admin).possibleMaxCapacity(
+        marketId
+      );
+
+      expect(capacity[1]).to.be.equal(ethers.constants.Zero);
+    })
+
+    it("   evm_increaseTime ", async () => {
       const block = await ethers.provider.getBlock('latest')
 
-      let bondInfo =  _.cloneDeep(bondInfoEther_5days);
-      bondInfo.market.startTime = block.timestamp + (60*5);
-      bondInfo.market.closeTime = bondInfo.market.startTime + bondInfo.market.salePeriod;
+      let passTime = markets[markets.length-1].info.market.startTime - block.timestamp ;
+      // console.log('passTime',passTime );
+      ethers.provider.send("evm_increaseTime", [passTime+100])
+      ethers.provider.send("evm_mine")
+    });
+
+    it("#2-2. salePeriod : During the sales period, it is returned as 1 on the first cycle. ", async () => {
+      let marketId = markets[markets.length-1].id ;
+
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
+        marketId
+      );
+
+      expect(days_[1]).to.be.equal(ethers.constants.One);
+    })
+
+    it("#3-2. possibleMaxCapacity", async () => {
+
+      let marketId = markets[markets.length-1].id ;
+      let bondInfo = markets[markets.length-1].info ;
+
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
+        marketId
+      );
+      expect(days_[1]).to.be.equal(ethers.constants.One);
+
+      let capacity = await bondDepository.connect(_TosV2Admin).possibleMaxCapacity(
+        marketId
+      );
+
+      let currentCapacity = bondInfo.market.capacity.mul(days_[1]).div(days_[0])
+
+      expect(capacity[1]).to.be.equal(currentCapacity);
+    })
+
+
+    it("   evm_increaseTime ", async () => {
+      let bondInfo = markets[markets.length-1].info ;
+      ethers.provider.send("evm_increaseTime", [bondInfo.market.capacityUpdatePeriod])
+      ethers.provider.send("evm_mine")
+    });
+
+    it("#2-3. salePeriod : During the sales period, it returns to 2 for the second cycle.", async () => {
+      let marketId = markets[markets.length-1].id ;
+
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
+        marketId
+      );
+
+      expect(days_[1]).to.be.equal(ethers.constants.Two);
+    })
+
+    it("#3-2. possibleMaxCapacity", async () => {
+
+      let marketId = markets[markets.length-1].id ;
+      let bondInfo = markets[markets.length-1].info ;
+
+      let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
+        marketId
+      );
+
+      expect(days_[1]).to.be.equal(ethers.constants.Two);
+
+      let capacity = await bondDepository.connect(_TosV2Admin).possibleMaxCapacity(
+        marketId
+      );
+
+      let currentCapacity = bondInfo.market.capacity.mul(days_[1]).div(days_[0])
+
+      expect(capacity[1]).to.be.equal(currentCapacity.toString());
+    })
+
+    it("#4. viewMarket", async () => {
+
+      let marketId = markets[markets.length-1].id ;
+      let bondInfo = markets[markets.length-1].info ;
+
+      let viewMarket = await bondDepository.viewMarket(
+        marketId
+      );
+
+      let market = viewMarket[0]
+      let marketInfo = viewMarket[1]
+      let bonusRateInfo = viewMarket[2]
+      let pricePathes = viewMarket[3]
+
+      // console.log('marketInfo',marketInfo);
+      // console.log('bonusRateInfo',bonusRateInfo);
+      // console.log('pricePathes',pricePathes);
+
+      // expect(marketInfo.startTime).to.equal(bondInfo.token);
+      // expect(info.capacity).to.equal(bondInfo.market.capAmountOfTos);
+      // expect(info.endSaleTime).to.equal(bondInfo.market.closeTime);
+      // expect(info.tosPrice).to.equal(bondInfo.market.priceTosPerToken);
+      // expect(info.maxPayout).to.equal(bondInfo.market.purchasableTOSAmountAtOneTime);
+
+      expect(market.quoteToken).to.equal(bondInfo.token);
+      expect(market.capacity).to.equal(bondInfo.market.capacity);
+      expect(market.endSaleTime).to.be.gt(bondInfo.market.startTime);
+      expect(market.maxPayout).to.equal(ethers.constants.Zero);
+      expect(market.tosPrice).to.equal(bondInfo.market.lowerPriceLimit);
+
+      expect(marketInfo.bondType).to.equal(1);
+      expect(marketInfo.startTime).to.equal(bondInfo.market.startTime);
+      expect(marketInfo.closed).to.equal(false);
+      expect(marketInfo.initialMaxPayout).to.equal(bondInfo.market.initialMaxPayout);
+      expect(marketInfo.capacityUpdatePeriod).to.equal(bondInfo.market.capacityUpdatePeriod);
+      expect(marketInfo.totalSold).to.equal(ethers.constants.Zero);
+
+      expect(bonusRateInfo.bonusRatesAddress).to.equal(bonusSets[0].address);
+      expect(bonusRateInfo.bonusRatesId).to.equal(bonusSets[0].id);
+
+      expect(pricePathes.length).to.equal(bondInfo.market.pathes.length);
+      // console.log('pricePathes', pricePathes);
+    })
+
+    it("#5-1. getUniswapPrice  ", async () => {
+      let marketId = markets[markets.length-1].id ;
+      // console.log('marketId', marketId);
+
+      let price = await bondDepository.getUniswapPrice(
+        marketId
+      );
+      // console.log('price', price);
+
+      let bondInfo = markets[markets.length-1].info ;
+
+      if(bondInfo.market.pathes.length > 0){
+        for (i =0; i< bondInfo.market.pathes.length; i++){
+          let uniswapPrice = await oracleLibrary.getOutAmountsCurTick(
+            uniswapInfo.poolfactory,
+            bondInfo.market.pathes[i],
+            ethers.utils.parseEther("1")
+          );
+          expect(price).to.gte(uniswapPrice);
+        }
+      }
+
+    })
+
+    it("#5-1. getBasePrice ", async () => {
+      let marketId = markets[markets.length-1].id ;
+
+      let uniswapPrice = await bondDepository.getUniswapPrice(
+        marketId
+      );
+      // console.log('uniswapPrice', uniswapPrice.toString());
+
+      let basePriceInfo = await bondDepository.getBasePrice(
+        marketId
+      );
+      // console.log('basePriceInfo', basePriceInfo);
+      expect(basePriceInfo[0]).to.gte(uniswapPrice);
+    })
+
+
+    it("#6-1. getBondingPrice : As the lock-up period increases, the bonding price (the amount of TOS that can be received) increases.", async () => {
+      let marketId = markets[markets.length-1].id ;
+
+      let basePriceInfo = await bondDepository.getBasePrice(
+        marketId
+      );
+      let bondingPrice_10weeks = await bondDepository.getBondingPrice(
+        marketId, 10, basePriceInfo[0]
+      );
+
+      let bondingPrice_20weeks = await bondDepository.getBondingPrice(
+        marketId, 20, basePriceInfo[0]
+      );
+      expect(bondingPrice_10weeks).to.be.lt(bondingPrice_20weeks);
+    })
+
+    it("#6-2. salePeriod  ", async () => {
+      let marketId = markets[markets.length-1].id ;
+
+      let salePeriod = await bondDepository.salePeriod(
+        marketId
+      );
+
+      // console.log("totalSaleDays",salePeriod[0].toString())
+      // console.log("curWhatDays",salePeriod[1].toString())
+
+      let capacity = await bondDepository.possibleMaxCapacity(
+        marketId
+      );
+
+      // console.log("dailyCapacity",capacity[0].toString())
+      // console.log("currentCapacity",capacity[1].toString())
+      expect(capacity[1]).to.be.eq(capacity[0].mul(salePeriod[1]));
+    })
+/*
+    it("#7. getBonds", async () => {
+
+      let marketId = markets[markets.length-1].id ;
+
+      let bondsList = await bondDepository.getBonds();
+      expect(bondsList[0].length).to.gt(ethers.constants.One);
+      expect(bondsList[0][bondsList[0].length-1]).to.eq(marketId);
+
+    })
+
+    it("#8. getMarketList", async () => {
+
+      let marketId = markets[markets.length-1].id ;
+
+      let bondsList = await bondDepository.getMarketList();
+      expect(bondsList.length).to.gt(ethers.constants.One);
+      expect(bondsList[bondsList.length-1]).to.eq(marketId);
+
+    })
+    */
+  })
+
+  describe("#9. bondDepositoryV1_1 : ETHDeposit ", async () => {
+
+    it("#9-1. ETHDeposit : fail when minimumTosPrice is greater than bonding price", async () => {
+
+      let marketId = markets[markets.length-1].id;
+
+      let amount = ethers.utils.parseEther("1");
+
+      let basePriceInfo = await bondDepository.getBasePrice(
+        marketId
+      );
+
+      let bondingPrice_10weeks = await bondDepository.getBondingPrice(
+        marketId, 0, basePriceInfo[0]
+      );
+
+      let minimumTosPrice = bondingPrice_10weeks.add(ethers.BigNumber.from("1"))
 
       await expect(
-        bondDepository.connect(_TosV2Admin).create(
-          bondInfo.token,
-          [
-            bondInfo.market.capAmountOfTos,
-            bondInfo.market.closeTime,
-            bondInfo.market.priceTosPerToken,
-            bondInfo.market.purchasableTOSAmountAtOneTime
-          ],
-          bondInfo.market.startTime,
-          bondInfo.market.initialMaxPayout,
-          bondInfo.market.capacityUpdatePeriod,
-          false,
-          false
+        bondDepository.connect(user1).ETHDeposit(
+          marketId,
+          amount,
+          minimumTosPrice,
+          {
+            value: amount
+          }
         )
-      ).to.be.revertedWith("both false _availableBasicBond & _availableStosBond")
+      ).to.be.revertedWith("The bonding amount is less than the minimum amount.")
+    })
+
+    it("#9-2. ETHDeposit : fail when amount exceed currentCapacityLimit", async () => {
+
+      let marketId = markets[markets.length-1].id;
+
+      let capacity = await bondDepository.possibleMaxCapacity(
+        marketId
+      );
+      let basePriceInfo = await bondDepository.getBasePrice(
+        marketId
+      );
+
+      let bondingPrice_10weeks = await bondDepository.getBondingPrice(
+        marketId, 0, basePriceInfo[0]
+      );
+      let minimumTosPrice = bondingPrice_10weeks.sub(ethers.BigNumber.from("1"))
+
+      let amount = capacity[1]
+                    .mul(ethers.utils.parseEther("1"))
+                    .div(bondingPrice_10weeks)
+                    .add(ethers.BigNumber.from("100"));
+
+      await expect(
+        bondDepository.connect(user1).ETHDeposit(
+          marketId,
+          amount,
+          minimumTosPrice,
+          {
+            value: amount
+          }
+        )
+      ).to.be.revertedWith("exceed currentCapacityLimit")
+    })
+
+    it("#9-3. ETHDeposit  ", async () => {
+
+      let skipIndex = 1;
+      let lockupWeeks = 0;
+      let stakingIdCounter = await stakingV2.stakingIdCounter();
+      let possibleIndex = await stakingV2.possibleIndex();
+
+      let marketId = markets[markets.length-skipIndex].id;
+      let bondInfo = markets[markets.length-skipIndex].info ;
+
+      let basePriceInfo = await bondDepository.getBasePrice(
+        marketId
+      );
+
+      let bondingPrice = await bondDepository.getBondingPrice(
+        marketId, lockupWeeks, basePriceInfo[0]
+      );
+
+      let minimumTosPrice = bondingPrice.sub(ethers.BigNumber.from("1"))
+
+      let capacity = await bondDepository.possibleMaxCapacity(
+        marketId
+       );
+
+      let amount = capacity[1]
+                    .mul(ethers.utils.parseEther("1"))
+                    .div(bondingPrice) ;
+
+
+      const tx = await bondDepository.connect(user1).ETHDeposit(
+        markets[markets.length-skipIndex].id,
+        amount,
+        minimumTosPrice,
+        {
+          value: amount
+        }
+      );
+
+      const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
+
+      const abi = require("../../artifacts/contracts/BondDepositoryV1_5.sol/BondDepositoryV1_5.json").abi;
+      const interface   = new ethers.utils.Interface(abi);
+
+      const StakingV2abi = require("../../artifacts/contracts/StakingV2.sol/StakingV2.json").abi;
+      const StakingV2Interface   = new ethers.utils.Interface(StakingV2abi);
+
+      let funcNameDeposited = "Deposited(address,uint256,uint256,uint256,bool,uint256)";
+      let funcETHDeposited = "ETHDeposited(address,uint256,uint256,uint256,uint256,uint256)";
+      let funcStakedByBond = "StakedByBond(address,uint256,uint256,uint256,uint256,uint256)";
+
+      let TopicStakedByBond = Web3EthAbi.encodeEventSignature(funcStakedByBond);
+      let TopicDeposited = Web3EthAbi.encodeEventSignature(funcNameDeposited);
+      let TopicETHDeposited = Web3EthAbi.encodeEventSignature(funcETHDeposited);
+
+      // console.log('funcNameDeposited',funcNameDeposited);
+      // console.log('TopicDeposited',TopicDeposited);
+
+      let stakeId = ethers.constants.Zero;
+      let stakedAmount = ethers.constants.Zero;
+
+      let tosAmount = amount.mul(bondingPrice).div(ethers.utils.parseEther("1"));
+
+      for (let i = 0; i < receipt.logs.length; i++) {
+
+        if (receipt.logs[i].topics[0] === TopicDeposited) {
+          const data0 = receipt.logs[i].data;
+          const topics0 = receipt.logs[i].topics;
+          const event0 = interface.decodeEventLog("Deposited", data0, topics0);
+          expect(event0.user).to.equal(user1.address);
+          expect(event0.marketId).to.equal(marketId);
+          expect(event0.amount).to.equal(amount);
+          expect(event0.payout).to.equal(tosAmount);
+
+          expect(event0.isEth).to.equal(true);
+          bondInfo.mintAmount = event0.mintAmount;
+        }
+
+        if (receipt.logs[i].topics[0] === TopicStakedByBond) {
+
+          const data0 = receipt.logs[i].data;
+          const topics0 = receipt.logs[i].topics;
+          const event0 = StakingV2Interface.decodeEventLog("StakedByBond", data0, topics0);
+          expect(event0.to).to.equal(user1.address);
+          expect(event0.marketId).to.equal(marketId);
+          expect(event0.amount).to.equal(tosAmount);
+          expect(event0.ltos).to.equal(tosAmount.mul(ethers.utils.parseEther("1")).div(possibleIndex));
+          expect(event0.tosPrice).to.gte(bondInfo.market.lowerPriceLimit);
+          stakeId = event0.stakeId;
+          stakedAmount = event0.amount;
+        }
+
+
+        if (receipt.logs[i].topics[0] === TopicETHDeposited) {
+          const data0 = receipt.logs[i].data;
+          const topics0 = receipt.logs[i].topics;
+          const event0 = interface.decodeEventLog("ETHDeposited", data0, topics0);
+
+          expect(event0.user).to.equal(user1.address);
+          expect(event0.marketId).to.equal(marketId);
+          expect(event0.amount).to.equal(amount);
+          expect(event0.stakeId).to.equal(stakeId);
+
+          bondInfo.stakeId = event0.stakeId;
+          bondInfo.tosValuation = event0.tosValuation;
+        }
+      }
+
+      expect(bondInfo.mintAmount).to.gt(bondInfo.tosValuation);
+
+      expect(await stakingV2.stakingIdCounter()).to.be.lte(stakingIdCounter.add(ethers.constants.Two));
+      expect(await stakingV2.connectId(bondInfo.stakeId)).to.be.equal(ethers.constants.Zero);
+
+      let capacityAfter = await bondDepository.possibleMaxCapacity(
+        marketId
+      )
+      expect(capacityAfter[1]).to.be.lt(capacity[1]);
+
+      // let isOpened = await bondDepository.isOpened(
+      //   marketId
+      // )
+      // console.log("isOpened", isOpened);
+
+      let viewMarket = await bondDepository.viewMarket(marketId);
+      expect(viewMarket[1].totalSold).to.be.eq(capacity[1].sub(capacityAfter[1]));
+    })
+
+    it("3-4. possibleMaxCapacity : As time has passed, sale capacity is increased.", async () => {
+
+      let marketId = markets[markets.length-1].id ;
+      let bondInfo = markets[markets.length-1].info ;
+
+      let isOpened = await bondDepository.isOpened(marketId)
+      expect(isOpened).to.be.eq(true);
+
+      let capacity = await bondDepository.possibleMaxCapacity(marketId)
+      // console.log("capacity", capacity[1].toString());
+
+      let block = await ethers.provider.getBlock();
+      let passTime =  bondInfo.market.capacityUpdatePeriod + 60;
+      ethers.provider.send("evm_increaseTime", [passTime])
+      ethers.provider.send("evm_mine")
+
+      let capacityAfter = await bondDepository.possibleMaxCapacity(marketId)
+      // console.log("capacityAfter", capacityAfter[1].toString());
+
+      expect(capacityAfter[1]).to.be.gt(capacity[1]);
+
     })
 
   })
 
+  describe("#10. bondDepositoryV1_1 : ETHDepositedWithSTOS ", async () => {
 
+
+    it("#10-1. ETHDepositWithSTOS : fail when minimumTosPrice is greater than bonding price", async () => {
+
+      let marketId = markets[markets.length-1].id;
+      let lockupWeeks = 30;
+      let capacity = await bondDepository.possibleMaxCapacity(
+        marketId
+      );
+      let basePriceInfo = await bondDepository.getBasePrice(
+        marketId
+      );
+
+      let bondingPrice = await bondDepository.getBondingPrice(
+        marketId, lockupWeeks, basePriceInfo[0]
+      );
+      let minimumTosPrice = bondingPrice.add(ethers.BigNumber.from("1"))
+
+      let amount = capacity[1]
+                    .mul(ethers.utils.parseEther("1"))
+                    .div(bondingPrice)
+                    .add(ethers.BigNumber.from("100"));
+
+      await expect(
+        bondDepository.connect(user1).ETHDepositWithSTOS(
+          marketId,
+          amount,
+          minimumTosPrice,
+          lockupWeeks,
+          {
+            value: amount
+          }
+        )
+      ).to.be.revertedWith("The bonding amount is less than the minimum amount.")
+    })
+
+    it("#10-2. ETHDepositWithSTOS : fail when amount exceed currentCapacityLimit", async () => {
+
+      let marketId = markets[markets.length-1].id;
+      let lockupWeeks = 15;
+      let capacity = await bondDepository.possibleMaxCapacity(
+        marketId
+      );
+      let basePriceInfo = await bondDepository.getBasePrice(
+        marketId
+      );
+
+      let bondingPrice = await bondDepository.getBondingPrice(
+        marketId, lockupWeeks, basePriceInfo[0]
+      );
+      let minimumTosPrice = bondingPrice.sub(ethers.BigNumber.from("1"))
+
+
+      let amount = capacity[1]
+                    .mul(ethers.utils.parseEther("1"))
+                    .div(bondingPrice)
+                    .add(ethers.BigNumber.from("100"));
+
+      await expect(
+        bondDepository.connect(user1).ETHDepositWithSTOS(
+          marketId,
+          amount,
+          minimumTosPrice,
+          lockupWeeks,
+          {
+            value: amount
+          }
+        )
+      ).to.be.revertedWith("exceed currentCapacityLimit")
+    })
+
+    it("#10-3. ETHDepositWithSTOS  ", async () => {
+
+      let skipIndex = 1;
+      let lockupWeeks = 15;
+      let lockWeeks = ethers.BigNumber.from("15");
+      let stakingIdCounter = await stakingV2.stakingIdCounter();
+      let possibleIndex = await stakingV2.possibleIndex();
+
+      let marketId = markets[markets.length-skipIndex].id;
+      let bondInfo = markets[markets.length-skipIndex].info ;
+      let viewMarketBefore = await bondDepository.viewMarket(marketId);
+
+      let basePriceInfo = await bondDepository.getBasePrice(
+        marketId
+      );
+
+      let bondingPrice = await bondDepository.getBondingPrice(
+        marketId, lockupWeeks, basePriceInfo[0]
+      );
+
+      let minimumTosPrice = bondingPrice.sub(ethers.BigNumber.from("1"))
+
+      let capacity = await bondDepository.possibleMaxCapacity(
+        marketId
+      );
+
+      let amount = capacity[1]
+       .mul(ethers.utils.parseEther("1"))
+       .div(bondingPrice) ;
+
+      const tx = await bondDepository.connect(user1).ETHDepositWithSTOS(
+        marketId,
+        amount,
+        minimumTosPrice,
+        lockWeeks,
+        {
+          value: amount
+        }
+      );
+      const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
+
+      const abi = require("../../artifacts/contracts/BondDepositoryV1_5.sol/BondDepositoryV1_5.json").abi;
+      const interface   = new ethers.utils.Interface(abi);
+
+      const StakingV2abi = require("../../artifacts/contracts/StakingV2.sol/StakingV2.json").abi;
+      const StakingV2Interface   = new ethers.utils.Interface(StakingV2abi);
+
+
+      let funcNameDeposited = "Deposited(address,uint256,uint256,uint256,bool,uint256)";
+      let funcETHDepositedWithSTOS = "ETHDepositedWithSTOS(address,uint256,uint256,uint256,uint256,uint8,uint256)";
+
+      let funcStakedGetStosByBond = "StakedGetStosByBond(address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)";
+
+      let TopicDeposited = Web3EthAbi.encodeEventSignature(funcNameDeposited);
+      let TopicETHDepositedWithSTOS = Web3EthAbi.encodeEventSignature(funcETHDepositedWithSTOS);
+
+      let TopicStakedGetStosByBond = Web3EthAbi.encodeEventSignature(funcStakedGetStosByBond);
+
+      let stakeId = ethers.constants.Zero;
+      let stosId = ethers.constants.Zero;
+      let stakedAmount = ethers.constants.Zero;
+      let tosAmount = amount.mul(bondingPrice).div(ethers.utils.parseEther("1"));
+
+      for (let i = 0; i < receipt.logs.length; i++) {
+
+        if (receipt.logs[i].topics[0] === TopicDeposited) {
+          const data0 = receipt.logs[i].data;
+          const topics0 = receipt.logs[i].topics;
+          const event0 = interface.decodeEventLog("Deposited", data0, topics0);
+          expect(event0.user).to.equal(user1.address);
+          expect(event0.marketId).to.equal(marketId);
+          expect(event0.amount).to.equal(amount);
+          expect(event0.payout).to.equal(tosAmount);
+          expect(event0.isEth).to.equal(true);
+          bondInfo.mintAmount = event0.mintAmount;
+        }
+
+        if (receipt.logs[i].topics[0] === TopicStakedGetStosByBond) {
+          const data0 = receipt.logs[i].data;
+          const topics0 = receipt.logs[i].topics;
+          const event0 = StakingV2Interface.decodeEventLog("StakedGetStosByBond", data0, topics0);
+
+          expect(event0.to).to.equal(user1.address);
+          expect(event0.marketId).to.equal(marketId);
+          expect(event0.amount).to.lte(tosAmount);
+          expect(event0.ltos).to.equal(tosAmount.mul(ethers.utils.parseEther("1")).div(possibleIndex));
+          expect(event0.periodWeeks).to.equal(lockWeeks);
+          expect(event0.tosPrice).to.gte(bondInfo.market.lowerPriceLimit);
+          expect(event0.stosPrincipal).to.gte(tosAmount);
+
+          stakedAmount = event0.amount;
+          stakeId = event0.stakeId;
+          stosId = event0.stosId;
+          bondInfo.stosId = stosId;
+
+        }
+
+        if (receipt.logs[i].topics[0] === TopicETHDepositedWithSTOS) {
+          const data0 = receipt.logs[i].data;
+          const topics0 = receipt.logs[i].topics;
+          const event0 = interface.decodeEventLog("ETHDepositedWithSTOS", data0, topics0);
+
+          expect(event0.user).to.equal(user1.address);
+          expect(event0.marketId).to.equal(marketId);
+          expect(event0.amount).to.equal(amount);
+          expect(event0.lockWeeks).to.equal(lockWeeks);
+          expect(event0.stakeId).to.equal(stakeId);
+          expect(event0.tosValuation).to.equal(stakedAmount);
+
+          bondInfo.stakeId = event0.stakeId;
+          bondInfo.tosValuation = event0.tosValuation;
+        }
+      }
+
+      expect(bondInfo.mintAmount).to.gt(bondInfo.tosValuation);
+
+      let count = await stakingV2.stakingIdCounter();
+      expect(count).to.be.gt(stakingIdCounter);
+      expect(count).to.be.lte(stakingIdCounter.add(ethers.constants.Two));
+
+      let connectId = await stakingV2.connectId(bondInfo.stakeId)
+      expect(bondInfo.stakeId).to.be.gt(ethers.constants.Zero);
+      expect(connectId).to.be.equal(stosId);
+
+
+      let capacityAfter = await bondDepository.possibleMaxCapacity(
+        marketId
+      )
+      expect(capacityAfter[1]).to.be.lt(capacity[1]);
+
+      let viewMarket = await bondDepository.viewMarket(marketId);
+      expect(viewMarket[1].totalSold).to.be.eq(viewMarketBefore[1].totalSold.add(bondInfo.tosValuation));
+
+    })
+
+  })
 });
