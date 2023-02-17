@@ -483,7 +483,7 @@ contract BondDepositoryV1_5 is
     {
         lowerPriceLimit = markets[_marketId].tosPrice;
         uniswapPrice = getUniswapPrice(_marketId);
-        basePrice = Math.max(lowerPriceLimit, uniswapPrice);
+        basePrice = Math.min(lowerPriceLimit, uniswapPrice);
     }
 
     function getUniswapPrice(uint256 _marketId)
