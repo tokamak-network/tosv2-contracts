@@ -7,8 +7,6 @@ contract BondDepositoryStorageV1_5 {
     uint256 public remainingTosTolerance;
     address public oracleLibrary;
     address public uniswapFactory;
-    uint32 public oracleConsultPeriod;
-    uint8 public maxLockupWeeks;
 
     /// marketId - MarketInfo
     mapping(uint256 => LibBondDepositoryV1_5.MarketInfo) marketInfos;

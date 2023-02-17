@@ -4,7 +4,6 @@ pragma solidity ^0.8.4;
 /// @title LibBondDepositoryV1_5
 library LibBondDepositoryV1_5
 {
-
     enum BOND_TYPE {
         MINTING_V1,
         MINTING_V1_5,
