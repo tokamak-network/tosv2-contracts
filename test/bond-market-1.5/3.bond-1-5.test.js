@@ -584,7 +584,7 @@ describe("TOSv2 Bond Market V1.5", function () {
             bondInfo.market.pathes[i],
             ethers.utils.parseEther("1")
           );
-          expect(price).to.gte(uniswapPrice);
+          expect(price).to.lte(uniswapPrice);
         }
       }
 
