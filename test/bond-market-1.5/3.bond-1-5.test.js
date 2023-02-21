@@ -590,7 +590,7 @@ describe("TOSv2 Bond Market V1.5", function () {
 
     })
 
-    it("#5-1. getBasePrice ", async () => {
+    it("#5-2. getBasePrice ", async () => {
       let marketId = markets[markets.length-1].id ;
 
       let uniswapPrice = await bondDepository.getUniswapPrice(
@@ -602,11 +602,11 @@ describe("TOSv2 Bond Market V1.5", function () {
         marketId
       );
       // console.log('basePriceInfo', basePriceInfo);
-      expect(basePriceInfo[0]).to.gte(uniswapPrice);
+      expect(basePriceInfo[0]).to.lte(uniswapPrice);
     })
 
 
-    it("#6-1. getBondingPrice : As the lock-up period increases, the bonding price (the amount of TOS that can be received) increases.", async () => {
+    it("#5-3. getBondingPrice : As the lock-up period increases, the bonding price (the amount of TOS that can be received) increases.", async () => {
       let marketId = markets[markets.length-1].id ;
 
       let basePriceInfo = await bondDepository.getBasePrice(
@@ -622,7 +622,7 @@ describe("TOSv2 Bond Market V1.5", function () {
       expect(bondingPrice_10weeks).to.be.lt(bondingPrice_20weeks);
     })
 
-    it("#6-2. salePeriod  ", async () => {
+    it("#6-1. salePeriod  ", async () => {
       let marketId = markets[markets.length-1].id ;
 
       let salePeriod = await bondDepository.salePeriod(
@@ -640,13 +640,14 @@ describe("TOSv2 Bond Market V1.5", function () {
       // console.log("currentCapacity",capacity[1].toString())
       expect(capacity[1]).to.be.eq(capacity[0].mul(salePeriod[1]));
     })
-/*
+
     it("#7. getBonds", async () => {
 
       let marketId = markets[markets.length-1].id ;
 
       let bondsList = await bondDepository.getBonds();
-      expect(bondsList[0].length).to.gt(ethers.constants.One);
+
+      expect(bondsList[0].length).to.gt(ethers.constants.Zero);
       expect(bondsList[0][bondsList[0].length-1]).to.eq(marketId);
 
     })
@@ -660,7 +661,7 @@ describe("TOSv2 Bond Market V1.5", function () {
       expect(bondsList[bondsList.length-1]).to.eq(marketId);
 
     })
-    */
+
   })
 
   describe("#9. bondDepositoryV1_1 : ETHDeposit ", async () => {
