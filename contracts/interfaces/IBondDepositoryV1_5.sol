@@ -148,11 +148,13 @@ interface IBondDepositoryV1_5 {
 
     /// @dev                        returns information from active markets
     /// @return marketIds           array of total marketIds
+    /// @return markets             array of total markets
     /// @return marketInfo          array of total market's information
     /// @return bonusRateInfo       array of total market's bonusRateInfos
     function getBonds() external view
         returns (
             uint256[] memory marketIds,
+            LibBondDepository.Market[] memory,
             LibBondDepositoryV1_5.MarketInfo[] memory marketInfo,
             LibBondDepositoryV1_5.BonusRateInfo[] memory bonusRateInfo
         );

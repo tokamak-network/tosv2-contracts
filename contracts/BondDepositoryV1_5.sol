@@ -405,6 +405,7 @@ contract BondDepositoryV1_5 is
     function getBonds() external override view
         returns (
             uint256[] memory,
+            LibBondDepository.Market[] memory,
             LibBondDepositoryV1_5.MarketInfo[] memory,
             LibBondDepositoryV1_5.BonusRateInfo[] memory
         )
@@ -412,16 +413,18 @@ contract BondDepositoryV1_5 is
         uint256 len = marketList.length;
 
         uint256[] memory _marketIds = new uint256[](len);
+        LibBondDepository.Market[] memory _markets = new LibBondDepository.Market[](len);
         LibBondDepositoryV1_5.BonusRateInfo[] memory _bonusInfo = new LibBondDepositoryV1_5.BonusRateInfo[](len);
         LibBondDepositoryV1_5.MarketInfo[] memory _marketInfo = new LibBondDepositoryV1_5.MarketInfo[](len);
 
         for (uint256 i = 0; i < len; i++){
             uint256 id = marketList[i];
             _marketIds[i] = id;
-            _bonusInfo[i] = bonusRateInfos[id];
+            _markets[i] = markets[id];
             _marketInfo[i] = marketInfos[id];
+            _bonusInfo[i] = bonusRateInfos[id];
         }
-        return (_marketIds, _marketInfo, _bonusInfo);
+        return (_marketIds, _markets, _marketInfo, _bonusInfo);
     }
 
     /// @inheritdoc IBondDepositoryV1_5
@@ -485,7 +488,7 @@ contract BondDepositoryV1_5 is
     {
         lowerPriceLimit = markets[_marketId].tosPrice;
         uniswapPrice = getUniswapPrice(_marketId);
-        basePrice = Math.min(lowerPriceLimit, uniswapPrice);
+        basePrice = Math.max(lowerPriceLimit, uniswapPrice);
     }
 
     function getUniswapPrice(uint256 _marketId)
@@ -500,7 +503,7 @@ contract BondDepositoryV1_5 is
                 prices = IIOracleLibrary(oracleLibrary).getOutAmountsCurTick(uniswapFactory, pathes[i], 1 ether);
 
                 if (i == 0) uniswapPrice = prices;
-                else uniswapPrice = Math.max(uniswapPrice, prices);
+                else uniswapPrice = Math.min(uniswapPrice, prices);
             }
         }
     }
