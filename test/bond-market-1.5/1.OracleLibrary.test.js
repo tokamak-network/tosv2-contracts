@@ -76,7 +76,7 @@ describe("Price Calculate with uniswap pools", function () {
       expect(code).to.not.eq("0x");
     })
 
-    it("getOutAmounts 1", async () => {
+    it("getOutAmountsCurTick 1", async () => {
 
       const amountIn = ethers.utils.parseEther("1");
       // const path = encodePath(
@@ -98,7 +98,7 @@ describe("Price Calculate with uniswap pools", function () {
       console.log("result", result.toString())
     })
 
-    it("getOutAmounts 2", async () => {
+    it("getOutAmountsCurTick 2", async () => {
 
       const amountIn = ethers.utils.parseEther("1");
       const path = encodePath(
@@ -114,5 +114,7 @@ describe("Price Calculate with uniswap pools", function () {
 
       console.log("result", result.toString())
     })
+
+
   })
 })
