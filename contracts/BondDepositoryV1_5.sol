@@ -410,12 +410,14 @@ contract BondDepositoryV1_5 is
         )
     {
         uint256 len = marketList.length;
+
         uint256[] memory _marketIds = new uint256[](len);
         LibBondDepositoryV1_5.BonusRateInfo[] memory _bonusInfo = new LibBondDepositoryV1_5.BonusRateInfo[](len);
         LibBondDepositoryV1_5.MarketInfo[] memory _marketInfo = new LibBondDepositoryV1_5.MarketInfo[](len);
 
         for (uint256 i = 0; i < len; i++){
-            uint256 id = _marketIds[i];
+            uint256 id = marketList[i];
+            _marketIds[i] = id;
             _bonusInfo[i] = bonusRateInfos[id];
             _marketInfo[i] = marketInfos[id];
         }
