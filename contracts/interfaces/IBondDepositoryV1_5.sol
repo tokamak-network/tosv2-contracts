@@ -13,7 +13,7 @@ interface IBondDepositoryV1_5 {
 
     /// @dev                        creates a new market type
     /// @param token                token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3
-    /// @param marketInfos          [capacity, maxPayout, lowerPriceLimit, initialMaxPayout, capacityUpdatePeriod]
+    /// @param marketInfos          [capacity, lowerPriceLimit, initialMaxPayout, capacityUpdatePeriod]
     ///                             capacity             maximum purchasable bond in TOS
     ///                             lowerPriceLimit     lowerPriceLimit
     ///                             initialMaxPayout    initial max payout
