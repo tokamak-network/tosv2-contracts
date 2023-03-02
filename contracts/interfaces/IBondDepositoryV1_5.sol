@@ -22,7 +22,7 @@ interface IBondDepositoryV1_5 {
     /// @param bonusRatesId         bonusRates id
     /// @param startTime            start time
     /// @param endTime              market closing time
-    /// @param pathes               pathes for find out the price
+    /// @param paths                paths for find out the price
     /// @return id_                 returns ID of new bond market
     function create(
         address token,
@@ -31,7 +31,7 @@ interface IBondDepositoryV1_5 {
         uint256 bonusRatesId,
         uint32 startTime,
         uint32 endTime,
-        bytes[] calldata pathes
+        bytes[] calldata paths
     ) external returns (uint256 id_);
 
 
@@ -93,11 +93,11 @@ interface IBondDepositoryV1_5 {
     /**
      * @dev                             this event occurs when the price path info is updated
      * @param _marketId                 market id
-     * @param pathes                    path for pricing
+     * @param paths                     paths for pricing
      */
     function changePricePathInfo(
         uint256 _marketId,
-        bytes[] calldata pathes
+        bytes[] calldata paths
     )   external ;
 
     /**
@@ -172,13 +172,13 @@ interface IBondDepositoryV1_5 {
     /// @return market          market base information
     /// @return marketInfo      market information
     /// @return bonusInfo       bonus information
-    /// @return pricePathes     pathes for price
+    /// @return pricePaths     paths for price
     function viewMarket(uint256 _marketId) external view
         returns (
             LibBondDepository.Market memory market,
             LibBondDepositoryV1_5.MarketInfo memory marketInfo,
             LibBondDepositoryV1_5.BonusRateInfo memory bonusInfo,
-            bytes[] memory pricePathes
+            bytes[] memory pricePaths
             );
 
     /// @dev               checks whether a market is opened or not

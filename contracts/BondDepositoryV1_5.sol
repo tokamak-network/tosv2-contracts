@@ -251,7 +251,7 @@ contract BondDepositoryV1_5 is
     /// @inheritdoc IBondDepositoryV1_5
     function changePricePathInfo(
         uint256 _marketId,
-        bytes[] memory pathes
+        bytes[] memory paths
     )   external override onlyPolicyOwner
         nonEndMarket(_marketId)
     {
@@ -263,14 +263,14 @@ contract BondDepositoryV1_5 is
             delete pricePathInfos[_marketId];
         }
 
-        if (pathes.length != 0) {
-            pricePathInfos[_marketId] = new bytes[](pathes.length);
-            for (uint256 i = 0; i < pathes.length; i++){
-                pricePathInfos[_marketId][i] = pathes[i];
+        if (paths.length != 0) {
+            pricePathInfos[_marketId] = new bytes[](paths.length);
+            for (uint256 i = 0; i < paths.length; i++){
+                pricePathInfos[_marketId][i] = paths[i];
             }
         }
 
-        emit ChangedPricePathInfo(_marketId, pathes);
+        emit ChangedPricePathInfo(_marketId, paths);
     }
 
     /// @inheritdoc IBondDepositoryV1_5
@@ -495,12 +495,12 @@ contract BondDepositoryV1_5 is
         public override view
         returns (uint256 uniswapPrice)
     {
-        bytes[] memory pathes = pricePathInfos[_marketId];
-        if (pathes.length > 0){
+        bytes[] memory paths = pricePathInfos[_marketId];
+        if (paths.length > 0){
             uint256 prices = 0;
-            for (uint256 i = 0; i < pathes.length; i++){
+            for (uint256 i = 0; i < paths.length; i++){
 
-                prices = IIOracleLibrary(oracleLibrary).getOutAmountsCurTick(uniswapFactory, pathes[i], 1 ether);
+                prices = IIOracleLibrary(oracleLibrary).getOutAmountsCurTick(uniswapFactory, paths[i], 1 ether);
 
                 if (i == 0) uniswapPrice = prices;
                 else uniswapPrice = Math.min(uniswapPrice, prices);
