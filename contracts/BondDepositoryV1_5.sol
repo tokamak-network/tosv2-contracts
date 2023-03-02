@@ -462,13 +462,10 @@ contract BondDepositoryV1_5 is
             && markets[_marketId].capacity > (marketInfos[_marketId].totalSold + remainingTosTolerance));
     }
 
-
     function getBondingPrice(uint256 _marketId, uint8 _lockWeeks, uint256 basePrice)
         public override view
         returns (uint256 bondingPrice)
     {
-        (basePrice,,) = getBasePrice(_marketId);
-
         if (basePrice > 0 && _lockWeeks > 0) {
             LibBondDepositoryV1_5.BonusRateInfo memory bonusInfo = bonusRateInfos[_marketId];
             if (bonusInfo.bonusRatesAddress != address(0) && bonusInfo.bonusRatesId != 0) {
