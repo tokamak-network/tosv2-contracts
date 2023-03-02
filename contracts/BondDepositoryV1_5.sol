@@ -514,10 +514,15 @@ contract BondDepositoryV1_5 is
     )
         public override view returns (uint256 periodicCapacity, uint256 currentCapacity)
     {
-        (uint256 _numberOfPeriods, uint256 _numberOfPeriodsPassed) = salePeriod(_marketId);
 
         LibBondDepository.Market memory market = markets[_marketId];
         LibBondDepositoryV1_5.MarketInfo memory capacityInfo = marketInfos[_marketId];
+
+        (uint256 _numberOfPeriods, uint256 _numberOfPeriodsPassed) = salePeriod(
+                capacityInfo.startTime,
+                market.endSaleTime,
+                capacityInfo.capacityUpdatePeriod
+                );
 
         if (_numberOfPeriods > 0)
             periodicCapacity = market.capacity / _numberOfPeriods;
@@ -527,24 +532,21 @@ contract BondDepositoryV1_5 is
     }
 
     /// @inheritdoc IBondDepositoryV1_5
-    function salePeriod(uint256 _marketId) public override view returns (uint256 numberOfPeriods, uint256 numberOfPeriodsPassed) {
+    function salePeriod(uint256 startTime, uint256 endSaleTime, uint256 capacityUpdatePeriod) public override view returns (uint256 numberOfPeriods, uint256 numberOfPeriodsPassed) {
 
-        LibBondDepositoryV1_5.MarketInfo memory capacityInfo = marketInfos[_marketId];
+        if (startTime > 0){
 
-        if (capacityInfo.startTime > 0){
-            LibBondDepository.Market memory market = markets[_marketId];
-
-            if (market.endSaleTime > capacityInfo.startTime){
-                uint256 periodSeconds = market.endSaleTime - capacityInfo.startTime;
-                numberOfPeriods = periodSeconds /  capacityInfo.capacityUpdatePeriod;
-                if (capacityInfo.capacityUpdatePeriod > 1 && periodSeconds % capacityInfo.capacityUpdatePeriod > 0)
+            if (endSaleTime > startTime){
+                uint256 periodSeconds = endSaleTime - startTime;
+                numberOfPeriods = periodSeconds /  capacityUpdatePeriod;
+                if (capacityUpdatePeriod > 1 && periodSeconds % capacityUpdatePeriod > 0)
                     numberOfPeriods++;
 
-                if (block.timestamp > capacityInfo.startTime && block.timestamp < market.endSaleTime ) {
-                    numberOfPeriodsPassed = (block.timestamp - capacityInfo.startTime) / capacityInfo.capacityUpdatePeriod;
+                if (block.timestamp > startTime && block.timestamp < endSaleTime ) {
+                    numberOfPeriodsPassed = (block.timestamp - startTime) / capacityUpdatePeriod;
 
-                    uint256 passedTime = (block.timestamp - capacityInfo.startTime) % capacityInfo.capacityUpdatePeriod ;
-                    if (capacityInfo.capacityUpdatePeriod > 1 && passedTime > 0) numberOfPeriodsPassed++;
+                    uint256 passedTime = (block.timestamp - startTime) % capacityUpdatePeriod ;
+                    if (capacityUpdatePeriod > 1 && passedTime > 0) numberOfPeriodsPassed++;
                 }
             }
         }

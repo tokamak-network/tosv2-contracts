@@ -219,11 +219,15 @@ interface IBondDepositoryV1_5 {
 
 
     /// @dev                            calculate the sale periods
-    /// @param _marketId                market id
+    /// @param startTime                start time
+    /// @param endSaleTime              end time
+    /// @param capacityUpdatePeriod     capacity update period
     /// @return numberOfPeriods         number of periods
     /// @return numberOfPeriodsPassed   number of periods passed
     function salePeriod(
-        uint256 _marketId
+        uint256 startTime,
+        uint256 endSaleTime,
+        uint256 capacityUpdatePeriod
     ) external view returns (uint256 numberOfPeriods, uint256 numberOfPeriodsPassed);
 
 
