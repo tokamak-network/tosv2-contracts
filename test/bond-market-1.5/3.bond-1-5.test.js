@@ -428,9 +428,12 @@ describe("TOSv2 Bond Market V1.5", function () {
     it("#2-1. salePeriod : Before the start time, the 0th day is returned.", async () => {
 
       let marketId = markets[markets.length-1].id ;
+      let market = markets[markets.length-1].info.market ;
 
       let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
-        marketId
+        market.startTime,
+        market.closeTime,
+        market.capacityUpdatePeriod
       );
 
       expect(days_[1]).to.be.equal(ethers.constants.Zero);
@@ -458,9 +461,11 @@ describe("TOSv2 Bond Market V1.5", function () {
 
     it("#2-2. salePeriod : During the sales period, it is returned as 1 on the first cycle. ", async () => {
       let marketId = markets[markets.length-1].id ;
-
+      let market = markets[markets.length-1].info.market ;
       let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
-        marketId
+        market.startTime,
+        market.closeTime,
+        market.capacityUpdatePeriod
       );
 
       expect(days_[1]).to.be.equal(ethers.constants.One);
@@ -470,9 +475,11 @@ describe("TOSv2 Bond Market V1.5", function () {
 
       let marketId = markets[markets.length-1].id ;
       let bondInfo = markets[markets.length-1].info ;
-
+      let market = markets[markets.length-1].info.market ;
       let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
-        marketId
+        market.startTime,
+        market.closeTime,
+        market.capacityUpdatePeriod
       );
       expect(days_[1]).to.be.equal(ethers.constants.One);
 
@@ -494,9 +501,11 @@ describe("TOSv2 Bond Market V1.5", function () {
 
     it("#2-3. salePeriod : During the sales period, it returns to 2 for the second cycle.", async () => {
       let marketId = markets[markets.length-1].id ;
-
+      let market = markets[markets.length-1].info.market ;
       let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
-        marketId
+        market.startTime,
+        market.closeTime,
+        market.capacityUpdatePeriod
       );
 
       expect(days_[1]).to.be.equal(ethers.constants.Two);
@@ -506,9 +515,11 @@ describe("TOSv2 Bond Market V1.5", function () {
 
       let marketId = markets[markets.length-1].id ;
       let bondInfo = markets[markets.length-1].info ;
-
+      let market = markets[markets.length-1].info.market ;
       let days_ = await bondDepository.connect(_TosV2Admin).salePeriod(
-        marketId
+        market.startTime,
+        market.closeTime,
+        market.capacityUpdatePeriod
       );
 
       expect(days_[1]).to.be.equal(ethers.constants.Two);
@@ -624,9 +635,11 @@ describe("TOSv2 Bond Market V1.5", function () {
 
     it("#6-1. salePeriod  ", async () => {
       let marketId = markets[markets.length-1].id ;
-
+      let market = markets[markets.length-1].info.market ;
       let salePeriod = await bondDepository.salePeriod(
-        marketId
+        market.startTime,
+        market.closeTime,
+        market.capacityUpdatePeriod
       );
 
       // console.log("totalSaleDays",salePeriod[0].toString())
