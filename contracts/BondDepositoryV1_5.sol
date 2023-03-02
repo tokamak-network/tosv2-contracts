@@ -80,7 +80,7 @@ contract BondDepositoryV1_5 is
         uint256 _bonusRatesId,
         uint32 _startTime,
         uint32 _endTime,
-        bytes[] calldata _pathes
+        bytes[] calldata _paths
     )
         external override
         onlyPolicyOwner
@@ -131,10 +131,10 @@ contract BondDepositoryV1_5 is
             );
         }
 
-        if (_pathes.length != 0) {
-            pricePathInfos[id_] = new bytes[](_pathes.length);
-            for (uint256 i = 0; i < _pathes.length; i++){
-                pricePathInfos[id_][i] = _pathes[i];
+        if (_paths.length != 0) {
+            pricePathInfos[id_] = new bytes[](_paths.length);
+            for (uint256 i = 0; i < _paths.length; i++){
+                pricePathInfos[id_][i] = _paths[i];
             }
         }
 
@@ -148,7 +148,7 @@ contract BondDepositoryV1_5 is
             _bonusRatesId,
             _startTime,
             _endTime,
-            _pathes
+            _paths
             );
     }
 
