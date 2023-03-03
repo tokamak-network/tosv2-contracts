@@ -364,26 +364,33 @@ contract BondDepositoryV1_5 is
     ) internal nonReentrant returns (uint256 _payout, uint256 bondingPrice) {
 
         LibBondDepository.Market memory market = markets[_marketId];
-
-        // 이더당 tos 양
-        (uint256 basePrice, , ) = getBasePrice(_marketId);
+        LibBondDepositoryV1_5.MarketInfo storage _marketInfo = marketInfos[_marketId];
 
         // 이더당 토스양 , 락업을 많이 할 수록 토스를 더 많이 받을 수 있다.
-        bondingPrice = getBondingPrice(_marketId, _lockWeeks, basePrice);
+        bondingPrice = getBondingPrice(
+            _marketId,
+            _lockWeeks,
+            Math.min(getUniswapPrice(_marketId), market.tosPrice)
+        );
 
         require(bondingPrice >= _minimumTosPrice, "The bonding amount is less than the minimum amount.");
 
         _payout = (_amount * bondingPrice / 1e18);
-        require(_payout + marketInfos[_marketId].totalSold <= market.capacity, "sales volume is lacking");
+        require(_payout + _marketInfo.totalSold <= market.capacity, "sales volume is lacking");
 
-        (, uint256 currentCapacity) = possibleMaxCapacity(_marketId);
+        (, uint256 currentCapacity) = _possibleMaxCapacity(
+                _marketInfo.startTime,
+                market.endSaleTime,
+                _marketInfo.capacityUpdatePeriod,
+                market.capacity,
+                _marketInfo.totalSold
+            ) ;
 
         require(_payout <= currentCapacity, "exceed currentCapacityLimit");
 
         uint256 mrAmount = _amount * IITreasury(treasury).getMintRate() / 1e18;
         require(mrAmount >= _payout, "mintableAmount is less than staking amount.");
 
-        LibBondDepositoryV1_5.MarketInfo storage _marketInfo = marketInfos[_marketId];
         _marketInfo.totalSold += _payout;
 
         //check closing
@@ -480,7 +487,7 @@ contract BondDepositoryV1_5 is
     }
 
     function getBasePrice(uint256 _marketId)
-        public override view
+        external override view
         returns (uint256 basePrice, uint256 lowerPriceLimit, uint256 uniswapPrice)
     {
         lowerPriceLimit = markets[_marketId].tosPrice;
@@ -505,11 +512,33 @@ contract BondDepositoryV1_5 is
         }
     }
 
+    function _possibleMaxCapacity (
+        uint256 startTime,
+        uint256 endSaleTime,
+        uint256 capacityUpdatePeriod,
+        uint256 capacity,
+        uint256 totalSold
+    )
+        internal view returns (uint256 periodicCapacity, uint256 currentCapacity)
+    {
+        (uint256 _numberOfPeriods, uint256 _numberOfPeriodsPassed) = salePeriod(
+                startTime,
+                endSaleTime,
+                capacityUpdatePeriod
+                );
+
+        if (_numberOfPeriods > 0)
+            periodicCapacity = capacity / _numberOfPeriods;
+
+        if (_numberOfPeriodsPassed > 0 && periodicCapacity * _numberOfPeriodsPassed > totalSold)
+                currentCapacity = periodicCapacity * _numberOfPeriodsPassed - totalSold;
+    }
+
     /// @inheritdoc IBondDepositoryV1_5
     function possibleMaxCapacity (
         uint256 _marketId
     )
-        public override view returns (uint256 periodicCapacity, uint256 currentCapacity)
+        external override view returns (uint256 periodicCapacity, uint256 currentCapacity)
     {
 
         LibBondDepository.Market memory market = markets[_marketId];
