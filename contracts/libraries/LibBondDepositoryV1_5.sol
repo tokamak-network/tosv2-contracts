@@ -15,7 +15,6 @@ library LibBondDepositoryV1_5
         uint8 bondType;
         uint32 startTime;
         bool closed;
-        uint256 initialMaxPayout;
         uint256 capacityUpdatePeriod;
         uint256 totalSold;
     }

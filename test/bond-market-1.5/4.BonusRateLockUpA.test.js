@@ -46,8 +46,7 @@ describe("TOSv2 Bond Market V1.5", function () {
   //0. uint256 _capacity,
   //1. uint256 _maxPayout, - 이것이 의미가 없어서, 0으로 설정한다.
   //2. uint256 _lowerPriceLimit,
-  //3. uint256 _initialMaxPayout,
-  //4. uint256 _capacityUpdatePeriod
+  //3. uint256 _capacityUpdatePeriod
 
   let bondInfoEther_sample = {
     marketId : null,
@@ -58,7 +57,6 @@ describe("TOSv2 Bond Market V1.5", function () {
       closeTime: 1669852800,
       capacity: ethers.BigNumber.from("19402097498000000000000"),
       lowerPriceLimit: ethers.BigNumber.from("1616841458170000000000"),
-      initialMaxPayout: ethers.BigNumber.from("2000000000000000000"),
       capacityUpdatePeriod: 60*60*24,
       salePeriod : 60*60*24*7*4 // 7일 * 4
     },

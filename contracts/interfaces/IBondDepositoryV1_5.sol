@@ -13,10 +13,9 @@ interface IBondDepositoryV1_5 {
 
     /// @dev                        creates a new market type
     /// @param token                token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3
-    /// @param marketInfos          [capacity, lowerPriceLimit, initialMaxPayout, capacityUpdatePeriod]
+    /// @param marketInfos          [capacity, lowerPriceLimit, capacityUpdatePeriod]
     ///                             capacity             maximum purchasable bond in TOS
     ///                             lowerPriceLimit     lowerPriceLimit
-    ///                             initialMaxPayout    initial max payout
     ///                             capacityUpdatePeriod capacity update period(seconds)
     /// @param bonusRatesAddress    bonusRates logic address
     /// @param bonusRatesId         bonusRates id
@@ -26,7 +25,7 @@ interface IBondDepositoryV1_5 {
     /// @return id_                 returns ID of new bond market
     function create(
         address token,
-        uint256[4] calldata marketInfos,
+        uint256[3] calldata marketInfos,
         address bonusRatesAddress,
         uint256 bonusRatesId,
         uint32 startTime,

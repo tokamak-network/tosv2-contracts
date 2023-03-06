@@ -75,7 +75,7 @@ contract BondDepositoryV1_5 is
     /// @inheritdoc IBondDepositoryV1_5
     function create(
         address _token,
-        uint256[4] calldata _marketInfos,
+        uint256[3] calldata _marketInfos,
         address _bonusRatesAddress,
         uint256 _bonusRatesId,
         uint32 _startTime,
@@ -85,15 +85,14 @@ contract BondDepositoryV1_5 is
         external override
         onlyPolicyOwner
         nonZero(_marketInfos[1])
-        nonZero(_marketInfos[3])
+        nonZero(_marketInfos[2])
         nonZeroUint32(_startTime)
         nonZeroUint32(_endTime)
         returns (uint256 id_)
     {
         //0. uint256 _capacity,
         //1. uint256 _lowerPriceLimit,
-        //2. uint256 _initialMaxPayout,
-        //3. uint256 _capacityUpdatePeriod,
+        //2. uint256 _capacityUpdatePeriod,
         require(_marketInfos[0] > remainingTosTolerance, "totalSaleAmount is too small.");
         require(_endTime > _startTime && _endTime > uint16(block.timestamp), "invalid _startTime or endTime");
 
@@ -116,8 +115,7 @@ contract BondDepositoryV1_5 is
                 bondType: uint8(LibBondDepositoryV1_5.BOND_TYPE.MINTING_V1_5),
                 startTime: _startTime,
                 closed: false,
-                initialMaxPayout: _marketInfos[2],
-                capacityUpdatePeriod: _marketInfos[3],
+                capacityUpdatePeriod: _marketInfos[2],
                 totalSold: 0
             }
         );

@@ -43,12 +43,11 @@ describe("TOSv2 Bond Market V1.5", function () {
   let markets = [];
   let viewMarketlength;
 
-  //[팔려고 하는 tos의 목표치,tos token의 가격, _initialMaxPayout,_capacityUpdatePeriod]
+  //[팔려고 하는 tos의 목표치,tos token의 가격,_capacityUpdatePeriod]
   // 이더상품.
   //0. uint256 _capacity,
   //1. uint256 _lowerPriceLimit,
-  //2. uint256 _initialMaxPayout,
-  //3. uint256 _capacityUpdatePeriod
+  //2. uint256 _capacityUpdatePeriod
 
   let bondInfoEther_sample = {
     marketId : null,
@@ -59,7 +58,6 @@ describe("TOSv2 Bond Market V1.5", function () {
       closeTime: 1669852800,
       capacity: ethers.BigNumber.from("19402097498000000000000"),
       lowerPriceLimit: ethers.BigNumber.from("1616841458170000000000"),
-      initialMaxPayout: ethers.BigNumber.from("2000000000000000000"),
       capacityUpdatePeriod: 60*60*24,
       salePeriod : 60*60*24*7*156 ,
       pathes : [
@@ -326,7 +324,6 @@ describe("TOSv2 Bond Market V1.5", function () {
           [
             bondInfo.market.capacity,
             bondInfo.market.lowerPriceLimit,
-            bondInfo.market.initialMaxPayout,
             bondInfo.market.capacityUpdatePeriod
           ],
           bonusSets[bonusSetsIndex].address,
@@ -352,7 +349,6 @@ describe("TOSv2 Bond Market V1.5", function () {
           [
             bondInfo.market.capacity,
             bondInfo.market.lowerPriceLimit,
-            bondInfo.market.initialMaxPayout,
             bondInfo.market.capacityUpdatePeriod
           ],
           bonusSets[bonusSetsIndex].address,
@@ -364,7 +360,7 @@ describe("TOSv2 Bond Market V1.5", function () {
       const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
       // console.log('receipt',receipt);
 
-      const interface = new ethers.utils.Interface(["event CreatedMarket(uint256 marketId, address token, uint256[4] marketInfos, address bonusRatesAddress, uint256 bonusRatesId, uint32 startTime, uint32 endTime, bytes[] pathes)"]);
+      const interface = new ethers.utils.Interface(["event CreatedMarket(uint256 marketId, address token, uint256[3] marketInfos, address bonusRatesAddress, uint256 bonusRatesId, uint32 startTime, uint32 endTime, bytes[] pathes)"]);
       const data = receipt.logs[0].data;
       const topics = receipt.logs[0].topics;
       const event = interface.decodeEventLog("CreatedMarket", data, topics);
@@ -373,11 +369,10 @@ describe("TOSv2 Bond Market V1.5", function () {
       // console.log('bondInfo.market.pathes',bondInfo.market.pathes);
 
       expect(event.token).to.equal(bondInfo.token);
-      expect(event.marketInfos.length).to.equal(4);
+      expect(event.marketInfos.length).to.equal(3);
       expect(event.marketInfos[0]).to.equal(bondInfo.market.capacity);
       expect(event.marketInfos[1]).to.equal(bondInfo.market.lowerPriceLimit);
-      expect(event.marketInfos[2]).to.equal(bondInfo.market.initialMaxPayout);
-      expect(event.marketInfos[3]).to.equal(bondInfo.market.capacityUpdatePeriod);
+      expect(event.marketInfos[2]).to.equal(bondInfo.market.capacityUpdatePeriod);
       expect(event.startTime).to.equal(bondInfo.market.startTime);
       expect(event.endTime).to.equal(bondInfo.market.closeTime);
       expect(event.bonusRatesAddress).to.equal(bonusSets[bonusSetsIndex].address);
@@ -410,7 +405,6 @@ describe("TOSv2 Bond Market V1.5", function () {
           [
             bondInfo.market.capacity,
             bondInfo.market.lowerPriceLimit,
-            bondInfo.market.initialMaxPayout,
             ethers.constants.Zero
           ],
           bonusSets[bonusSetsIndex].address,
@@ -566,7 +560,6 @@ describe("TOSv2 Bond Market V1.5", function () {
       expect(marketInfo.bondType).to.equal(1);
       expect(marketInfo.startTime).to.equal(bondInfo.market.startTime);
       expect(marketInfo.closed).to.equal(false);
-      expect(marketInfo.initialMaxPayout).to.equal(bondInfo.market.initialMaxPayout);
       expect(marketInfo.capacityUpdatePeriod).to.equal(bondInfo.market.capacityUpdatePeriod);
       expect(marketInfo.totalSold).to.equal(ethers.constants.Zero);
 

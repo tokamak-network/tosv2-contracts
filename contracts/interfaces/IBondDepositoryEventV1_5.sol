@@ -22,10 +22,9 @@ interface IBondDepositoryEventV1_5 {
     /// @dev                        this event occurs when a specific market product is created
     /// @param marketId             market id
     /// @param token                token address of deposit asset. For ETH, the address is address(0). Will be used in Phase 2 and 3
-    /// @param marketInfos          [capacity, lowerPriceLimit, initialMaxPayout, capacityUpdatePeriod]
+    /// @param marketInfos          [capacity, lowerPriceLimit, capacityUpdatePeriod]
     ///                             capacity            capacity of the market
     ///                             lowerPriceLimit     lowerPriceLimit
-    ///                             initialMaxPayout    initial max payout
     ///                             capacityUpdatePeriod capacity update period(seconds)
     /// @param bonusRatesAddress    bonusRates logic address
     /// @param bonusRatesId         bonusRates id
@@ -35,7 +34,7 @@ interface IBondDepositoryEventV1_5 {
     event CreatedMarket(
         uint256 marketId,
         address token,
-        uint256[4] marketInfos,
+        uint256[3] marketInfos,
         address bonusRatesAddress,
         uint256 bonusRatesId,
         uint32 startTime,

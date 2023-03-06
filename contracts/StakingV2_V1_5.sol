@@ -13,7 +13,6 @@ import "./interfaces/IStakingEvent_V1_5.sol";
 import "hardhat/console.sol";
 
 // interface ILockTosV2 {
-
 //     function locksInfo(uint256 _lockId)
 //         external
 //         view
