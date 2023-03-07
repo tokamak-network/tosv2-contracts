@@ -6,19 +6,19 @@ import './libraries/BytesLib.sol';
 contract BonusRateLockUpBytes {
     using BytesLib for bytes;
 
-    struct DiscountedRates {
+    struct BonusRates {
         uint8 intervalWeeks;
         bytes rates;
     }
 
     uint256 public id;
-    mapping(uint256 => DiscountedRates) public discountedRates;
+    mapping(uint256 => BonusRates) public bonusRates;
 
-    // event CreatedDiscountRates(uint256 _id, uint8 _intervalWeeks);
+    event CreatedBonusRates(uint256 _id, uint8 _intervalWeeks);
 
     constructor() {}
 
-    function createDiscountRates (
+    function createBonusRates (
         uint8 _intervalWeeks,
         bytes memory _rates
     ) external {
@@ -27,21 +27,21 @@ contract BonusRateLockUpBytes {
 
         id++;
 
-        discountedRates[id] = DiscountedRates({
+        bonusRates[id] = BonusRates({
             intervalWeeks: _intervalWeeks,
             rates: _rates
         });
 
-        // emit CreatedDiscountRates(id, _intervalWeeks);
+        emit CreatedBonusRates(id, _intervalWeeks);
     }
 
-    function getRatesInfo(uint256 _id) public view returns (DiscountedRates memory) {
-        return discountedRates[_id];
+    function getRatesInfo(uint256 _id) public view returns (BonusRates memory) {
+        return bonusRates[_id];
     }
 
     function getRatesByIndex(uint256 _id, uint256 index) public view returns (uint16 rate) {
 
-        DiscountedRates memory _rates = discountedRates[_id];
+        BonusRates memory _rates = bonusRates[_id];
 
         if (_rates.intervalWeeks != 0 || index < _rates.rates.length) {
             rate = _rates.rates.toUint16(index*2);
@@ -50,7 +50,7 @@ contract BonusRateLockUpBytes {
 
     function getRatesByWeeks(uint256 _id, uint8 _weeks) public view returns (uint16 rate) {
 
-        DiscountedRates memory _rates = discountedRates[_id];
+        BonusRates memory _rates = bonusRates[_id];
 
         if (_rates.intervalWeeks != 0 ) {
             uint8 index = _weeks / _rates.intervalWeeks;

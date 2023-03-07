@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 library BonusRateLockUpA {
 
-    function bonusRates(uint256 _id) external pure returns (uint8 intervalWeeks, uint16[] memory rates) {
+    function getRatesInfo(uint256 _id) external pure returns (uint8 intervalWeeks, uint16[] memory rates) {
 
         uint256 len = 0;
         uint256 bonusStep = 0;

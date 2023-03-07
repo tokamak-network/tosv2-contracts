@@ -11,7 +11,7 @@ contract BonusRateLockUp {
     uint256 public id;
     mapping(uint256 => BonusRates) public bonusRates;
 
-    // event CreatedBonusRates(uint256 _id, uint8 _intervalWeeks, uint16[] _rates);
+    event CreatedBonusRates(uint256 _id, uint8 _intervalWeeks);
 
     constructor() {}
 
@@ -30,7 +30,7 @@ contract BonusRateLockUp {
 
         bonusRates[id].rates = _rates;
 
-        // emit CreatedBonusRates(id, _intervalWeeks, _rates);
+        emit CreatedBonusRates(id, _intervalWeeks);
     }
 
     function getRatesInfo(uint256 _id) public view returns (BonusRates memory) {

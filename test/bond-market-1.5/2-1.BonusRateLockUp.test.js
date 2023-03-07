@@ -24,52 +24,16 @@ let TosV2Admin = "0x15280a52E79FD4aB35F4B9Acbb376DCD72b44Fd1";
 
 // test : https://docs.google.com/spreadsheets/d/1BozidTCxcwMT0wRcQrnIJkRMvE5xKZgDUF092fNPUpI/edit#gid=0
 
-describe("TOSv2 Bond Market V1.5", function () {
+describe("BonusRateLockUp test ", function () {
 
   let provider;
 
-  let tosContract;
+  let bonusRateLockUp;
 
-  let treasury;
-  let stakingV2;
-  let bondDepositoryProxy, bondDepositoryV1_5, bondDepository, libBondDepositoryV1_5;
-  let discountRateLockUp;
+  let bonusSets = [ ];
+  let bonusMaxWeek = 156;
 
-  let _TosV2Admin;
-  let _tosAdmin;
-
-  let markets = [];
-  let viewMarketlength;
-
-  //[팔려고 하는 tos의 목표치, 판매 끝나는 시간, 받는 token의 가격, tos token의 가격, 한번에 구매 가능한 TOS물량]
-  // 이더상품.
-  //0. uint256 _capacity,
-  //1. uint256 _maxPayout, - 이것이 의미가 없어서, 0으로 설정한다.
-  //2. uint256 _lowerPriceLimit,
-  //3. uint256 _capacityUpdatePeriod
-
-  let bondInfoEther_sample = {
-    marketId : null,
-    check: true,
-    token: ethers.constants.AddressZero,
-    market: {
-      startTime: 0,
-      closeTime: 1669852800,
-      capacity: ethers.BigNumber.from("19402097498000000000000"),
-      lowerPriceLimit: ethers.BigNumber.from("1616841458170000000000"),
-      capacityUpdatePeriod: 60*60*24,
-      salePeriod : 60*60*24*7*4 // 7일 * 4
-    },
-    stakeId: 0,
-    tosValuation: 0,
-    mintAmount: 0,
-    stosId: 0
-  }
-
-  let discountSets = [ ];
-  let discountMaxWeek = 156;
-
-  function setDiscountRate(bonusRate,  intervalWeeks) {
+  function setBonusRate(bonusRate,  intervalWeeks) {
     let set = {
       address: '',
       id: 0,
@@ -79,7 +43,7 @@ describe("TOSv2 Bond Market V1.5", function () {
     }
     const RATE_SIZE = 2;
     let encoded = "0x";
-    let maxIndex = parseInt(discountMaxWeek / set.intervalWeeks);
+    let maxIndex = parseInt(bonusMaxWeek / set.intervalWeeks);
 
     for (i = 0; i < maxIndex; i++){
       let rate = parseInt((bonusRate * i) * 10000);
@@ -89,7 +53,7 @@ describe("TOSv2 Bond Market V1.5", function () {
       encoded += rate.toString(16).padStart(2 * RATE_SIZE, "0");
     }
 
-    if ((set.rates.length-1) * set.intervalWeeks == discountMaxWeek) {
+    if ((set.rates.length-1) * set.intervalWeeks == bonusMaxWeek) {
       let rate = parseInt((bonusRate * maxIndex) * 10000);
       // console.log(  'weeks <' ,maxIndex * set.intervalWeeks, rate);
       set.rates.push(rate);
@@ -97,7 +61,7 @@ describe("TOSv2 Bond Market V1.5", function () {
     }
 
     set.encoded = encoded.toLowerCase();
-    // console.log(set.rates);
+    console.log(set.rates);
 
     return set;
   }
@@ -105,7 +69,7 @@ describe("TOSv2 Bond Market V1.5", function () {
   before(async () => {
     accounts = await ethers.getSigners();
     [admin1, admin2, user1, user2, user3, user4, user5, user6 ] = accounts;
-    //console.log('admin1',admin1.address);
+
     console.log('admin1',admin1.address);
     provider = ethers.provider;
 
@@ -129,38 +93,38 @@ describe("TOSv2 Bond Market V1.5", function () {
 
   });
 
-  describe("Deploy DiscountedRateLockUp ", () => {
+  describe("Deploy BonusRateLockUp ", () => {
 
-    it("deploy DiscountedRateLockUp ", async () => {
-      let factory = await ethers.getContractFactory("DiscountedRateLockUp")
-      discountRateLockUp = await factory.deploy();
-      await discountRateLockUp.deployed()
-      // console.log("discountRateLockUp ", discountRateLockUp.address)
-      let code = await ethers.provider.getCode(discountRateLockUp.address);
+    it("deploy BonusRateLockUp ", async () => {
+      let factory = await ethers.getContractFactory("BonusRateLockUp")
+      bonusRateLockUp = await factory.deploy();
+      await bonusRateLockUp.deployed()
+      // console.log("bonusRateLockUp ", bonusRateLockUp.address)
+      let code = await ethers.provider.getCode(bonusRateLockUp.address);
       expect(code).to.not.eq("0x");
     })
 
   })
 
-  describe("Set DiscountedRateLockUp ", () => {
-    it("Set discount datas : interval weeks is 13 weeks ", async () => {
+  describe("Set BonusRateLockUp ", () => {
+    it("Set bonus datas : interval weeks is 13 weeks ", async () => {
 
-      let discountRate = 0.06 ;
+      let bonusRate = 0.06 ;
 
-      let set = setDiscountRate(discountRate,  26);
-      set.address = discountRateLockUp.address;
+      let set = setBonusRate(bonusRate,  26);
+      set.address = bonusRateLockUp.address;
 
       console.log("set 1 ", set);
 
-      let tx = await discountRateLockUp.connect(admin1).createDiscountRates(
+      let tx = await bonusRateLockUp.connect(admin1).createBonusRates(
         set.intervalWeeks,
-        set.encoded
+        set.rates
       );
       await tx.wait();
 
       const receipt = await tx.wait();
-      let _function ="CreatedDiscountRates(uint256,uint8)";
-      let interface = discountRateLockUp.interface;
+      let _function ="CreatedBonusRates(uint256,uint8)";
+      let interface = bonusRateLockUp.interface;
 
       for(let i=0; i< receipt.events.length; i++){
           if(receipt.events[i].topics[0] == interface.getEventTopic(_function)){
@@ -173,7 +137,7 @@ describe("TOSv2 Bond Market V1.5", function () {
           }
       }
       // console.log("set", set);
-      discountSets.push(set);
+      bonusSets.push(set);
 
     })
     /*
@@ -182,8 +146,8 @@ describe("TOSv2 Bond Market V1.5", function () {
       let discountRate = 0.06 ;
 
       let set = setDiscountRate(discountRate,  13);
-      set.address = discountRateLockUp.address;
-      let tx = await discountRateLockUp.connect(admin1).createDiscountRates(
+      set.address = bonusRateLockUp.address;
+      let tx = await bonusRateLockUp.connect(admin1).createDiscountRates(
         set.intervalWeeks,
         set.rates
       );
@@ -191,7 +155,7 @@ describe("TOSv2 Bond Market V1.5", function () {
 
       const receipt = await tx.wait();
       let _function ="CreatedDiscountRates(uint256,uint8,uint16[])";
-      let interface = discountRateLockUp.interface;
+      let interface = bonusRateLockUp.interface;
 
       for(let i=0; i< receipt.events.length; i++){
           if(receipt.events[i].topics[0] == interface.getEventTopic(_function)){
@@ -204,7 +168,7 @@ describe("TOSv2 Bond Market V1.5", function () {
           }
       }
       console.log("set", set);
-      discountSets.push(set);
+      bonusSets.push(set);
     })
 
     it("Set discount datas : interval weeks is 26 weeks ", async () => {
@@ -213,7 +177,7 @@ describe("TOSv2 Bond Market V1.5", function () {
 
       let set = setDiscountRate(discountRate,  26);
 
-      let tx = await discountRateLockUp.connect(admin1).createDiscountRates(
+      let tx = await bonusRateLockUp.connect(admin1).createDiscountRates(
         set.intervalWeeks,
         set.rates
       );
@@ -221,7 +185,7 @@ describe("TOSv2 Bond Market V1.5", function () {
 
       const receipt = await tx.wait();
       let _function ="CreatedDiscountRates(uint256,uint8,uint16[])";
-      let interface = discountRateLockUp.interface;
+      let interface = bonusRateLockUp.interface;
 
       for(let i=0; i< receipt.events.length; i++){
           if(receipt.events[i].topics[0] == interface.getEventTopic(_function)){
@@ -234,7 +198,7 @@ describe("TOSv2 Bond Market V1.5", function () {
           }
       }
       console.log("set", set);
-      discountSets.push(set);
+      bonusSets.push(set);
     })
     */
 
@@ -242,18 +206,18 @@ describe("TOSv2 Bond Market V1.5", function () {
 
       let index = 0;
 
-      let DiscountedRates = await discountRateLockUp.connect(admin1).getRatesInfo(
-        discountSets[index].id
+      let BonusRates = await bonusRateLockUp.connect(admin1).getRatesInfo(
+        bonusSets[index].id
       );
-      // console.log("DiscountedRates", DiscountedRates);
-      // expect(DiscountedRates.intervalWeeks).to.be.eq(discountSets[index].intervalWeeks);
 
-      // if (DiscountedRates.rates.length > 0 ){
-      //   for (i=0; i< DiscountedRates.rates.length; i++){
-      //     // console.log("DiscountedRates", DiscountedRates.rates[i], discountSets[index].rates[i]);
-      //     expect(DiscountedRates.rates[i]).to.be.eq(discountSets[index].rates[i]);
-      //   }
-      // }
+      expect(BonusRates.intervalWeeks).to.be.eq(bonusSets[index].intervalWeeks);
+
+      if (BonusRates.rates.length > 0 ){
+        for (i=0; i< BonusRates.rates.length; i++){
+          // console.log("DiscountedRates", DiscountedRates.rates[i], bonusSets[index].rates[i]);
+          expect(BonusRates.rates[i]).to.be.eq(bonusSets[index].rates[i]);
+        }
+      }
     })
 
 
@@ -261,16 +225,13 @@ describe("TOSv2 Bond Market V1.5", function () {
 
       let index = 0;
       let weeks = 13;
-      let weekIndex = parseInt(weeks/discountSets[index].intervalWeeks);
-      console.log('weekIndex',weekIndex)
-      console.log('discountSets[index].rate[weekIndex]',discountSets[index].rates[weekIndex])
+      let weekIndex = parseInt(weeks/bonusSets[index].intervalWeeks);
 
-      let rate = await discountRateLockUp.connect(admin1).getRatesByIndex(
-        discountSets[index].id, weekIndex
+      let rate = await bonusRateLockUp.connect(admin1).getRatesByIndex(
+        bonusSets[index].id, weekIndex
       );
-      console.log('rate',rate)
 
-      // expect(rate).to.be.eq(discountSets[index].rates[weekIndex]);
+      expect(rate).to.be.eq(bonusSets[index].rates[weekIndex]);
 
     })
 
@@ -279,16 +240,14 @@ describe("TOSv2 Bond Market V1.5", function () {
 
       let index = 0;
       let weeks = 30;
-      let weekIndex = parseInt(weeks/discountSets[index].intervalWeeks);
-      console.log('weekIndex',weekIndex)
-      console.log('discountSets[index].rate[weekIndex]',discountSets[index].rates[weekIndex])
+      let weekIndex = parseInt(weeks/bonusSets[index].intervalWeeks);
 
-      let rate = await discountRateLockUp.connect(admin1).getRatesByWeeks(
-        discountSets[index].id, weeks
+      let rate = await bonusRateLockUp.connect(admin1).getRatesByWeeks(
+        bonusSets[index].id, weeks
       );
       console.log('rate',rate)
 
-      // expect(rate).to.be.eq(discountSets[index].rates[weekIndex]);
+      expect(rate).to.be.eq(bonusSets[index].rates[weekIndex]);
 
     })
 
@@ -297,15 +256,15 @@ describe("TOSv2 Bond Market V1.5", function () {
 
       let index = 1;
       let weeks = 30;
-      let weekIndex = parseInt(weeks/discountSets[index].intervalWeeks);
+      let weekIndex = parseInt(weeks/bonusSets[index].intervalWeeks);
       console.log('weekIndex',weekIndex)
-      console.log('discountSets[index].rate[weekIndex]',discountSets[index].rates[weekIndex])
+      console.log('bonusSets[index].rate[weekIndex]',bonusSets[index].rates[weekIndex])
 
-      let rate = await discountRateLockUp.connect(admin1).getRatesByWeeks(
-        discountSets[index].id, weeks
+      let rate = await bonusRateLockUp.connect(admin1).getRatesByWeeks(
+        bonusSets[index].id, weeks
       );
       console.log('rate',rate)
-      expect(rate).to.be.eq(discountSets[index].rates[weekIndex]);
+      expect(rate).to.be.eq(bonusSets[index].rates[weekIndex]);
 
     })
     */
