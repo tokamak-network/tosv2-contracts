@@ -19,9 +19,6 @@ async function main() {
         address: ""
     }
 
-    let uniswapPoolFactory = "0x1F98431c8aD98523631AE4a59f267346ea31F984";
-    let oracleLibrary , bonusRateLockUp, bondDepositoryV1_5
-
     // BonusRateLockUpA Deploy
     let factory = await ethers.getContractFactory("BonusRateLockUpA")
     bonusRateLockUpA = await factory.deploy();
@@ -36,12 +33,52 @@ async function main() {
 
     save(networkName, deployInfo);
 
+    // BonusRateLockUp Deploy
+    let BonusRateLockUp = await ethers.getContractFactory("BonusRateLockUp")
+    bonusRateLockUp = await BonusRateLockUp.deploy();
+    await bonusRateLockUp.deployed()
+
+    console.log("BonusRateLockUp: ", bonusRateLockUp.address);
+
+    deployInfo = {
+        name: "BonusRateLockUp",
+        address: bonusRateLockUp.address
+    }
+
+    save(networkName, deployInfo);
+
+
+    // BonusRateLockUpBytes Deploy
+    let BonusRateLockUpBytes = await ethers.getContractFactory("BonusRateLockUpBytes")
+    bonusRateLockUpBytes = await BonusRateLockUpBytes.deploy();
+    await bonusRateLockUpBytes.deployed()
+
+    console.log("BonusRateLockUpBytes: ", bonusRateLockUpBytes.address);
+
+    deployInfo = {
+        name: "BonusRateLockUpBytes",
+        address: bonusRateLockUpBytes.address
+    }
+
+    save(networkName, deployInfo);
+
     if(chainId == 1 || chainId == 4 || chainId == 5) {
 
       await run("verify", {
         address: bonusRateLockUpA.address,
         constructorArgsParams: [],
       });
+
+      await run("verify", {
+        address: bonusRateLockUp.address,
+        constructorArgsParams: [],
+      });
+
+      await run("verify", {
+        address: bonusRateLockUpBytes.address,
+        constructorArgsParams: [],
+      });
+
 
     }
 
