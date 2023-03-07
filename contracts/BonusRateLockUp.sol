@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.4;
 
-// import "./common/ProxyAccessCommon.sol";
-
-// import "@openzeppelin/contracts/utils/math/Math.sol";
-import "hardhat/console.sol";
-
 contract BonusRateLockUp {
 
     struct BonusRates {
@@ -16,7 +11,7 @@ contract BonusRateLockUp {
     uint256 public id;
     mapping(uint256 => BonusRates) public bonusRates;
 
-    event CreatedBonusRates(uint256 _id, uint8 _intervalWeeks, uint16[] _rates);
+    // event CreatedBonusRates(uint256 _id, uint8 _intervalWeeks, uint16[] _rates);
 
     constructor() {}
 
@@ -28,8 +23,6 @@ contract BonusRateLockUp {
         require(_rates.length != 0, "rates is empty");
         id++;
 
-        console.log("id %s", id);
-
         bonusRates[id] = BonusRates({
             intervalWeeks: _intervalWeeks,
             rates: new uint16[](_rates.length)
@@ -37,7 +30,7 @@ contract BonusRateLockUp {
 
         bonusRates[id].rates = _rates;
 
-        emit CreatedBonusRates(id, _intervalWeeks, _rates);
+        // emit CreatedBonusRates(id, _intervalWeeks, _rates);
     }
 
     function getRatesInfo(uint256 _id) public view returns (BonusRates memory) {
