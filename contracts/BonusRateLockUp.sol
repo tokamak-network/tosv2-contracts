@@ -53,6 +53,7 @@ contract BonusRateLockUp {
         if (_rates.intervalWeeks != 0 ) {
             uint8 index = _weeks / _rates.intervalWeeks;
             if (index < _rates.rates.length) rate = _rates.rates[index];
+            else rate = _rates.rates[_rates.rates.length-1];
         }
     }
 

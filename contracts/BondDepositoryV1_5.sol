@@ -212,9 +212,9 @@ contract BondDepositoryV1_5 is
     )   external override onlyPolicyOwner
         nonZeroAddress(_oralceLibrary)
     {
-        require(oracleLibrary != _oralceLibrary || uniswapFactory != _uniswapFactory, "same address");
+        require(oracleLibrary != _oralceLibrary || uniswapV3Factory != _uniswapFactory, "same address");
         oracleLibrary = _oralceLibrary;
-        uniswapFactory = _uniswapFactory;
+        uniswapV3Factory = _uniswapFactory;
 
         emit ChangedOracleLibrary(_oralceLibrary, _uniswapFactory);
     }
@@ -501,11 +501,11 @@ contract BondDepositoryV1_5 is
         if (paths.length > 0){
             uint256 prices = 0;
             for (uint256 i = 0; i < paths.length; i++){
-
-                prices = IIOracleLibrary(oracleLibrary).getOutAmountsCurTick(uniswapFactory, paths[i], 1 ether);
-
-                if (i == 0) uniswapPrice = prices;
-                else uniswapPrice = Math.min(uniswapPrice, prices);
+                if (paths[i].length > 0) {
+                    prices = IIOracleLibrary(oracleLibrary).getOutAmountsCurTick(uniswapV3Factory, paths[i], 1 ether);
+                    if (i == 0) uniswapPrice = prices;
+                    else uniswapPrice = Math.min(uniswapPrice, prices);
+                }
             }
         }
     }

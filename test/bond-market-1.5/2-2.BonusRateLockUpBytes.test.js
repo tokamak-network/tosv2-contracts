@@ -83,7 +83,7 @@ describe("TOSv2 Bond Market V1.5", function () {
 
     for (i = 0; i < maxIndex; i++){
       let rate = parseInt((bonusRate * i) * 10000);
-      // console.log(i, '<= weeks <' ,i * set.intervalWeeks, rate);
+      console.log(i, '<= weeks <' ,i * set.intervalWeeks, rate);
       set.rates.push(rate);
 
       encoded += rate.toString(16).padStart(2 * RATE_SIZE, "0");
@@ -149,7 +149,7 @@ describe("TOSv2 Bond Market V1.5", function () {
   describe("Set DiscountedRateLockUpBytes ", () => {
     it("Set discount datas : interval weeks is 13 weeks ", async () => {
 
-      let discountRate = 0.06 ;
+      let discountRate = 0.12 ;
 
       let set = setBonusRate(discountRate,  26);
       set.address = discountRateLockUp.address;
@@ -204,7 +204,7 @@ describe("TOSv2 Bond Market V1.5", function () {
     it("getRatesByIndex :  ", async () => {
 
       let index = 0;
-      let weeks = 13;
+      let weeks = 30;
       let weekIndex = parseInt(weeks/discountSets[index].intervalWeeks);
       console.log('weekIndex',weekIndex)
       console.log('discountSets[index].rate[weekIndex]',discountSets[index].rates[weekIndex])
@@ -222,17 +222,20 @@ describe("TOSv2 Bond Market V1.5", function () {
     it("getRatesByWeeks", async () => {
 
       let index = 0;
-      let weeks = 30;
+      let weeks = 156;
       let weekIndex = parseInt(weeks/discountSets[index].intervalWeeks);
-      console.log('weekIndex',weekIndex)
-      console.log('discountSets[index].rate[weekIndex]',discountSets[index].rates[weekIndex])
 
+      let indexLength = parseInt(156/discountSets[index].intervalWeeks);
+
+      console.log('weekIndex',weekIndex)
+      // console.log('discountSets[index].rate[weekIndex]',discountSets[index].rates[weekIndex])
+      console.log('discountSets[index].rate[weekIndex]',discountSets[index].rates)
       let rate = await discountRateLockUp.connect(admin1).getRatesByWeeks(
         discountSets[index].id, weeks
       );
       console.log('rate',rate)
 
-      expect(rate).to.be.eq(discountSets[index].rates[weekIndex]);
+      expect(rate).to.be.eq(discountSets[index].rates[indexLength-1]);
 
     })
   })

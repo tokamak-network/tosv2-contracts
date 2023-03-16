@@ -1,9 +1,0 @@
-{
-  "LibTreasury Deploy": "0xfbf0c5bc7a71ea435a987e18f27a2720067d28463f49cc364c6da58aea78ddf1",
-  "treasuryLogic Deploy": "0x7f1cd3a7714ddd71bde4f2d500d90f437014c485fb257e00b138526ed98b3fdf",
-  "treasuryProxy Deploy": "0x2ccdde459af40f4c7b06f3267d83f6f100360359bc29d2e108c2022c27835be0",
-  "LibStaking Deploy": "0xb0513edd7d2906ced15bd729b766f6946591f573d565548f050cf4e8dee7c346",
-  "stakingLogic Deploy": "0xca65c984c8bf0c0a6dd4f77acd876273ad1d7a770f7b5f94ed51f885e8383965",
-  "stakingProxy Deploy": "0x4ab0a23012c2e5e0dedfed1f8e20ae3815774125edc450b78662de66fe80f084",
-  "tosCalculator Deploy": "0x4c44b547a0f0eb806eab64584d0fb3a0a9ed21e85a936927ff0f6e9df1298925"
-}

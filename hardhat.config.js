@@ -56,6 +56,12 @@ module.exports = {
       gasMultiplier: 1.25,
       gasPrice: 20000000000,
     },
+    tokamakgoerli: {
+      chainId: 5050,
+      url: `https://goerli.optimism.tokamak.network`,
+      timeout: 200000,
+      accounts: [`${process.env.PRIVATE_KEY}` ]
+    }
   },
   localhost: {
     timeout: 1000000000,

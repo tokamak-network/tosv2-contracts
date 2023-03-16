@@ -18,7 +18,7 @@ async function main() {
         name: "",
         address: ""
     }
-
+    /*
     // BonusRateLockUpA Deploy
     let factory = await ethers.getContractFactory("BonusRateLockUpA")
     bonusRateLockUpA = await factory.deploy();
@@ -32,7 +32,7 @@ async function main() {
     }
 
     save(networkName, deployInfo);
-
+    */
     // BonusRateLockUp Deploy
     let BonusRateLockUp = await ethers.getContractFactory("BonusRateLockUp")
     bonusRateLockUp = await BonusRateLockUp.deploy();
@@ -64,10 +64,10 @@ async function main() {
 
     if(chainId == 1 || chainId == 4 || chainId == 5) {
 
-      await run("verify", {
-        address: bonusRateLockUpA.address,
-        constructorArgsParams: [],
-      });
+      // await run("verify", {
+      //   address: bonusRateLockUpA.address,
+      //   constructorArgsParams: [],
+      // });
 
       await run("verify", {
         address: bonusRateLockUp.address,

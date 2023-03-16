@@ -18,10 +18,12 @@
     "web3-eth-abi": "^1.7.3"
   },
   "dependencies": {
+    "@ethersproject/abstract-provider": "^5.7.0",
     "@openzeppelin/contracts": "^4.5.0",
     "@openzeppelin/test-helpers": "^0.5.15",
     "dotenv": "^16.0.1",
     "hardhat-gas-reporter": "^1.0.8",
+    "mocha-chai-jest-snapshot": "^1.1.4",
     "web3-eth-abi": "^1.7.3"
   }
 }

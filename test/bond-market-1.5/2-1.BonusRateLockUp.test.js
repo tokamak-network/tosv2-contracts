@@ -224,7 +224,7 @@ describe("BonusRateLockUp test ", function () {
     it("getRatesByIndex :  ", async () => {
 
       let index = 0;
-      let weeks = 13;
+      let weeks = 30;
       let weekIndex = parseInt(weeks/bonusSets[index].intervalWeeks);
 
       let rate = await bonusRateLockUp.connect(admin1).getRatesByIndex(
@@ -239,7 +239,7 @@ describe("BonusRateLockUp test ", function () {
     it("getRatesByWeeks", async () => {
 
       let index = 0;
-      let weeks = 30;
+      let weeks = 156;
       let weekIndex = parseInt(weeks/bonusSets[index].intervalWeeks);
 
       let rate = await bonusRateLockUp.connect(admin1).getRatesByWeeks(
@@ -247,7 +247,7 @@ describe("BonusRateLockUp test ", function () {
       );
       console.log('rate',rate)
 
-      expect(rate).to.be.eq(bonusSets[index].rates[weekIndex]);
+      expect(rate).to.be.eq(bonusSets[index].rates[bonusSets[index].rates.length-1]);
 
     })
 

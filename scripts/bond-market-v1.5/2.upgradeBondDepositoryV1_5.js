@@ -23,7 +23,7 @@ async function main() {
     let oracleLibrary, bondDepositoryV1_5
 
     const bondDepositoryProxyAddress = loadDeployed(networkName, "BondDepositoryProxy");
-    const oracleLibraryAddress = loadDeployed(networkName, "OracleLibrary");
+    // const oracleLibraryAddress = loadDeployed(networkName, "OracleLibrary");
 
     //BondDepositoryV1_5 Deploy
     factory = await ethers.getContractFactory("BondDepositoryV1_5")

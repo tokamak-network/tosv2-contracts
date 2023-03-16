@@ -55,6 +55,7 @@ contract BonusRateLockUpBytes {
         if (_rates.intervalWeeks != 0 ) {
             uint8 index = _weeks / _rates.intervalWeeks;
             if (index < (_rates.rates.length/2)) rate = _rates.rates.toUint16(index*2);
+            else rate = _rates.rates.toUint16(((156/_rates.intervalWeeks)-1)*2);
         }
     }
 
