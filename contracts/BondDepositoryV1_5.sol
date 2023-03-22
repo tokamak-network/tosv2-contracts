@@ -95,7 +95,7 @@ contract BondDepositoryV1_5 is
         //2. uint256 _capacityUpdatePeriod,
         require(_marketInfos[0] > remainingTosTolerance, "totalSaleAmount is too small.");
         require(_paths.length != 0, "empty paths");
-        require(_endTime > _startTime && _endTime > uint16(block.timestamp), "invalid _startTime or endTime");
+        require(_endTime > _startTime && _endTime > uint32(block.timestamp), "invalid _startTime or endTime");
 
         id_ = staking.generateMarketId();
 
