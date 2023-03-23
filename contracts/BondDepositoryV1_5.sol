@@ -41,7 +41,7 @@ contract BondDepositoryV1_5 is
         require(marketInfos[id_].startTime < block.timestamp, "no start time yet");
         require(!marketInfos[id_].closed, "closed market");
         require(markets[id_].endSaleTime > block.timestamp, "closed market");
-        require(markets[id_].capacity > marketInfos[id_].totalSold, "zero capacity" );
+        require((markets[id_].capacity - marketInfos[id_].totalSold) > remainingTosTolerance, "soldout market" );
         _;
     }
 
