@@ -255,10 +255,10 @@ contract BondDepositoryV1_5 is
         nonEndMarket(_marketId)
     {
         if (pricePathInfos[_marketId].length != 0) {
-            for (uint256 i = (pricePathInfos[_marketId].length-1); i > 0 ; i--){
-                pricePathInfos[_marketId].pop();
-            }
-            pricePathInfos[_marketId].pop();
+            // for (uint256 i = (pricePathInfos[_marketId].length-1); i > 0 ; i--){
+            //     pricePathInfos[_marketId].pop();
+            // }
+            // pricePathInfos[_marketId].pop();
             delete pricePathInfos[_marketId];
         }
 
@@ -274,11 +274,7 @@ contract BondDepositoryV1_5 is
 
     /// @inheritdoc IBondDepositoryV1_5
     function close(uint256 _id) public override onlyPolicyOwner existedMarket(_id) {
-        // require(markets[_id].endSaleTime > 0, "empty market");
-        require(
-            markets[_id].endSaleTime > block.timestamp
-            || markets[_id].capacity <= remainingTosTolerance
-            || marketInfos[_id].closed, "already closed");
+        require(!marketInfos[_id].closed && markets[_id].endSaleTime > block.timestamp, "already closed");
 
         LibBondDepositoryV1_5.MarketInfo storage _marketInfo = marketInfos[_id];
         _marketInfo.closed = true;
@@ -464,8 +460,9 @@ contract BondDepositoryV1_5 is
     function isOpened(uint256 _marketId) external override view returns (bool closedBool)
     {
         return
-            (block.timestamp < markets[_marketId].endSaleTime
-            && markets[_marketId].capacity > (marketInfos[_marketId].totalSold + remainingTosTolerance));
+            (!marketInfos[_marketId].closed
+            && (block.timestamp < markets[_marketId].endSaleTime
+            && markets[_marketId].capacity > (marketInfos[_marketId].totalSold + remainingTosTolerance)));
     }
 
     function getBondingPrice(uint256 _marketId, uint8 _lockWeeks, uint256 basePrice)
