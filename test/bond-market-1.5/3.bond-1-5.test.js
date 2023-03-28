@@ -193,7 +193,7 @@ describe("TOSv2 Bond Market V1.5", function () {
       await tx.wait();
 
       const receipt = await tx.wait();
-      let _function ="CreatedBonusRates(uint256,uint8,uint16[])";
+      let _function ="CreatedBonusRates(uint256,uint8)";
       let interface = bonusRateLockUp.interface;
 
       for(let i=0; i< receipt.events.length; i++){
@@ -222,7 +222,7 @@ describe("TOSv2 Bond Market V1.5", function () {
       await tx.wait();
 
       const receipt = await tx.wait();
-      let _function ="CreatedBonusRates(uint256,uint8,uint16[])";
+      let _function ="CreatedBonusRates(uint256,uint8)";
       let interface = bonusRateLockUp.interface;
 
       for(let i=0; i< receipt.events.length; i++){
@@ -302,7 +302,7 @@ describe("TOSv2 Bond Market V1.5", function () {
       await tx.wait();
 
       expect(await bondDepository.oracleLibrary()).to.be.eq(oracleLibrary.address);
-      expect(await bondDepository.uniswapFactory()).to.be.eq(uniswapInfo.poolfactory);
+      expect(await bondDepository.uniswapV3Factory()).to.be.eq(uniswapInfo.poolfactory);
     })
 
   })
