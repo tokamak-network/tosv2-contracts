@@ -254,13 +254,8 @@ contract BondDepositoryV1_5 is
     )   external override onlyPolicyOwner
         nonEndMarket(_marketId)
     {
-        if (pricePathInfos[_marketId].length != 0) {
-            // for (uint256 i = (pricePathInfos[_marketId].length-1); i > 0 ; i--){
-            //     pricePathInfos[_marketId].pop();
-            // }
-            // pricePathInfos[_marketId].pop();
+        if (pricePathInfos[_marketId].length != 0)
             delete pricePathInfos[_marketId];
-        }
 
         if (paths.length != 0) {
             pricePathInfos[_marketId] = new bytes[](paths.length);
