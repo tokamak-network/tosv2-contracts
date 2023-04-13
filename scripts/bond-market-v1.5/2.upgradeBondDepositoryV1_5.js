@@ -24,9 +24,31 @@ async function main() {
 
     const bondDepositoryProxyAddress = loadDeployed(networkName, "BondDepositoryProxy");
     // const oracleLibraryAddress = loadDeployed(networkName, "OracleLibrary");
+    const libBondDepositoryV1_5Address = loadDeployed(networkName, "LibBondDepositoryV1_5");
+
+    //LibBondDepositoryV1_5 Deploy
+    // const LibBondDepositoryV1_5 = await ethers.getContractFactory("LibBondDepositoryV1_5" )
+    // const libBondDepositoryV1_5 = await LibBondDepositoryV1_5.deploy();
+    // await libBondDepositoryV1_5.deployed();
+    // console.log("LibBondDepositoryV1_5: ", libBondDepositoryV1_5.address);
+
+    // deployInfo = {
+    //   name: "LibBondDepositoryV1_5",
+    //   address: libBondDepositoryV1_5.address
+    // }
+
+    // save(networkName, deployInfo);
 
     //BondDepositoryV1_5 Deploy
+    // factory = await ethers.getContractFactory("BondDepositoryV1_5", {
+    //   signer: deployer, libraries: { LibBondDepositoryV1_5: libBondDepositoryV1_5.address}
+    // })
+    // factory = await ethers.getContractFactory("BondDepositoryV1_5", {
+    //   signer: deployer, libraries: { LibBondDepositoryV1_5: libBondDepositoryV1_5Address}
+    // })
+
     factory = await ethers.getContractFactory("BondDepositoryV1_5")
+
     bondDepositoryV1_5 = await factory.deploy();
     await bondDepositoryV1_5.deployed()
 
@@ -50,6 +72,10 @@ async function main() {
     console.log("bondDepositoryProxy: upgradeTo ", bondDepositoryV1_5.address);
 
     if(chainId == 1 || chainId == 4 || chainId == 5) {
+      // await run("verify", {
+      //   address: libBondDepositoryV1_5.address,
+      //   constructorArgsParams: [],
+      // });
 
       await run("verify", {
         address: bondDepositoryV1_5.address,

@@ -45,6 +45,12 @@ contract BondDepositoryV1_5 is
         _;
     }
 
+    modifier beforeEndMarket(uint256 id_) {
+        require(!marketInfos[id_].closed, "closed market");
+        require(markets[id_].endSaleTime > block.timestamp, "closed market");
+        _;
+    }
+
     modifier isEthMarket(uint256 id_) {
         require(markets[id_].quoteToken == address(0) && markets[id_].endSaleTime > 0,
             "not ETH market"
@@ -80,7 +86,8 @@ contract BondDepositoryV1_5 is
         uint256 _bonusRatesId,
         uint32 _startTime,
         uint32 _endTime,
-        bytes[] calldata _paths
+        bytes[] calldata _paths,
+        uint8 _type
     )
         external override
         onlyPolicyOwner
@@ -113,7 +120,7 @@ contract BondDepositoryV1_5 is
         // Market.capacity change the total capacity
         marketInfos[id_] = LibBondDepositoryV1_5.MarketInfo(
             {
-                bondType: uint8(LibBondDepositoryV1_5.BOND_TYPE.MINTING_V1_5),
+                bondType: _type,
                 startTime: _startTime,
                 closed: false,
                 capacityUpdatePeriod: _marketInfos[2],
@@ -197,7 +204,7 @@ contract BondDepositoryV1_5 is
         uint256 _marketId,
         uint256 _tosPrice
     )   external override onlyPolicyOwner
-        nonEndMarket(_marketId)
+        beforeEndMarket(_marketId)
         nonZero(_tosPrice)
     {
         LibBondDepository.Market storage _info = markets[_marketId];
@@ -226,7 +233,7 @@ contract BondDepositoryV1_5 is
         address _bonusRatesAddress,
         uint256 _bonusRatesId
     )   external override onlyPolicyOwner
-        nonEndMarket(_marketId)
+        beforeEndMarket(_marketId)
         nonZeroAddress(_bonusRatesAddress)
         nonZero(_bonusRatesId)
     {
@@ -252,7 +259,7 @@ contract BondDepositoryV1_5 is
         uint256 _marketId,
         bytes[] memory paths
     )   external override onlyPolicyOwner
-        nonEndMarket(_marketId)
+        beforeEndMarket(_marketId)
     {
         if (pricePathInfos[_marketId].length != 0)
             delete pricePathInfos[_marketId];

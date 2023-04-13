@@ -22,6 +22,7 @@ interface IBondDepositoryV1_5 {
     /// @param startTime            start time
     /// @param endTime              market closing time
     /// @param paths                paths for find out the price
+    /// @param bondType             bond type
     /// @return id_                 returns ID of new bond market
     function create(
         address token,
@@ -30,7 +31,8 @@ interface IBondDepositoryV1_5 {
         uint256 bonusRatesId,
         uint32 startTime,
         uint32 endTime,
-        bytes[] calldata paths
+        bytes[] calldata paths,
+        uint8 bondType
     ) external returns (uint256 id_);
 
 
