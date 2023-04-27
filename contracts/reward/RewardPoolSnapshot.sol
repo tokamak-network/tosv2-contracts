@@ -18,7 +18,7 @@ import "../libraries/LibFactorSnapshot.sol";
 import "../libraries/SArrays.sol";
 import "../libraries/ABDKMath64x64.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 interface IIERC721{
     function ownerOf(uint256 tokenId) external view returns (address owner);

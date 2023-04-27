@@ -6,7 +6,8 @@ import '../libraries/TickMath.sol';
 import '../libraries/SafeCast.sol';
 import '../libraries/PoolAddress.sol';
 import '../libraries/Path.sol';
-import "hardhat/console.sol";
+
+// import "hardhat/console.sol";
 interface IIIUniswapV3Pool {
 
     function observe(uint32[] calldata secondsAgos)
@@ -32,7 +33,6 @@ interface IIIUniswapV3Pool {
 /// @notice Provides functions to integrate with V3 pool oracle
 library OracleLibrary {
     using Path for bytes;
-    using BytesLib for bytes;
     using SafeCast for uint256;
 
     /// @notice Fetches time-weighted average tick using Uniswap V3 oracle
@@ -126,16 +126,13 @@ library OracleLibrary {
     function getOutAmountsCurTick(address factory, bytes memory _path, uint256 _amountIn)
         public view returns (uint256 amountOut)
     {
-        // uint256 count = _path.numPools();
-        // uint256 i = 0;
+
         uint256 amountIn = _amountIn;
         bytes memory path = _path;
         while (true) {
             (address tokenIn, address tokenOut, uint24 fee) = path.decodeFirstPool();
-            // console.log(" tokenIn %s", tokenIn);
-            // console.log(" tokenOut %s", tokenOut);
+
             address pool = getPool(factory, tokenIn, tokenOut, fee);
-            // console.log(" pool %s", pool);
 
             (,int24 tick,,,,,) = IIIUniswapV3Pool(pool).slot0();
 
@@ -146,9 +143,8 @@ library OracleLibrary {
                 tokenIn,
                 tokenOut
             );
-            // console.log(" _amountOut %s", _amountOut);
+
             amountIn = _amountOut;
-            // i++;
 
             // decide whether to continue or terminate
             if (path.hasMultiplePools()) {

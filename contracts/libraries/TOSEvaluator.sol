@@ -94,8 +94,8 @@ library TOSEvaluator {
         uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(tickUpper);
 
         (amount0, amount1) = LiquidityAmounts.getAmountsForLiquidity(sqrtPriceX96, sqrtRatioAX96, sqrtRatioBX96, liquidity);
-        console.log('amount0 %s ', amount0);
-        console.log('amount1 %s ', amount1);
+        // console.log('amount0 %s ', amount0);
+        // console.log('amount1 %s ', amount1);
     }
 
     function getDecimals(address token0, address token1) public view returns(uint256 token0Decimals, uint256 token1Decimals) {
