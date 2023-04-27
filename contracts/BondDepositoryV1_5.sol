@@ -471,7 +471,7 @@ contract BondDepositoryV1_5 is
         public override view
         returns (uint256 bondingPrice)
     {
-        if (basePrice > 0 && _lockWeeks > 0) {
+        if (basePrice > 0) {
             LibBondDepositoryV1_5.BonusRateInfo memory bonusInfo = bonusRateInfos[_marketId];
             if (bonusInfo.bonusRatesAddress != address(0) && bonusInfo.bonusRatesId != 0) {
                 uint16 rates = IIBonusRateLockUpMap(bonusInfo.bonusRatesAddress).getRatesByWeeks(bonusInfo.bonusRatesId, _lockWeeks);
