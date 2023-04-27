@@ -370,10 +370,10 @@ contract BondDepositoryV1_5 is
             Math.min(getUniswapPrice(_marketId), market.tosPrice)
         );
 
-        require(bondingPrice >= _minimumTosPrice, "The bonding amount is less than the minimum amount.");
+        require(bondingPrice >= _minimumTosPrice, "The bonding price must be greater than the minimum tos price.");
 
         _payout = (_amount * bondingPrice / 1e18);
-        require(_payout + _marketInfo.totalSold <= market.capacity, "sales volume is lacking");
+        // require(_payout + _marketInfo.totalSold <= market.capacity, "sales volume is lacking");
 
         (, uint256 currentCapacity) = _possibleMaxCapacity(
                 _marketInfo.startTime,
