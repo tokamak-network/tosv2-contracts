@@ -56,12 +56,53 @@ module.exports = {
       gasMultiplier: 1.25,
       gasPrice: 20000000000,
     },
+    holesky: {
+      url: `https://ethereum-holesky.publicnode.com`,
+      accounts: [`${process.env.PRIVATE_KEY}`],
+      chainId: 17000,
+      deploy: ['deploy-holesky']
+    },
   },
   localhost: {
     timeout: 1000000000,
   },
+  // etherscan: {
+  //   apiKey: process.env.ETHERSCAN_API_KEY,
+  // },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: {
+      mainnet: `${process.env.ETHERSCAN_API_KEY}`,
+      goerli: `${process.env.ETHERSCAN_API_KEY}`,
+      titan: "verify",
+      titangoerli: "verify",
+      holesky: `${process.env.ETHERSCAN_API_KEY}`,
+    } ,
+    customChains: [
+      {
+        network: "titan",
+        chainId: 55004,
+        urls: {
+          apiURL: "https://explorer.titan.tokamak.network//api",
+          browserURL: "https://explorer.titan.tokamak.network/"
+        }
+      },
+      {
+        network: "titangoerli",
+        chainId: 5050,
+        urls: {
+          apiURL: "https://explorer.titan-goerli.tokamak.network/api",
+          browserURL: "https://explorer.titan-goerli.tokamak.network/"
+        }
+      },
+      {
+        network: "holesky",
+        chainId: 17000,
+        urls: {
+          apiURL: "https://api-holesky.etherscan.io/api",
+          browserURL: "https://holesky.etherscan.io/"
+        }
+      }
+    ]
   },
   solidity: {
     version: "0.8.4",
