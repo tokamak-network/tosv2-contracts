@@ -88,9 +88,9 @@ async function main() {
     await tx.wait();
 
 
-    tx = await terasuryContract.connect(deployer).setMR(config.mintRate, ethers.BigNumber.from("0"), false);
-    console.log("terasuryContract setMR ", config.mintRate );
-    await tx.wait();
+    // tx = await terasuryContract.connect(deployer).setMR(config.mintRate, ethers.BigNumber.from("0"), false);
+    // console.log("terasuryContract setMR ", config.mintRate );
+    // await tx.wait();
 
     const _mintRateDenominator = await terasuryContract.mintRateDenominator();
     console.log("terasuryProxyContract mintRateDenominator ", _mintRateDenominator.toString());
