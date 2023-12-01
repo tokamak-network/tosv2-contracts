@@ -29,8 +29,29 @@ let uniswapInfo_holesky = {
     lockTOSaddr: "0x8Fb966Bfb690a8304a5CdE54d9Ed6F7645b26576"
 }
 
-let networkName = "holesky";
-let uniswapInfo = uniswapInfo_holesky;
+// sepolia
+let uniswapInfo_sepolia = {
+    poolfactory: "",
+    npm: "",
+    swapRouter: "",
+    wethUsdcPool: "",
+    wtonWethPool: "",
+    wtonTosPool: "",
+    tosethPool: "",
+    wton: "0x79e0d92670106c85e9067b56b8f674340dca0bbd",
+    tos: "0xff3ef745d9878afe5934ff0b130868afddbc58e8",
+    weth: "",
+    usdc: "",
+    fee: ethers.BigNumber.from("3000"),
+    NonfungibleTokenPositionDescriptor: "",
+    UniswapV3Staker: "",
+    ton: "0xa30fe40285b8f5c0457dbc3b7c8a280373c40044",
+    lockTOSaddr: "0x8Fb966Bfb690a8304a5CdE54d9Ed6F7645b26576"
+}
+
+
+let networkName = "sepolia";
+let uniswapInfo = uniswapInfo_sepolia;
 
 async function getUniswapInfo() {
     const { chainId } = await ethers.provider.getNetwork();
@@ -41,11 +62,14 @@ async function getUniswapInfo() {
     }else if(chainId == 17000) {
         networkName = "holesky";
         uniswapInfo = uniswapInfo_holesky;
+    }else if(chainId == 11155111) {
+        networkName = "sepolia";
+        uniswapInfo = uniswapInfo_sepolia;
     }
-
 
     return {chainId, networkName, uniswapInfo, config};
 }
+
 
 
 module.exports = {

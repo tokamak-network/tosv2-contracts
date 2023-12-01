@@ -62,6 +62,11 @@ module.exports = {
       chainId: 17000,
       deploy: ['deploy-holesky']
     },
+    sepolia: {
+      url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts: [`${process.env.PRIVATE_KEY}`],
+      chainId: 11155111,
+    },
   },
   localhost: {
     timeout: 1000000000,
@@ -76,6 +81,7 @@ module.exports = {
       titan: "verify",
       titangoerli: "verify",
       holesky: `${process.env.ETHERSCAN_API_KEY}`,
+      sepolia: `${process.env.ETHERSCAN_API_KEY}`,
     } ,
     customChains: [
       {
