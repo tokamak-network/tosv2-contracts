@@ -1,0 +1,265 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "StakingV2Storage",
+  "sourceName": "contracts/StakingV2Storage.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "allStakings",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "staker",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "deposit",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "ltos",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "endTime",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "marketId",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "basicBondPeriod",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "connectId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "epoch",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "length_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "end",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "index_",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lockTOS",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "marketIdCounter",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rebasePerEpoch",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "stakingIdCounter",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "stakingPrincipal",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "tos",
+      "outputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalLtos",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "treasury",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "userStakingIndex",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "userStakings",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x6080604052600160065534801561001557600080fd5b5061034c806100256000396000f3fe608060405234801561001057600080fd5b50600436106100f55760003560e01c80636d1c789f116100975780639e9e792f116100665780639e9e792f1461023a578063a052e69e1461025a578063a7110dc314610263578063f55813821461028e57600080fd5b80636d1c789f146101f257806378ad1405146101fb57806389f395de14610204578063900cf0cf1461021757600080fd5b80635720bf3a116100d35780635720bf3a1461014a5780635746248f146101535780635dc3c29a1461016657806361d027b3146101df57600080fd5b80630e1e998f146100fa578063385030b4146101165780634e6c44661461011f575b600080fd5b610103600b5481565b6040519081526020015b60405180910390f35b610103600a5481565b600354610132906001600160a01b031681565b6040516001600160a01b03909116815260200161010d565b61010360095481565b6101036101613660046102c8565b610297565b6101ad6101743660046102fe565b600f60205260009081526040902080546001820154600283015460038401546004909401546001600160a01b0390931693919290919085565b604080516001600160a01b0390961686526020860194909452928401919091526060830152608082015260a00161010d565b600454610132906001600160a01b031681565b610103600c5481565b61010360055481565b600254610132906001600160a01b031681565b600054600154610225919082565b6040805192835260208301919091520161010d565b6101036102483660046102fe565b60106020526000908152604090205481565b61010360085481565b6101036102713660046102c8565b600e60209081526000928352604080842090915290825290205481565b61010360075481565b600d60205281600052604060002081815481106102b357600080fd5b90600052602060002001600091509150505481565b600080604083850312156102da578182fd5b82356001600160a01b03811681146102f0578283fd5b946020939093013593505050565b60006020828403121561030f578081fd5b503591905056fea2646970667358221220fa3f743271715197cef860be56175104d259e509a6356cace653a2179ca6c87964736f6c63430008040033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100f55760003560e01c80636d1c789f116100975780639e9e792f116100665780639e9e792f1461023a578063a052e69e1461025a578063a7110dc314610263578063f55813821461028e57600080fd5b80636d1c789f146101f257806378ad1405146101fb57806389f395de14610204578063900cf0cf1461021757600080fd5b80635720bf3a116100d35780635720bf3a1461014a5780635746248f146101535780635dc3c29a1461016657806361d027b3146101df57600080fd5b80630e1e998f146100fa578063385030b4146101165780634e6c44661461011f575b600080fd5b610103600b5481565b6040519081526020015b60405180910390f35b610103600a5481565b600354610132906001600160a01b031681565b6040516001600160a01b03909116815260200161010d565b61010360095481565b6101036101613660046102c8565b610297565b6101ad6101743660046102fe565b600f60205260009081526040902080546001820154600283015460038401546004909401546001600160a01b0390931693919290919085565b604080516001600160a01b0390961686526020860194909452928401919091526060830152608082015260a00161010d565b600454610132906001600160a01b031681565b610103600c5481565b61010360055481565b600254610132906001600160a01b031681565b600054600154610225919082565b6040805192835260208301919091520161010d565b6101036102483660046102fe565b60106020526000908152604090205481565b61010360085481565b6101036102713660046102c8565b600e60209081526000928352604080842090915290825290205481565b61010360075481565b600d60205281600052604060002081815481106102b357600080fd5b90600052602060002001600091509150505481565b600080604083850312156102da578182fd5b82356001600160a01b03811681146102f0578283fd5b946020939093013593505050565b60006020828403121561030f578081fd5b503591905056fea2646970667358221220fa3f743271715197cef860be56175104d259e509a6356cace653a2179ca6c87964736f6c63430008040033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

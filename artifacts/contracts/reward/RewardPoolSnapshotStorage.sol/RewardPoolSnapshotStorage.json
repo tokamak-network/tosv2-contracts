@@ -1,0 +1,290 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "RewardPoolSnapshotStorage",
+  "sourceName": "contracts/reward/RewardPoolSnapshotStorage.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        }
+      ],
+      "name": "Snapshot",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "DEFAULT_FACTOR",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "currentSnapshotId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "dTosBaseRate",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "decimals",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "dtosManagerAddress",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "dtosPolicy",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "execPauseFlag",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "interestRatePerRebase",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lastRebaseTime",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "name",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "nonfungiblePositionManager",
+      "outputs": [
+        {
+          "internalType": "contract INonfungiblePositionManager",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pool",
+      "outputs": [
+        {
+          "internalType": "contract IUniswapV3Pool",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rebaseIntervalSecond",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rewardLPTokenManager",
+      "outputs": [
+        {
+          "internalType": "contract IRewardLPTokenManagerAction",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "rewardLPs",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "symbol",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "token0",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "token1",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "tosAddress",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "uniswapV3Factory",
+      "outputs": [
+        {
+          "internalType": "contract IUniswapV3Factory",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x60806040526002805460ff19166012179055670de0b6b3a764000060175534801561002957600080fd5b50610432806100396000396000f3fe608060405234801561001057600080fd5b506004361061012c5760003560e01c80636455ac50116100ad578063a155041f11610071578063a155041f14610270578063a3db16a214610279578063a803595e14610282578063b44a272214610295578063d21220a7146102a857600080fd5b80636455ac5014610219578063658a7511146102395780638bf91dc41461025657806395d89b411461025f578063970875ce1461026757600080fd5b80631924063e116100f45780631924063e146101b857806322d739a8146101c1578063313ce567146101d4578063520194a6146101f35780635b5491821461020657600080fd5b8063039bf30a1461013157806306fdde031461014d5780630dfe1681146101625780631042f08d1461018d57806316f0115b146101a0575b600080fd5b61013a60145481565b6040519081526020015b60405180910390f35b6101556102bb565b604051610144919061036e565b600354610175906001600160a01b031681565b6040516001600160a01b039091168152602001610144565b600554610175906001600160a01b031681565b6002546101759061010090046001600160a01b031681565b61013a60165481565b600754610175906001600160a01b031681565b6002546101e19060ff1681565b60405160ff9091168152602001610144565b600a54610175906001600160a01b031681565b600854610175906001600160a01b031681565b61013a610227366004610356565b60126020526000908152604090205481565b6018546102469060ff1681565b6040519015158152602001610144565b61013a60175481565b610155610349565b61013a600b5481565b61013a60135481565b61013a60155481565b600654610175906001600160a01b031681565b600954610175906001600160a01b031681565b600454610175906001600160a01b031681565b600080546102c8906103c1565b80601f01602080910402602001604051908101604052809291908181526020018280546102f4906103c1565b80156103415780601f1061031657610100808354040283529160200191610341565b820191906000526020600020905b81548152906001019060200180831161032457829003601f168201915b505050505081565b600180546102c8906103c1565b600060208284031215610367578081fd5b5035919050565b6000602080835283518082850152825b8181101561039a5785810183015185820160400152820161037e565b818111156103ab5783604083870101525b50601f01601f1916929092016040019392505050565b600181811c908216806103d557607f821691505b602082108114156103f657634e487b7160e01b600052602260045260246000fd5b5091905056fea264697066735822122009c6bd99e8e347a0fcfc72c056579e0e35ff0e7ccfeb6e0dd1fa19c6ec2afb9264736f6c63430008040033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061012c5760003560e01c80636455ac50116100ad578063a155041f11610071578063a155041f14610270578063a3db16a214610279578063a803595e14610282578063b44a272214610295578063d21220a7146102a857600080fd5b80636455ac5014610219578063658a7511146102395780638bf91dc41461025657806395d89b411461025f578063970875ce1461026757600080fd5b80631924063e116100f45780631924063e146101b857806322d739a8146101c1578063313ce567146101d4578063520194a6146101f35780635b5491821461020657600080fd5b8063039bf30a1461013157806306fdde031461014d5780630dfe1681146101625780631042f08d1461018d57806316f0115b146101a0575b600080fd5b61013a60145481565b6040519081526020015b60405180910390f35b6101556102bb565b604051610144919061036e565b600354610175906001600160a01b031681565b6040516001600160a01b039091168152602001610144565b600554610175906001600160a01b031681565b6002546101759061010090046001600160a01b031681565b61013a60165481565b600754610175906001600160a01b031681565b6002546101e19060ff1681565b60405160ff9091168152602001610144565b600a54610175906001600160a01b031681565b600854610175906001600160a01b031681565b61013a610227366004610356565b60126020526000908152604090205481565b6018546102469060ff1681565b6040519015158152602001610144565b61013a60175481565b610155610349565b61013a600b5481565b61013a60135481565b61013a60155481565b600654610175906001600160a01b031681565b600954610175906001600160a01b031681565b600454610175906001600160a01b031681565b600080546102c8906103c1565b80601f01602080910402602001604051908101604052809291908181526020018280546102f4906103c1565b80156103415780601f1061031657610100808354040283529160200191610341565b820191906000526020600020905b81548152906001019060200180831161032457829003601f168201915b505050505081565b600180546102c8906103c1565b600060208284031215610367578081fd5b5035919050565b6000602080835283518082850152825b8181101561039a5785810183015185820160400152820161037e565b818111156103ab5783604083870101525b50601f01601f1916929092016040019392505050565b600181811c908216806103d557607f821691505b602082108114156103f657634e487b7160e01b600052602260045260246000fd5b5091905056fea264697066735822122009c6bd99e8e347a0fcfc72c056579e0e35ff0e7ccfeb6e0dd1fa19c6ec2afb9264736f6c63430008040033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

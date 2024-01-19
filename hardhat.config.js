@@ -34,6 +34,11 @@ module.exports = {
   live: false,
   networks: {
     hardhat: {
+      forking: {
+        url: `${process.env.ETH_NODE_URI_MAINNET}`,
+        blockNumber: 19039440
+      },
+      allowUnlimitedContractSize: false,
       chainId: 31337,
     },
     local: {
