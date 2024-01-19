@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "../common/AccessibleCommon.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 //import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-// import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 
 import "@openzeppelin/contracts/utils/Context.sol";
 //import "@openzeppelin/contracts/utils/Counters.sol";
@@ -29,6 +29,7 @@ contract RewardLPTokenManager is
     Context,
     AccessibleCommon,
     ERC721,
+    ERC721Pausable,
     DSMath,
     IRewardLPTokenManagerEvent,
     IRewardLPTokenManagerAction
@@ -84,15 +85,15 @@ contract RewardLPTokenManager is
     }
 
 
-    // function pause() public virtual onlyOwner {
-    //     //require(hasRole(ADMIN_ROLE, _msgSender()), "RewardLPTokenManager: must have pauser role to pause");
-    //     _pause();
-    // }
+    function pause() public virtual onlyOwner {
+        //require(hasRole(ADMIN_ROLE, _msgSender()), "RewardLPTokenManager: must have pauser role to pause");
+        _pause();
+    }
 
-    // function unpause() public virtual onlyOwner {
-    //     //require(hasRole(ADMIN_ROLE, _msgSender()), "RewardLPTokenManager: must have pauser role to unpause");
-    //     _unpause();
-    // }
+    function unpause() public virtual onlyOwner {
+        //require(hasRole(ADMIN_ROLE, _msgSender()), "RewardLPTokenManager: must have pauser role to unpause");
+        _unpause();
+    }
 
     // 발행은 리워드 풀에 의해서만 가능하다. 리워드 풀에서 스테이킹할때만 가능
     function mint(
@@ -101,7 +102,7 @@ contract RewardLPTokenManager is
         uint256 poolTokenId,
         uint256 tosAmount,
         uint256 factoredAmount
-    ) external override zeroAddress(dtos) returns (uint256) {
+    ) external override whenNotPaused zeroAddress(dtos) returns (uint256) {
         // require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
         require(hasRole(ADMIN_ROLE, _msgSender()), "RewardLPTokenManager: must have minter role to mint");
 
@@ -131,7 +132,7 @@ contract RewardLPTokenManager is
     // 소각은 리워드 풀에 의해서만 가능하다. 리워드 풀에서 언스테이크 할때만 가능
     function burn(
         uint256 tokenId
-    ) external override zeroAddress(dtos) {
+    ) external override whenNotPaused zeroAddress(dtos) {
         // console.log("IIRewardLPTokenManager burn tokenId %s", tokenId) ;
         // require(hasRole(MINTER_ROLE, _msgSender()), "RewardLPTokenManager: must have role to burn");
         require(hasRole(ADMIN_ROLE, _msgSender()), "RewardLPTokenManager: must have role to burn");
@@ -189,7 +190,7 @@ contract RewardLPTokenManager is
 
     function usableAmount(
         uint256 tokenId
-    ) public view override returns (uint256){
+    ) public view override whenNotPaused returns (uint256){
         uint256 dTosBalance = balanceOf(deposits[tokenId].rewardPool, deposits[tokenId].factoredAmount);
         if (dTosBalance == 0 || dTosBalance <= deposits[tokenId].usedAmount) return 0;
         return (dTosBalance - deposits[tokenId].usedAmount);
@@ -198,7 +199,7 @@ contract RewardLPTokenManager is
 
     function usableAmounts(
         uint256[] memory tokenIds
-    ) external view override returns (uint256[] memory){
+    ) external view override whenNotPaused returns (uint256[] memory){
         uint256[] memory amounts = new uint256[](tokenIds.length);
         for (uint256 i = 0; i < tokenIds.length; i++) {
             amounts[i] = usableAmount(tokenIds[i]);
@@ -206,11 +207,11 @@ contract RewardLPTokenManager is
         return amounts;
     }
     /*
-    function useAll(uint256 tokenId) public override {
+    function useAll(uint256 tokenId) public override whenNotPaused {
         use(tokenId, usableAmount(tokenId));
     }
 
-    function multiUseAll(uint256[] memory tokenIds) public override {
+    function multiUseAll(uint256[] memory tokenIds) public override whenNotPaused {
         require( tokenIds.length > 0,"wrong length");
         for (uint256 i = 0; i < tokenIds.length; i++) {
             useAll(tokenIds[i]);
@@ -221,7 +222,7 @@ contract RewardLPTokenManager is
     function use(
         uint256 tokenId,
         uint256 amount
-    ) public override {
+    ) public override whenNotPaused {
 
         require(hasRole(USER_ROLE, _msgSender()), "RewardLPTokenManager: must have user role to use");
         require(amount > 0, "zero amount");
@@ -236,7 +237,7 @@ contract RewardLPTokenManager is
     function multiUse(
         uint256[] memory tokenIds,
         uint256[] memory amounts
-    ) external override {
+    ) external override whenNotPaused {
         require(
             tokenIds.length == amounts.length && tokenIds.length > 0
             ,"wrong length");
@@ -271,7 +272,7 @@ contract RewardLPTokenManager is
         address from,
         address to,
         uint256 tokenId
-    ) internal virtual {
+    ) internal virtual override(ERC721, ERC721Pausable) whenNotPaused {
         // super._beforeTokenTransfer(from, to, tokenId);
     }
 
