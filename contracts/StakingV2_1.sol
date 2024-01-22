@@ -12,25 +12,6 @@ import "./libraries/LibTreasury.sol";
 import "./interfaces/IStakingV2_1.sol";
 import "./interfaces/IStakingEvent.sol";
 
-// import "hardhat/console.sol";
-
-interface ILockTosV2 {
-
-    function locksInfo(uint256 _lockId)
-        external
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256
-        );
-    function createLockByStaker(address user, uint256 _value, uint256 _unlockWeeks) external returns (uint256 lockId);
-    // function increaseAmountByStaker(address user, uint256 _lockId, uint256 _value) external;
-    // function increaseAmountUnlockTimeByStaker(address user, uint256 _lockId, uint256 _value, uint256 _unlockWeeks) external;
-    function withdrawByStaker(address user, uint256 _lockId) external;
-    function epochUnit() external view returns(uint256);
-}
-
 interface IITreasury {
 
     function enableStaking() external view returns (uint256);
@@ -176,13 +157,6 @@ contract StakingV2_1 is
 
         uint256 ltos = _createStakeInfo(_to, stakeId, _amount, unlockTime, _marketId);
 
-        // uint256 stosPrincipal = LibStaking.compound(_amount, rebasePerEpoch, (unlockTime - block.timestamp) / epoch.length_);
-        // uint256 stosId = ILockTosV2(lockTOS).createLockByStaker(_to, stosPrincipal, _periodWeeks);
-        // require(stosId > 0, "zero stosId");
-
-        // connectId[stakeId] = stosId;
-
-        // emit StakedGetStosByBond(_to, _amount, ltos, _periodWeeks, _marketId, stakeId, stosId, tosPrice, stosPrincipal);
         emit StakedGetStosByBond(_to, _amount, ltos, _periodWeeks, _marketId, stakeId, 0, tosPrice, 0);
     }
 
@@ -248,13 +222,6 @@ contract StakingV2_1 is
         tos.safeTransferFrom(msg.sender, treasury, _amount);
 
         emit IncreasedAmountForSimpleStake(msg.sender, _amount, _stakeId);
-    }
-
-    function _closeEndTimeOfLockTos(address sender, uint256 _stakeId, uint256 lockId, uint256 _endTime) internal {
-        (, uint256 end, ) = ILockTosV2(lockTOS).locksInfo(lockId);
-        require(end < block.timestamp && _endTime < block.timestamp, "lock end time has not passed");
-        ILockTosV2(lockTOS).withdrawByStaker(sender, lockId);
-        delete connectId[_stakeId];
     }
 
     /// @inheritdoc IStakingV2_1
