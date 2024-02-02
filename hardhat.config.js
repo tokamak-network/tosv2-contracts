@@ -52,7 +52,7 @@ module.exports = {
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-      accounts: [`${process.env.TONStarter_Deployer}`],
+      accounts: [`${process.env.PRIVATE_KEY}`],
       gasMultiplier: 1.25,
       gasPrice: 20000000000,
     },
