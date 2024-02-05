@@ -19,6 +19,7 @@ async function main() {
     let foundation2 = "0xBedE575486e1F103fbe258a00D046F09e837fA17"
     let foundation3 = "0x2520CD65BAa2cEEe9E6Ad6EBD3F45490C42dd303"
     let DAOVault = "0x2520CD65BAa2cEEe9E6Ad6EBD3F45490C42dd303"
+    let wtonTosPool = "0x1c0cE9aAA0c12f53Df3B4d8d77B82D6Ad343b4E4"
     
     const TOSContract = new ethers.Contract( TOSAddr, tosABI.abi, ethers.provider);
 
@@ -27,12 +28,14 @@ async function main() {
     let foundation2TOS = await TOSContract.balanceOf(foundation2);
     let foundation3TOS = await TOSContract.balanceOf(foundation3);
     let DAOVaultTOS = await TOSContract.balanceOf(DAOVault);
+    let wtonTosPoolTOS = await TOSContract.balanceOf(wtonTosPool);
 
     let ethTreasury = ethers.utils.formatEther(TreasuryTOS);
     let ethFoundation1 = ethers.utils.formatEther(foundation1TOS);
     let ethFoundation2 = ethers.utils.formatEther(foundation2TOS);
     let ethFoundation3 = ethers.utils.formatEther(foundation3TOS);
     let ethDAOVault = ethers.utils.formatEther(DAOVaultTOS);
+    let ethwtonTosPoolTOS = ethers.utils.formatEther(wtonTosPoolTOS);
     
 
     console.log("Treasury TOS blanaces :", ethTreasury, " TOS");
@@ -40,6 +43,7 @@ async function main() {
     console.log("Foundation2 TOS blanaces :", ethFoundation2, " TOS");
     console.log("Foundation3 TOS blanaces :", ethFoundation3, " TOS");
     console.log("DAOVault TOS blanaces :", ethDAOVault, " TOS");
+    console.log("WTON-TOS Pool TOS blanaces :", ethwtonTosPoolTOS, " TOS");
 
 }
 
