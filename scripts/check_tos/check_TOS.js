@@ -82,8 +82,13 @@ async function main() {
     console.log("refund StakeTOSAmount TOS blanaces :", ethgetTOSAmount, " TOS");
     console.log("distributeAmount TOS blanaces :", ethdistributeAmount, " TOS");
 
-    // let tokamakTreasuryTOS = ethTreasury - ethgetTOSAmount - ethdistributeAmount
-    // let tokamakFoundationTOS = 
+    let tokamakTreasuryTOS = Number(ethTreasury) - Number(ethgetTOSAmount) - Number(ethdistributeAmount)
+    let tokamakFoundationTOS = Number(ethFoundation1) + Number(ethFoundation2) + Number(ethFoundation3)
+    let tokamakTotalTOS = Number(tokamakTreasuryTOS) + Number(tokamakFoundationTOS) + Number(ethDAOVault) + Number(ethwtonTosPoolTOS)
+
+    console.log("tokamakTreasury TOS blanaces :", tokamakTreasuryTOS, " TOS");
+    console.log("tokamakFoundationTOS TOS blanaces :", tokamakFoundationTOS, " TOS");
+    console.log("tokamakTotalTOS TOS blanaces :", tokamakTotalTOS, " TOS");
 }
 
 main()
