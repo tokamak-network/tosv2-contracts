@@ -1,6 +1,8 @@
 const { ethers, run } = require("hardhat");
 
 let tosABI = require("../../abis/TOS.json");
+let treasuryLogicABI = require("../../abis/Treasury.json");
+let stakeLogicABI = require("../../abis/StakingV2.json");
 
 
 async function main() {
@@ -15,6 +17,7 @@ async function main() {
     //mainnet
     let TOSAddr = "0x409c4D8cd5d2924b9bc5509230d16a61289c8153"
     let TreasuryAddr = "0xD27A68a457005f822863199Af0F817f672588ad6"
+    let StakeAddr = "0x14fb0933Ec45ecE75A431D10AFAa1DDF7BfeE44C"
     let foundation1 = "0x15280a52E79FD4aB35F4B9Acbb376DCD72b44Fd1"
     let foundation2 = "0xBedE575486e1F103fbe258a00D046F09e837fA17"
     let foundation3 = "0x2520CD65BAa2cEEe9E6Ad6EBD3F45490C42dd303"
@@ -27,7 +30,9 @@ async function main() {
     let tosmining4 = "0x7da4E8Ab0bB29a6772b6231b01ea372994c2A49A"
     let tosmining5 = "0x9a8294566960Ab244d78D266FFe0f284cDf728F1"
     
-    const TOSContract = new ethers.Contract( TOSAddr, tosABI.abi, ethers.provider);
+    const TOSContract = new ethers.Contract( TOSAddr, tosABI.abi, ethers.provider );
+    const TreasuryContract = new ethers.Contract( TreasuryAddr, treasuryLogicABI.abi, ethers.provider );
+    const StakeV2Contract = new ethers.Contract( StakeAddr, stakeLogicABI.abi, ethers.provider );
 
     let TreasuryTOS = await TOSContract.balanceOf(TreasuryAddr);
     let foundation1TOS = await TOSContract.balanceOf(foundation1);
@@ -42,6 +47,9 @@ async function main() {
     let tosmining4TOS = await TOSContract.balanceOf(tosmining4);
     let tosmining5TOS = await TOSContract.balanceOf(tosmining5);
 
+    let getTOSAmount = await StakeV2Contract.stakedOfAll();
+    let distributeAmount = await TreasuryContract.foundationAmount();
+
 
     let ethTreasury = ethers.utils.formatEther(TreasuryTOS);
     let ethFoundation1 = ethers.utils.formatEther(foundation1TOS);
@@ -55,6 +63,8 @@ async function main() {
     let ethtosmining3TOS = ethers.utils.formatEther(tosmining3TOS);
     let ethtosmining4TOS = ethers.utils.formatEther(tosmining4TOS);
     let ethtosmining5TOS = ethers.utils.formatEther(tosmining5TOS);
+    let ethgetTOSAmount = ethers.utils.formatEther(getTOSAmount);
+    let ethdistributeAmount =  ethers.utils.formatEther(distributeAmount);
     
 
     console.log("Treasury TOS blanaces :", ethTreasury, " TOS");
@@ -69,7 +79,11 @@ async function main() {
     console.log("TOSMining3 TOS blanaces :", ethtosmining3TOS, " TOS");
     console.log("TOSMining4 TOS blanaces :", ethtosmining4TOS, " TOS");
     console.log("TOSMining5 TOS blanaces :", ethtosmining5TOS, " TOS");
+    console.log("refund StakeTOSAmount TOS blanaces :", ethgetTOSAmount, " TOS");
+    console.log("distributeAmount TOS blanaces :", ethdistributeAmount, " TOS");
 
+    // let tokamakTreasuryTOS = ethTreasury - ethgetTOSAmount - ethdistributeAmount
+    // let tokamakFoundationTOS = 
 }
 
 main()
