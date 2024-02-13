@@ -1,0 +1,147 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "BondDepositoryStorage",
+  "sourceName": "contracts/BondDepositoryStorage.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "calculator",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "dtos",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "marketList",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "markets",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "quoteToken",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "capacity",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "endSaleTime",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "maxPayout",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tosPrice",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "staking",
+      "outputs": [
+        {
+          "internalType": "contract IStaking",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "tos",
+      "outputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "treasury",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "uniswapV3Factory",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b50610225806100206000396000f3fe608060405234801561001057600080fd5b50600436106100885760003560e01c806389f395de1161005b57806389f395de14610104578063b1283e7714610117578063ce3e39c014610190578063f98e422f146101a357600080fd5b8063232b956c1461008d5780634cf088d9146100b35780635b549182146100de57806361d027b3146100f1575b600080fd5b6100a061009b3660046101d7565b6101b6565b6040519081526020015b60405180910390f35b6001546100c6906001600160a01b031681565b6040516001600160a01b0390911681526020016100aa565b6004546100c6906001600160a01b031681565b6002546100c6906001600160a01b031681565b6000546100c6906001600160a01b031681565b61015e6101253660046101d7565b600760205260009081526040902080546001820154600283015460038401546004909401546001600160a01b0390931693919290919085565b604080516001600160a01b0390961686526020860194909452928401919091526060830152608082015260a0016100aa565b6003546100c6906001600160a01b031681565b6005546100c6906001600160a01b031681565b600681815481106101c657600080fd5b600091825260209091200154905081565b6000602082840312156101e8578081fd5b503591905056fea2646970667358221220f1adf5192f5a2e56b1d32a22c94538e4be32c86f0ca0ec7ededf10889c61d3d264736f6c63430008040033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100885760003560e01c806389f395de1161005b57806389f395de14610104578063b1283e7714610117578063ce3e39c014610190578063f98e422f146101a357600080fd5b8063232b956c1461008d5780634cf088d9146100b35780635b549182146100de57806361d027b3146100f1575b600080fd5b6100a061009b3660046101d7565b6101b6565b6040519081526020015b60405180910390f35b6001546100c6906001600160a01b031681565b6040516001600160a01b0390911681526020016100aa565b6004546100c6906001600160a01b031681565b6002546100c6906001600160a01b031681565b6000546100c6906001600160a01b031681565b61015e6101253660046101d7565b600760205260009081526040902080546001820154600283015460038401546004909401546001600160a01b0390931693919290919085565b604080516001600160a01b0390961686526020860194909452928401919091526060830152608082015260a0016100aa565b6003546100c6906001600160a01b031681565b6005546100c6906001600160a01b031681565b600681815481106101c657600080fd5b600091825260209091200154905081565b6000602082840312156101e8578081fd5b503591905056fea2646970667358221220f1adf5192f5a2e56b1d32a22c94538e4be32c86f0ca0ec7ededf10889c61d3d264736f6c63430008040033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
