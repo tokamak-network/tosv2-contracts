@@ -45,7 +45,7 @@ contract TreasuryV1_1 is
 
     event SetClaimPause(bool _pause);
     event SetClaimableStartTime(uint32 _startTime);
-    event Claimed(address account, uint256 tosAMount, uint256 ethAmount);
+    event Claimed(address account, uint256 tosAmount, uint256 ethAmount);
 
     constructor() {
     }
@@ -200,7 +200,7 @@ contract TreasuryV1_1 is
     }
 
     function setClaimableStartTime(uint32 _startTime) external onlyPolicyOwner {
-        require(_startTime > uint32(block.timestamp), "pass time");
+        require(_startTime == 0 || _startTime > uint32(block.timestamp), "pass time");
         require(claimableStartTime != _startTime, "same");
 
         claimableStartTime = _startTime;
@@ -217,6 +217,7 @@ contract TreasuryV1_1 is
         require(ethAmount != 0, "zero claimable eth");
 
         require(tos.burn(msg.sender, tosAmount), "fail tos burn");
+        payable(msg.sender).transfer(ethAmount);
 
         emit Claimed(msg.sender, tosAmount, ethAmount);
     }
