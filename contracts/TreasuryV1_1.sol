@@ -2,8 +2,9 @@
 pragma solidity ^0.8.4;
 
 import "./TreasuryStorage.sol";
-import "./TreasuryV1_1Storage.sol";
 import "./common/ProxyAccessCommon.sol";
+import "./proxy/VaultStorage.sol";
+import "./TreasuryV1_1Storage.sol";
 
 import "./libraries/SafeERC20.sol";
 import "./libraries/LibTreasury.sol";
@@ -35,14 +36,15 @@ interface IIIUniswapV3Pool {
 contract TreasuryV1_1 is
     TreasuryStorage,
     ProxyAccessCommon,
-    TreasuryV1_1Storage,
+    VaultStorage,
     ITreasury,
-    ITreasuryEvent
+    ITreasuryEvent,
+    TreasuryV1_1Storage
 {
     using SafeERC20 for IERC20;
 
     event SetClaimPause(bool _pause);
-    event SetClaimableStartTime(uint256 _startTime);
+    event SetClaimableStartTime(uint32 _startTime);
     event Claimed(address account, uint256 tosAMount, uint256 ethAmount);
 
     constructor() {
@@ -197,8 +199,8 @@ contract TreasuryV1_1 is
         emit SetClaimPause(_pause);
     }
 
-    function setClaimableStartTime(uint256 _startTime) external onlyPolicyOwner {
-        require(_startTime > block.timestamp, "pass time");
+    function setClaimableStartTime(uint32 _startTime) external onlyPolicyOwner {
+        require(_startTime > uint32(block.timestamp), "pass time");
         require(claimableStartTime != _startTime, "same");
 
         claimableStartTime = _startTime;
@@ -209,7 +211,7 @@ contract TreasuryV1_1 is
 
     function claim(uint256 tosAmount) external nonZero(tosAmount) {
         require(!claimPause, "paused");
-        require(claimableStartTime != 0 && claimableStartTime <= block.timestamp, "none claimable time");
+        require(claimableStartTime != 0 && claimableStartTime <= uint32(block.timestamp), "none claimable time");
 
         uint256 ethAmount = claimableEther(tosAmount);
         require(ethAmount != 0, "zero claimable eth");
@@ -226,6 +228,9 @@ contract TreasuryV1_1 is
         if (totalTos != 0) ethAmount_ = address(this).balance * tosAmount / totalTos ;
     }
 
+    // function viewClaimableStartTime() external view returns (uint256) {
+    //     return claimableStartTime;
+    // }
 
     function _addBackingList(address _address) internal
     {
