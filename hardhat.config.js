@@ -34,6 +34,10 @@ module.exports = {
   live: false,
   networks: {
     hardhat: {
+      forking: {
+        url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+        blockNumber: 19217180
+      },
       chainId: 31337,
     },
     local: {
