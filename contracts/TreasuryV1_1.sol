@@ -534,9 +534,4 @@ contract TreasuryV1_1 is
     function isStaker(address account) public override view virtual returns (bool) {
         return permissions[LibTreasury.STATUS.STAKER][account];
     }
-
-    function withdrawEther(address account) external onlyPolicyOwner nonZeroAddress(account) {
-        require(address(this).balance > 0, "zero balance");
-        payable(account).transfer(address(this).balance);
-    }
 }
