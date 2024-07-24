@@ -14,6 +14,7 @@ import "./interfaces/ITreasuryEvent.sol";
 
 // import "hardhat/console.sol";
 
+error PassedTimeError();
 interface IITOSValueCalculator {
 
     function convertAssetBalanceToWethOrTos(address _asset, uint256 _amount)
@@ -200,7 +201,8 @@ contract TreasuryV1_1 is
     }
 
     function setClaimableStartTime(uint32 _startTime) external onlyPolicyOwner {
-        require(_startTime == 0 || _startTime > uint32(block.timestamp), "pass time");
+
+        if (_startTime != 0 && _startTime < uint32(block.timestamp)) revert PassedTimeError();
         require(claimableStartTime != _startTime, "same");
 
         claimableStartTime = _startTime;

@@ -228,10 +228,5 @@ describe("TreasuryV1_1", function () {
 
   })
 
-//   describe("claim", () => {
-//     it("claimableEther", async () => {
-
-//     })
-//   })
 
 });
