@@ -35,10 +35,14 @@ module.exports = {
   networks: {
     hardhat: {
       forking: {
-        url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-        blockNumber: 19217180
+        url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+        blockNumber: 6408330
       },
-      chainId: 31337,
+      // forking: {
+      //   url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      //   blockNumber: 19217180
+      // },
+      // chainId: 31337,
     },
     local: {
       chainId: 31337,
@@ -58,7 +62,7 @@ module.exports = {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts: [`${process.env.TONStarter_Deployer}`],
       // gasMultiplier: 1.25,
-      gasPrice: 5000000000,
+      gasPrice: 8000000000,
     },
     sepolia: {
       url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
