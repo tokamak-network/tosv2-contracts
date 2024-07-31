@@ -57,8 +57,12 @@ module.exports = {
     mainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts: [`${process.env.TONStarter_Deployer}`],
-      gasMultiplier: 1.25,
-      gasPrice: 20000000000,
+      // gasMultiplier: 1.25,
+      gasPrice: 5000000000,
+    },
+    sepolia: {
+      url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts: [`${process.env.PRIVATE_KEY}`,`${process.env.PRIVATE_KEY_2}`,`${process.env.PRIVATE_KEY_3}`],
     },
   },
   localhost: {

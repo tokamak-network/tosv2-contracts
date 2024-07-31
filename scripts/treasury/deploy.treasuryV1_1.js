@@ -13,6 +13,7 @@ async function main() {
     if(chainId == 1) networkName = "mainnet";
     if(chainId == 4) networkName = "rinkeby";
     if(chainId == 5) networkName = "goerli";
+    if(chainId == 11155111) networkName = "sepolia";
 
     let deployInfo = {
         name: "",
@@ -26,6 +27,8 @@ async function main() {
       LibTreasury = "0x45864F1fBFDa1Ddeb62Bbbdc28Fa6A022095E679";
     } else if(chainId == 5) {
       LibTreasury = "0x35f1cc098d14dE8C79806B6A8aDDe56a23fc5f57";
+    } else if(chainId == 11155111) {
+      LibTreasury = "0x0ad659558851f6ba8a8094614303F56d42f8f39A";
     }
 
     let treasuryProxyAbi = require('../../artifacts/contracts/TreasuryProxy.sol/TreasuryProxy.json');
@@ -48,7 +51,7 @@ async function main() {
 
     save(networkName, deployInfo);
 
-    if(chainId == 1 || chainId == 4 || chainId == 5) {
+    if(chainId == 1 || chainId == 4 || chainId == 5 || chainId == 11155111) {
       await run("verify", {
         address: treasuryLogic.address,
         constructorArgsParams: [],
