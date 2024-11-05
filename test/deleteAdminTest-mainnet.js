@@ -18,6 +18,7 @@ const StakingV2ProxyABI = require("../artifacts/contracts/StakingV2Proxy.sol/Sta
 const TreasuryProxyABI = require("../artifacts/contracts/TreasuryProxy.sol/TreasuryProxy.json").abi;
 const TOSABI = require("../abis/TOS.json").abi;
 const StakingV2LogicABI = require("../artifacts/contracts/StakingV2.sol/StakingV2.json").abi;
+const TreasuryLogicV1ABI = require("../artifacts/contracts/TreasuryV1_1.sol/TreasuryV1_1.json").abi;
 
 
 describe("Admin Test(Mainnet)", () => {
@@ -51,9 +52,11 @@ describe("Admin Test(Mainnet)", () => {
     let TreasuryProxy2;
     let TOS;
     let StakingV2Logic;
+    let TreasuryLogicV1;
     
-    let minimumAmount = ethers.utils.parseUnits("1000", 18);
+    let minimumAmount = ethers.utils.parseUnits("100000", 18);
     let user1TOSstaking = ethers.utils.parseUnits("20", 18);    //20TOS staking
+    let claimTOSAmount = ethers.utils.parseUnits("90000", 18);
 
     let stakeIdcheck;
     let ltosAmount;
@@ -220,6 +223,14 @@ describe("Admin Test(Mainnet)", () => {
                 contractAdmin
             )
         })
+
+        it("Set TreasuryLogicV1", async () => {
+            TreasuryLogicV1 = new ethers.Contract(
+                TreasuryProxyAddr,
+                TreasuryLogicV1ABI,
+                contractAdmin
+            )
+        })
     })
 
     describe("remove the authority", () => {
@@ -336,20 +347,22 @@ describe("Admin Test(Mainnet)", () => {
 
         it("Add Stake Test", async () => {
             let user1tosBalance = await TOS.balanceOf(user1.address);
-            console.log("user1tosBalance :",user1tosBalance);
+            // console.log("user1tosBalance :",user1tosBalance);
 
             await TOS.connect(user1).approve(StakingV2Logic.address,user1TOSstaking);
 
             await StakingV2Logic.connect(user1).stake(
                 user1TOSstaking
             )
+            let afteruser1tosBalance = await TOS.balanceOf(user1.address);
+            expect(afteruser1tosBalance).to.be.gt(user1tosBalance)
         })
 
         it("stakingOf view test", async () => {
             stakeIdcheck = await StakingV2Logic.stakingOf(user1.address);
             console.log("stakeId :", stakeIdcheck);
-            console.log("stakeId :", Number(stakeIdcheck[0]));
-            console.log("stakeId :", Number(stakeIdcheck[1]));
+            // console.log("stakeId :", Number(stakeIdcheck[0]));
+            // console.log("stakeId :", Number(stakeIdcheck[1]));
         })
 
         it("balanceOf view test", async () => {
@@ -393,9 +406,9 @@ describe("Admin Test(Mainnet)", () => {
 
         it('increase block time', async function () {
             const block = await ethers.provider.getBlock('latest')
-            console.log(block.timestamp);
+            // console.log(block.timestamp);
             let diffTime = Number(stakeinfo.endTime)-Number(block.timestamp);
-            console.log(diffTime)
+            // console.log(diffTime)
 
             ethers.provider.send("evm_increaseTime", [diffTime+10])
             ethers.provider.send("evm_mine")
@@ -449,12 +462,13 @@ describe("Admin Test(Mainnet)", () => {
             )
         })
 
-        it("stakingOf view test", async () => {
+        it("stakingOf view test", async () => {            
             stakeIdcheck = await StakingV2Logic.stakingOf(user1.address);
             console.log("stakeId :", stakeIdcheck);
             console.log("stakeId :", Number(stakeIdcheck[0]));
             console.log("stakeId :", Number(stakeIdcheck[1]));
             console.log("stakeId :", Number(stakeIdcheck[2]));
+            remainedLtos = await StakingV2Logic.remainedLtos(Number(stakeIdcheck[2]))
         })
 
         it("increaseAmountForSimpleStake revertedWith", async () => {
@@ -465,6 +479,90 @@ describe("Admin Test(Mainnet)", () => {
                     user1TOSstaking
                 )
             ).to.be.revertedWith("it's not simple staking product")
+        })
+
+        it("resetStakeGetStosAfterLock revertedWith", async () => {
+            await expect(
+                StakingV2Logic.connect(user1)["resetStakeGetStosAfterLock(uint256,uint256,uint256)"](
+                    Number(stakeIdcheck[2]),
+                    user1TOSstaking,
+                    1
+                )
+            ).to.be.revertedWith("lock end time has not passed")
+        })
+
+        it("resetStakeGetStosAfterLock2 revertedWith", async () => {
+            await expect(
+                StakingV2Logic.connect(user1)["resetStakeGetStosAfterLock(uint256,uint256,uint256,uint256)"](
+                    Number(stakeIdcheck[2]),
+                    user1TOSstaking,
+                    10,
+                    1
+                )
+            ).to.be.revertedWith("lock end time has not passed")
+        })
+
+        it("increaseBeforeEndOrNonEnd Test", async () => {
+            remainedLtos = await StakingV2Logic.remainedLtos(Number(stakeIdcheck[2]))
+            // console.log("remainedLtos : ", remainedLtos)
+
+            await StakingV2Logic.connect(user1)["increaseBeforeEndOrNonEnd(uint256,uint256)"](
+                Number(stakeIdcheck[2]),
+                user1TOSstaking
+            )
+            let afterremainedLtos = await StakingV2Logic.remainedLtos(Number(stakeIdcheck[2]))
+            // console.log("afterremainedLtos : ", afterremainedLtos)
+            expect(afterremainedLtos).to.be.gt(remainedLtos)
+        })
+
+        it("increaseBeforeEndOrNonEnd2 Test", async () => {
+            remainedLtos = await StakingV2Logic.remainedLtos(Number(stakeIdcheck[2]))
+            // console.log("remainedLtos : ", remainedLtos)
+            stakeinfo = await StakingV2Logic.stakeInfo(Number(stakeIdcheck[2]))
+            // console.log("stakeinfo.endTime :", stakeinfo.endTime);
+            
+            await TOS.connect(user1).approve(StakingV2Logic.address,user1TOSstaking);
+            await StakingV2Logic.connect(user1)["increaseBeforeEndOrNonEnd(uint256,uint256,uint256)"](
+                Number(stakeIdcheck[2]),
+                user1TOSstaking,
+                1
+            )
+            let afterremainedLtos = await StakingV2Logic.remainedLtos(Number(stakeIdcheck[2]))
+            // console.log("afterremainedLtos : ", afterremainedLtos)
+            let afterstakeinfo = await StakingV2Logic.stakeInfo(Number(stakeIdcheck[2]))
+            // console.log("stakeinfo.endTime :", afterstakeinfo.endTime);
+            expect(afterremainedLtos).to.be.gt(remainedLtos)
+            expect(afterstakeinfo.endTime).to.be.gt(stakeinfo.endTime)
+        })
+
+
+        it('increase block time', async function () {
+            stakeinfo = await StakingV2Logic.stakeInfo(Number(stakeIdcheck[2]))
+            const block = await ethers.provider.getBlock('latest')
+            // console.log(block.timestamp);
+            let diffTime = Number(stakeinfo.endTime)-Number(block.timestamp);
+            // console.log(diffTime)
+
+            ethers.provider.send("evm_increaseTime", [diffTime+10])
+            ethers.provider.send("evm_mine")
+        });
+
+        it("claimForSimpleType revertedWith", async () => {
+            await expect(
+                StakingV2Logic.connect(user1).claimForSimpleType(
+                    Number(stakeIdcheck[2]),
+                    remainedLtos
+                )
+            ).to.be.revertedWith("this is for non-lock product.")
+        })
+
+        it("TOS Claim", async () => {
+            let beforeETH = await ethers.provider.getBalance(user1.address)
+            await TreasuryLogicV1.connect(user1).claim(
+                claimTOSAmount
+            )
+            let afterETH = await ethers.provider.getBalance(user1.address)
+            expect(afterETH).to.be.gt(beforeETH)
         })
 
 
