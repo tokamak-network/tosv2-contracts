@@ -35,9 +35,13 @@ module.exports = {
   networks: {
     hardhat: {
       forking: {
-        url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
-        blockNumber: 6408330
+        url: `${process.env.ETH_NODE_URI_MAINNET}`,
+        blockNumber: 21077756
       },
+      // forking: {
+      //   url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      //   blockNumber: 6408330
+      // },
       // forking: {
       //   url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
       //   blockNumber: 19217180
