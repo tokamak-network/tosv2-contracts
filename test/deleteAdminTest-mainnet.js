@@ -57,6 +57,7 @@ describe("Admin Test(Mainnet)", () => {
     let minimumAmount = ethers.utils.parseUnits("100000", 18);
     let user1TOSstaking = ethers.utils.parseUnits("20", 18);    //20TOS staking
     let claimTOSAmount = ethers.utils.parseUnits("90000", 18);
+    let relockAmount = ethers.utils.parseUnits("60", 18);
 
     let stakeIdcheck;
     let ltosAmount;
@@ -355,7 +356,8 @@ describe("Admin Test(Mainnet)", () => {
                 user1TOSstaking
             )
             let afteruser1tosBalance = await TOS.balanceOf(user1.address);
-            expect(afteruser1tosBalance).to.be.gt(user1tosBalance)
+            // console.log("afteruser1tosBalance :",afteruser1tosBalance);
+            expect(user1tosBalance).to.be.gt(afteruser1tosBalance)
         })
 
         it("stakingOf view test", async () => {
@@ -464,7 +466,7 @@ describe("Admin Test(Mainnet)", () => {
 
         it("stakingOf view test", async () => {            
             stakeIdcheck = await StakingV2Logic.stakingOf(user1.address);
-            console.log("stakeId :", stakeIdcheck);
+            // console.log("stakeId :", stakeIdcheck);
             console.log("stakeId :", Number(stakeIdcheck[0]));
             console.log("stakeId :", Number(stakeIdcheck[1]));
             console.log("stakeId :", Number(stakeIdcheck[2]));
@@ -547,6 +549,58 @@ describe("Admin Test(Mainnet)", () => {
             ethers.provider.send("evm_mine")
         });
 
+        it("resetStakeGetStosAfterLock Test", async () => {
+            remainedLtos = await StakingV2Logic.remainedLtos(Number(stakeIdcheck[2]))
+            
+            await TOS.connect(user1).approve(StakingV2Logic.address,user1TOSstaking);
+            await StakingV2Logic.connect(user1)["resetStakeGetStosAfterLock(uint256,uint256,uint256)"](
+                Number(stakeIdcheck[2]),
+                user1TOSstaking,
+                1
+            )
+
+            let afterRemainedLtos = await StakingV2Logic.remainedLtos(Number(stakeIdcheck[2]))
+            expect(afterRemainedLtos).to.be.gt(remainedLtos)
+        })
+
+        it('increase block time', async function () {
+            stakeinfo = await StakingV2Logic.stakeInfo(Number(stakeIdcheck[2]))
+            const block = await ethers.provider.getBlock('latest')
+            // console.log(block.timestamp);
+            let diffTime = Number(stakeinfo.endTime)-Number(block.timestamp);
+            // console.log(diffTime)
+
+            ethers.provider.send("evm_increaseTime", [diffTime+10])
+            ethers.provider.send("evm_mine")
+        });
+
+        it("resetStakeGetStosAfterLock2 Test", async () => {
+            remainedLtos = await StakingV2Logic.remainedLtos(Number(stakeIdcheck[2]))
+            console.log("remainedLtos:", remainedLtos)
+            
+            await TOS.connect(user1).approve(StakingV2Logic.address,user1TOSstaking);
+            await StakingV2Logic.connect(user1)["resetStakeGetStosAfterLock(uint256,uint256,uint256,uint256)"](
+                Number(stakeIdcheck[2]),
+                user1TOSstaking,
+                relockAmount,
+                1
+            )
+
+            let afterRemainedLtos = await StakingV2Logic.remainedLtos(Number(stakeIdcheck[2]))
+            expect(afterRemainedLtos).to.be.gt(remainedLtos)
+        })
+
+        it('increase block time', async function () {
+            stakeinfo = await StakingV2Logic.stakeInfo(Number(stakeIdcheck[2]))
+            const block = await ethers.provider.getBlock('latest')
+            // console.log(block.timestamp);
+            let diffTime = Number(stakeinfo.endTime)-Number(block.timestamp);
+            // console.log(diffTime)
+
+            ethers.provider.send("evm_increaseTime", [diffTime+10])
+            ethers.provider.send("evm_mine")
+        });
+
         it("claimForSimpleType revertedWith", async () => {
             await expect(
                 StakingV2Logic.connect(user1).claimForSimpleType(
@@ -556,13 +610,41 @@ describe("Admin Test(Mainnet)", () => {
             ).to.be.revertedWith("this is for non-lock product.")
         })
 
+        it("unstake Test after Lock", async () => {
+            let beforeTOS = await TOS.balanceOf(user1.address)
+            await StakingV2Logic.connect(user1).unstake(
+                Number(stakeIdcheck[2])
+            )
+            let afterTOS = await TOS.balanceOf(user1.address)
+            remainedLtos = await StakingV2Logic.remainedLtos(Number(stakeIdcheck[1]))
+            // console.log("remainedLtos after unstake:", remainedLtos);
+            expect(Number(remainedLtos)).to.be.equal(0)
+            expect(afterTOS).to.be.gt(beforeTOS)
+        })
+
+
+        it("runwayTOS check", async () => {
+            let runwayTosValue = await StakingV2Logic.runwayTos()
+            // console.log("runwayTosValue :", runwayTosValue)
+        })
+
         it("TOS Claim", async () => {
+            let getETH = await TreasuryLogicV1.claimableEther(claimTOSAmount)
+            // console.log("getETH : ", getETH);
             let beforeETH = await ethers.provider.getBalance(user1.address)
             await TreasuryLogicV1.connect(user1).claim(
                 claimTOSAmount
             )
             let afterETH = await ethers.provider.getBalance(user1.address)
             expect(afterETH).to.be.gt(beforeETH)
+            expect(getETH).to.be.gt(0)
+        })
+
+        //rebaseIndex가 이자가 소진된 후에 더이상 값이 증가안하는지 확인
+
+        it("runwayTOS check1", async () => {
+            let runwayTosValue = await StakingV2Logic.runwayTos()
+            console.log("runwayTosValue :", runwayTosValue)
         })
 
 
