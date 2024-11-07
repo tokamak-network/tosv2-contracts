@@ -597,6 +597,39 @@ contract StakingV2 is
         emit Unstaked(msg.sender, amount, _stakeId);
     }
 
+    function forceUnstake(
+        uint256 _stakeId
+    )   public 
+        nonZero(_stakeId)
+    {
+        LibStaking.UserBalance storage _stakeInfo = allStakings[_stakeId];
+        address staker = _stakeInfo.staker;
+        // require(_stakeInfo.staker == msg.sender, "caller is not staker.");
+        require(_stakeInfo.endTime < block.timestamp, "end time hasn't passed.");
+
+        rebaseIndex();
+
+        uint256 amount = getLtosToTos(_stakeInfo.ltos);
+        require(amount > 0, "zero claimable amount");
+
+        if (amount < _stakeInfo.deposit) amount = _stakeInfo.deposit;
+
+        stakingPrincipal -= _stakeInfo.deposit;
+        totalLtos -= _stakeInfo.ltos;
+
+        uint256 _userStakeIdIndex  = _deleteUserStakeId(_stakeInfo.staker, _stakeId);
+        _deleteStakeId(_stakeId, _userStakeIdIndex) ;
+
+        // if (connectId[_stakeId] > 0) {
+        //     ILockTosV2(lockTOS).withdrawByStaker(_stakeInfo.staker, connectId[_stakeId]);
+        //     delete connectId[_stakeId];
+        // }
+
+        IITreasury(treasury).requestTransfer(staker, amount);
+
+        emit Unstaked(_stakeInfo.staker, amount, _stakeId);
+    }
+
     /// @inheritdoc IStaking
     function multiUnstake(
         uint256[] calldata _stakeIds
