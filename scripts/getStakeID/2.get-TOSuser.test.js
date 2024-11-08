@@ -6,6 +6,7 @@ const { ethers, upgrades } = require("hardhat");
 // const DepositManagerABI = require("../../abis/DepositManager.json").abi;
 
 const StakingV2ABI = require("../../artifacts/contracts/StakingV2.sol/StakingV2.json").abi;
+const TOSABI = require("../../abis/TOS.json").abi;
 
 
 const stakeContract1 = "0x9a8294566960Ab244d78D266FFe0f284cDf728F1";
@@ -27,11 +28,12 @@ const Vault = "0xf04f6a6d6115d8400d18eca99bdee67abb498a7b";
 const StakingV2 = "0x14fb0933Ec45ecE75A431D10AFAa1DDF7BfeE44C"
 
 let stakers = [];
-let stakeInfos = []
+let unstakers = [];
+// let stakeInfos = []
 
 let stakeId = [];
 let unstakeId = [];
-let remainStakeId = [];
+// let remainStakeId = [];
 
 async function main() {
 
@@ -43,13 +45,13 @@ async function getData() {
     // const contract = await ethers.getContractAt(StakeSimpleABI, contractAddress, ethers.provider);
 
     // const TONContract = await ethers.getContractAt(Erc20ABI, TON, ethers.provider);
-    // const TOSContract = await ethers.getContractAt(Erc20ABI, TOS, ethers.provider);
+    const TOSContract = await ethers.getContractAt(TOSABI, TOS, ethers.provider);
     // const WTONContract = await ethers.getContractAt(Erc20ABI, WTON, ethers.provider);
     // const SeigManagerContract = await ethers.getContractAt(SeigManagerABI, SeigManager, ethers.provider);
     // const DepositManagerContract = await ethers.getContractAt(DepositManagerABI, DepositManager, ethers.provider);
     
     const StakingV2Contract = await ethers.getContractAt(StakingV2ABI, StakingV2, ethers.provider);
-    console.log("StakingV2Contract : ", StakingV2Contract.address);
+    // console.log("StakingV2Contract : ", StakingV2Contract.address);
     // console.log( 'contract ', contract.address);
     // let balance = await TONContract.balanceOf(contract.address);
     // console.log( 'TON balanceOf ', balance.toString());
@@ -85,11 +87,6 @@ async function getData() {
         let checkBalance = await StakingV2Contract.stakedOf(i)
         if (checkBalance != 0){
             stakeId.push(i)
-            // console.log(i)
-            if(stakeId.length == 10) {
-                console.log(stakeId);
-                stakeId = [];
-            }
         } else if (checkBalance == 0) {
             unstakeId.push(i)
         }
@@ -100,41 +97,70 @@ async function getData() {
     console.log("----------------------")
     console.log(unstakeId)
 
-    stakeId = [
-        3,  5,  8, 13, 14, 15, 16, 18, 20, 21,
-        23, 25, 28, 30, 32, 33, 35, 36, 37, 38,
-        39, 41, 43, 44, 45, 46, 48, 56, 57, 61,
-        62, 63, 64, 66, 67, 68, 74, 76, 77, 79,
-        81, 82, 86, 87, 88, 90, 91, 92, 94, 95,
-        97, 101, 102, 103, 106, 107, 109, 113, 115, 116,
-        117, 119, 120, 124, 126, 130, 131, 133, 134, 135,
-        136, 138, 140, 141, 146, 147, 149, 151, 152, 154,
-        156, 158, 160, 161, 162, 163, 165, 168, 172, 174,
-        175, 176, 177, 180, 182, 183, 185, 186, 188, 189,
-        191, 193, 194, 196, 197, 199, 200, 201, 203, 204,
-        205, 213, 217, 218, 220, 222, 223, 224, 229, 230,
-        231, 233, 235, 239, 242, 246, 249, 252, 256, 258,
-        260, 262, 264, 265, 267, 271, 272, 274, 275, 277,
-        279, 281, 283, 284, 286, 288, 289, 291, 294, 296,
-        301, 302, 303, 305, 307, 308, 310, 312, 313, 316,
-        318, 320, 324, 328, 329, 330, 332, 334, 336, 337,
-        338, 340, 341, 343, 344, 346, 347, 349, 351, 352,
-        354, 356, 358, 360, 362, 364, 365, 367, 368, 370,
-        372, 374, 375, 378, 383, 384, 386, 388, 389, 391,
-        393, 395, 403, 406, 407, 409, 411, 415, 417, 419,
-        421, 423, 425, 427, 429, 431, 433, 435, 437, 438,
-        440, 441, 443, 445, 447, 449, 451, 453, 455, 457,
-        459, 461, 463, 465, 466, 467, 468, 469, 470, 471,
-        473, 475, 477, 479, 482, 484, 486, 488, 490, 492,
-        494, 498, 500, 502, 504, 506, 508, 510, 512, 516,
-        518, 520, 522, 523, 524, 525, 527, 529, 531, 533,
-        535, 537, 539, 541, 543, 545, 547, 549, 550, 552,
-        554, 556, 557, 558, 559, 561, 563, 564, 565, 566,
-        567, 691, 692, 693, 694, 696, 705, 729, 736, 737,
-        738, 741, 744, 745, 747, 748, 753, 754, 755, 757,
-        758, 759, 771, 772, 774, 775, 776, 777, 779, 780,
-        782, 785
-    ]
+    for(let j = 0; j < stakeId.length; j++) {
+      let stakeInfo = await StakingV2Contract.stakeInfo(stakeId[j])
+      stakers.push(stakeInfo.staker)
+      if(stakers.length == 30) {
+        console.log(stakers)
+        stakers = [];
+      }
+
+    }
+
+    console.log(stakers)
+
+    // for(let l = 0; l < unstakeId.length; l++) {
+    //   let stakeInfo = await StakingV2Contract.stakeInfo(unstakeId[l])
+    //   let TOSBalance = await TOSContract.balanceOf(stakeInfo.staker);
+    //   if (TOSBalance > 0) {
+    //     console.log(TOSBalance);
+    //     console.log(unstakeId[l]);
+    //     unstakers.push(stakeInfo.staker)
+    //   }
+    // }
+    
+    
+
+    // console.log(stakers)
+    // console.log(unstakers)
+
+
+
+    // stakeId = [
+    //     3,  5,  8, 13, 14, 15, 16, 18, 20, 21,
+    //     23, 25, 28, 30, 32, 33, 35, 36, 37, 38,
+    //     39, 41, 43, 44, 45, 46, 48, 56, 57, 61,
+    //     62, 63, 64, 66, 67, 68, 74, 76, 77, 79,
+    //     81, 82, 86, 87, 88, 90, 91, 92, 94, 95,
+    //     97, 101, 102, 103, 106, 107, 109, 113, 115, 116,
+    //     117, 119, 120, 124, 126, 130, 131, 133, 134, 135,
+    //     136, 138, 140, 141, 146, 147, 149, 151, 152, 154,
+    //     156, 158, 160, 161, 162, 163, 165, 168, 172, 174,
+    //     175, 176, 177, 180, 182, 183, 185, 186, 188, 189,
+    //     191, 193, 194, 196, 197, 199, 200, 201, 203, 204,
+    //     205, 213, 217, 218, 220, 222, 223, 224, 229, 230,
+    //     231, 233, 235, 239, 242, 246, 249, 252, 256, 258,
+    //     260, 262, 264, 265, 267, 271, 272, 274, 275, 277,
+    //     279, 281, 283, 284, 286, 288, 289, 291, 294, 296,
+    //     301, 302, 303, 305, 307, 308, 310, 312, 313, 316,
+    //     318, 320, 324, 328, 329, 330, 332, 334, 336, 337,
+    //     338, 340, 341, 343, 344, 346, 347, 349, 351, 352,
+    //     354, 356, 358, 360, 362, 364, 365, 367, 368, 370,
+    //     372, 374, 375, 378, 383, 384, 386, 388, 389, 391,
+    //     393, 395, 403, 406, 407, 409, 411, 415, 417, 419,
+    //     421, 423, 425, 427, 429, 431, 433, 435, 437, 438,
+    //     440, 441, 443, 445, 447, 449, 451, 453, 455, 457,
+    //     459, 461, 463, 465, 466, 467, 468, 469, 470, 471,
+    //     473, 475, 477, 479, 482, 484, 486, 488, 490, 492,
+    //     494, 498, 500, 502, 504, 506, 508, 510, 512, 516,
+    //     518, 520, 522, 523, 524, 525, 527, 529, 531, 533,
+    //     535, 537, 539, 541, 543, 545, 547, 549, 550, 552,
+    //     554, 556, 557, 558, 559, 561, 563, 564, 565, 566,
+    //     567, 691, 692, 693, 694, 696, 705, 729, 736, 737,
+    //     738, 741, 744, 745, 747, 748, 753, 754, 755, 757,
+    //     758, 759, 771, 772, 774, 775, 776, 777, 779, 780,
+    //     782, 785
+    // ]
 
 
 
