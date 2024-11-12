@@ -1157,6 +1157,11 @@ describe("Admin Test(Mainnet)", () => {
             }
         })
 
+        it("Treasury ETH Balance Check", async () => {
+            let ETHBalance = await ethers.provider.getBalance(TreasuryLogicV1.address)
+            console.log("Treasury ETHBalance : ", ETHBalance)
+        })
+
 
 
     })
